@@ -11,7 +11,7 @@ use Email::Sender::Simple qw(sendmail);
 sub submitted {
     my ($self, $c, $form) = @_;
 
-    my $xml = $c->stash->{'xml'};
+    my $xml = $c->model('ResponseXML')->dom;
     my $xpc = $c->xpc;
     my ($rcpt_to) = map { $_->textContent } $xpc->findnodes('w:rcpt-to',$form);
     die 'no email provided' unless $rcpt_to;
