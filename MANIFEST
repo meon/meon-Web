@@ -1,0 +1,25 @@
+Build.PL
+etc/meon/web-config.ini
+etc/meon/web-log4perl.conf
+lib/meon/Web.pm
+lib/meon/Web/Config.pm
+lib/meon/Web/Controller/Members.pm
+lib/meon/Web/Controller/Root.pm
+lib/meon/Web/Form/Login.pm
+lib/meon/Web/Form/Process/SendEmail.pm
+lib/meon/Web/Model/ResponseXML.pm
+lib/meon/Web/ResponseXML.pm
+lib/meon/Web/SPc.pm
+lib/meon/Web/View/XSLT.pm
+MANIFEST			This list of files
+META.json
+META.yml
+README
+script/meon-web.psgi
+script/run_meon-web
+script/run_meon-web_devel
+share/meon-web/template/xsl/debug.xsl
+srv/www/meon-web/localhost/content/index.xml
+srv/www/meon-web/localhost/template/xsl/default.xsl
+srv/www/meon-web/localhost/template/xsl/lib/html-page.xsl
+var/lib/meon-web/global-members/.exists
