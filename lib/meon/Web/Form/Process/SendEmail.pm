@@ -7,9 +7,13 @@ use 5.010;
 use List::MoreUtils 'uniq';
 use Email::MIME;
 use Email::Sender::Simple qw(sendmail);
+use Data::Dumper;
 
 sub submitted {
     my ($self, $c, $form) = @_;
+
+    $c->log->debug(__PACKAGE__.' '.Data::Dumper::Dumper({$c->req->param}))
+        if $c->debug;
 
     my $xml = $c->model('ResponseXML')->dom;
     my $xpc = $c->xpc;
@@ -30,7 +34,7 @@ sub submitted {
     my @args;
     foreach my $input_name (@input_names) {
         my $input_value = $c->req->param($input_name) // '';
-        return unless length $input_value;
+        next unless length $input_value;
         push(@args, [ $input_name => $input_value ]);
         $email_content .= $input_name.': '.$input_value."\n";    # FIXME use Data::Header::Fields
     }

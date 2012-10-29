@@ -44,6 +44,7 @@ my $builder = Module::Build::SysPath->new(
         'Catalyst::Plugin::Unicode::Encoding' => 0,
         'Catalyst::Plugin::SmartURI'       => 0,
         'Config::INI::Reader'              => 0,
+        'Data::Dumper'                     => 0,
     },
     script_files => [qw(
         script/meon-web.psgi
