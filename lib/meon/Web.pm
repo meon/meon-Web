@@ -5,6 +5,8 @@ use namespace::autoclean;
 use Path::Class 'file', 'dir';
 use meon::Web::SPc;
 
+use Catalyst::Plugin::Authentication::Store::UserXML 0.02;
+
 use Catalyst::Runtime 5.80;
 use Catalyst qw(
     ConfigLoader
@@ -27,7 +29,8 @@ __PACKAGE__->config(
     'root' => dir(meon::Web::SPc->datadir, 'meon', 'web', 'www'),
     'authentication' => {
         'userxml' => {
-            'folder' => dir(meon::Web::SPc->sharedstatedir, 'meon-web', 'global-members'),
+            'folder'           => dir(meon::Web::SPc->sharedstatedir, 'meon-web', 'global-members'),
+            'user_folder_file' => 'index.xml',
         }
     },
     'Plugin::Authentication' => {

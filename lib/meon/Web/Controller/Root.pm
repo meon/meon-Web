@@ -34,7 +34,7 @@ sub auto : Private {
     $c->stash->{template} = $template_file;
 
     $c->default_auth_store->folder(
-        dir($hostname_folder, 'members')
+        dir($hostname_folder, 'content', 'members')
     );
 
     return 1;
