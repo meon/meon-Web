@@ -148,9 +148,10 @@ sub status_not_found : Private {
 sub logout : Local {
     my ( $self, $c ) = @_;
 
-    my $username = $c->user->username;
+    my $username = eval { $c->user->username };
     $c->delete_session;
-    $c->log->info('logout user '.$username);
+    $c->log->info('logout user '.$username)
+        if $username;
     return $c->res->redirect($c->uri_for('/'));
 }
 

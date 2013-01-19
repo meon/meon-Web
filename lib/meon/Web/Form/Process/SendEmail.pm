@@ -12,7 +12,7 @@ use Data::Dumper;
 sub submitted {
     my ($self, $c, $form) = @_;
 
-    $c->log->debug(__PACKAGE__.' '.Data::Dumper::Dumper({$c->req->param}))
+    $c->log->debug(__PACKAGE__.' '.Data::Dumper::Dumper($c->req->params))
         if $c->debug;
 
     my $xml = $c->model('ResponseXML')->dom;
