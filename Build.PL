@@ -47,6 +47,7 @@ my $builder = Module::Build::SysPath->new(
         'Data::Dumper'                     => 0,
         'JSON::XS'                         => 0,
         'Class::Load'                      => 0,
+        'Text::Unidecode'                  => 0,
     },
     script_files => [qw(
         script/meon-web.psgi
