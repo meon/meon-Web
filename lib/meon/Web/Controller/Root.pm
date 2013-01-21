@@ -9,6 +9,7 @@ use File::MimeInfo;
 use XML::LibXML 1.70;
 use URI::Escape 'uri_escape';
 use IO::Any;
+use Class::Load 'load_class';
 
 use meon::Web::Form::Process::SendEmail;
 use meon::Web::Form::Login;
@@ -95,6 +96,7 @@ sub resolve_xml : Private {
     my ($form) = $xpc->findnodes('/w:page/w:meta/w:form',$dom);
     if ($form) {
         my ($process) = 'meon::Web::Form::Process::'.$xpc->findnodes('//w:process', $form);
+        load_class($process);
         $process->submitted($c, $form)
             if $c->req->method eq 'POST';
     }

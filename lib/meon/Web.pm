@@ -52,6 +52,11 @@ __PACKAGE__->config(
         ],
         TEMPLATE_EXTENSION => '.xsl',
     },
+    'View::JSON' => {
+        allow_callback  => 1,
+        callback_param  => 'cb',
+        expose_stash    => 'json',
+    },
 );
 
 __PACKAGE__->setup();
@@ -74,6 +79,14 @@ sub xpc {
     $xpc->registerNs('x', 'http://www.w3.org/1999/xhtml');
     $xpc->registerNs('w', 'http://web.meon.eu/');
     return $xpc;
+}
+
+sub json_reply {
+    my ( $c, $json_data ) = @_;
+
+    $c->res->header('X-Ajax-Controller',1);
+    $c->stash->{json} = $json_data;
+    $c->detach('View::JSON');
 }
 
 1;
