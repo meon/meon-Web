@@ -19,17 +19,56 @@ BEGIN {
     use_ok ( 'meon::Web::Member' ) or exit;
 }
 
+my $tmp_dir = tempdir( CLEANUP => 1 );
+dir($tmp_dir, 'usr01')->mkpath;
+
 exit main();
 
 sub main {
     register_user();
+    find_user_by_email();
+    reset_password();
     return 0;
 }
 
-sub register_user {
-    my $tmp_dir = tempdir( CLEANUP => 1 );
-    dir($tmp_dir, 'usr01')->mkpath;
+sub reset_password {
+    my $member = meon::Web::Member->find_by_email(
+        members_folder => $tmp_dir,
+        email          => 'email@email.email',
+    );
+    ok($member, 'found member by email');
+    $member->set_token;
 
+    my $token_string = $member->get_member_meta('token');
+
+    my $member2 = meon::Web::Member->find_by_token(
+        members_folder => $tmp_dir,
+        token          => $token_string,
+    );
+    ok($member2, 're-found member by token '.$token_string);
+    ok(!$member2->valid_token($token_string), 'invalid token after usage');
+
+    $member->set_token;
+    $token_string = $member->get_member_meta('token');
+    $member2->set_member_meta('token-valid',DateTime->now->subtract(hours => 4));
+    ok(!$member2->valid_token($token_string), 'no more valid token');
+}
+
+sub find_user_by_email {
+    my $non_existing_member = meon::Web::Member->find_by_email(
+        members_folder => $tmp_dir,
+        email          => 'non-existing@email.email',
+    );
+    ok(!$non_existing_member, 'not found member by email');
+
+    my $member = meon::Web::Member->find_by_email(
+        members_folder => $tmp_dir,
+        email          => 'email@email.email',
+    );
+    ok($member, 'found member by email');
+}
+
+sub register_user {
     my $member = meon::Web::Member->new(
         members_folder => $tmp_dir,
         username       => 'usr01',

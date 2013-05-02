@@ -5,7 +5,13 @@ use 5.010;
 
 use Path::Class 'file', 'dir';
 use DateTime;
-use XML::LibXML;
+use XML::LibXML 'XML_TEXT_NODE';
+use Email::Valid;
+use Carp 'croak';
+use meon::Web::ResponseXML;
+use DateTime::Format::Strptime;
+use Data::UUID::LibUUID 'new_uuid_string';
+use Email::Sender::Simple qw(sendmail);
 
 has 'members_folder' => (is=>'rw',isa=>'Any',required=>1);
 has 'username'       => (is=>'rw',isa=>'Str',required=>1);
@@ -37,10 +43,50 @@ sub set_member_meta {
     my $xc = XML::LibXML::XPathContext->new($meta);
     $xc->registerNs('w', 'http://web.meon.eu/');
     my ($element) = $xc->findnodes('//w:'.$name);
-    foreach my $child ($element->childNodes()) {
-        $element->removeChild($child);
+
+    if ($element) {
+        foreach my $child ($element->childNodes()) {
+            $element->removeChild($child);
+        }
+        $element->appendText($value);
     }
-    $element->appendText($value);
+    else {
+        my ($meta_element) = $xc->findnodes('/w:page/w:meta');
+        $meta_element->appendText(q{ }x4);
+        $element = $meta_element->addNewChild($meta_element->namespaceURI,$name);
+        $element->appendText($value);
+        $meta_element->appendText("\n");
+    }
+}
+
+sub get_member_meta {
+    my ($self, $name) = @_;
+
+    my $meta = $self->member_meta;
+    my $xc = XML::LibXML::XPathContext->new($meta);
+    $xc->registerNs('w', 'http://web.meon.eu/');
+    my ($element) = $xc->findnodes('//w:'.$name);
+    return ($element ? $element->textContent : undef);
+}
+
+sub delete_member_meta {
+    my ($self, $name) = @_;
+
+    my $meta = $self->member_meta;
+    my $xc = XML::LibXML::XPathContext->new($meta);
+    $xc->registerNs('w', 'http://web.meon.eu/');
+    my ($element) = $xc->findnodes('//w:'.$name);
+    return unless $element;
+
+    map { $meta->removeChild($_) }
+    grep { $_->nodeType == XML_TEXT_NODE }
+    grep { $_ }
+    ($element->previousSibling(), $element->nextSibling());
+
+    $meta->removeChild($element);
+    $meta->appendText("\n");
+
+    return $element;
 }
 
 sub create {
@@ -109,6 +155,151 @@ sub store {
     my $xml = $self->xml;
     $filename->spew($xml->toString);
 }
+
+sub _find_by_callback {
+    my ($class, %args) = @_;
+
+    my $members_folder = $args{members_folder};
+    croak 'need members_folder as argument'
+        unless $members_folder;
+    $members_folder = dir($members_folder);
+    my $callback = $args{callback};
+    croak 'need callback as argument'
+        unless $members_folder;
+
+    foreach my $member_folder ($members_folder->children) {
+        my $username = $member_folder->basename;
+        my $member = meon::Web::Member->new(
+            members_folder => $members_folder,
+            username       => $username,
+        );
+        next unless -r $member->member_index_filename;
+        return $member
+            if $callback->($member);
+    }
+
+    return;
+}
+
+sub find_by_email {
+    my ($class, %args) = @_;
+
+    my $members_folder = $args{members_folder};
+    croak 'need members_folder as argument'
+        unless $members_folder;
+    $members_folder = dir($members_folder);
+    my $email = $args{email};
+    croak 'need email as argument'
+        unless $members_folder;
+
+    return $class->_find_by_callback(
+        members_folder => $members_folder,
+        callback       => sub {
+            return 1 if $_[0]->plain_email eq $email;
+        },
+    );
+}
+
+sub find_by_token {
+    my ($class, %args) = @_;
+
+    my $members_folder = $args{members_folder};
+    croak 'need members_folder as argument'
+        unless $members_folder;
+    $members_folder = dir($members_folder);
+    my $token = $args{token};
+    croak 'need token as argument'
+        unless $members_folder;
+
+    return $class->_find_by_callback(
+        members_folder => $members_folder,
+        callback       => sub {
+            return 1 if $_[0]->valid_token($token);
+        },
+    );
+}
+
+sub email {
+    my $self = shift;
+    return $self->get_member_meta('email');
+}
+
+sub plain_email {
+    my $self = shift;
+    return Email::Valid->address($self->get_member_meta('email')).'';
+}
+
+sub valid_token {
+    my ($self, $token) = @_;
+    return unless $token;
+
+    my $member_token = $self->get_member_meta('token');
+    return unless $member_token;
+
+    my $valid_until = DateTime::Format::Strptime->new(
+        pattern   => '%FT%T',
+    )->parse_datetime($self->get_member_meta('token-valid'));
+    return unless $valid_until;
+    return unless DateTime->now < $valid_until;
+
+    return 0 unless $token eq $member_token;
+
+    $self->delete_member_meta('token');
+    $self->delete_member_meta('token-valid');
+    $self->store;
+
+    return 1;
+}
+
+sub set_token {
+    my ($self, $hours) = @_;
+
+    $hours //= 4;
+    my $token = new_uuid_string(4);
+    my $token_valid = DateTime->now->add(hours => $hours);
+
+    $self->set_member_meta('token',$token);
+    $self->set_member_meta('token-valid',$token_valid);
+    $self->store;
+    return $token;
+}
+
+sub send_password_reset {
+    my ($self, $from, $change_pw_url) = @_;
+
+    croak 'need from' unless $from;
+    croak 'need change_pw_url' unless $change_pw_url;
+
+    my $token = $self->set_token;
+    $change_pw_url->query_param('auth-token' => $token);
+    $change_pw_url = $change_pw_url->absolute;
+
+    my $display_name  = $self->get_member_meta('full-name') // 'Madam or Sir';
+    my $body = qq{Dear $display_name,
+
+here is your one-time authentication token url for resetting your password:
+
+$change_pw_url
+
+Best regards
+Support team
+};
+    my $email = Email::MIME->create(
+        header_str => [
+            From    => $from,
+            To      => $self->email,
+            Subject => 'Eusahub password reset',
+        ],
+        attributes => {
+            content_type => "text/plain",
+            charset      => "UTF-8",
+            encoding     => "8bit",
+        },
+        body_str => $body,
+    );
+    sendmail($email->as_string);
+}
+
 
 __PACKAGE__->meta->make_immutable;
 

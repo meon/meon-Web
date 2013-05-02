@@ -12,8 +12,13 @@ use meon::Web::Util;
 use meon::Web::Member;
 use Path::Class 'dir';
 
+sub get_form {
+    my ($self, $c) = @_;
+    return;
+}
+
 sub submitted {
-    my ($self, $c, $form) = @_;
+    my ($self, $c, $form_config) = @_;
 
     $c->log->debug(__PACKAGE__.' '.Data::Dumper::Dumper($c->req->params))
         if $c->debug;
@@ -31,11 +36,11 @@ sub submitted {
 
     my $xml = $c->model('ResponseXML')->dom;
     my $xpc = $c->xpc;
-    my ($rcpt_to) = map { $_->textContent } $xpc->findnodes('w:rcpt-to',$form);
+    my ($rcpt_to) = map { $_->textContent } $xpc->findnodes('w:rcpt-to',$form_config);
     die 'no email provided' unless $rcpt_to;
-    my ($subject) = map { $_->textContent } $xpc->findnodes('w:subject',$form);
+    my ($subject) = map { $_->textContent } $xpc->findnodes('w:subject',$form_config);
     die 'no subject provided' unless $subject;
-    my ($redirect) = map { $_->textContent } $xpc->findnodes('w:redirect',$form);
+    my ($redirect) = map { $_->textContent } $xpc->findnodes('w:redirect',$form_config);
     die 'no redirect provided' unless $redirect;
     my $email_content = '';
 

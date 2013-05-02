@@ -48,6 +48,10 @@ my $builder = Module::Build::SysPath->new(
         'JSON::XS'                         => 0,
         'Class::Load'                      => 0,
         'Text::Unidecode'                  => 0,
+        'Data::UUID::LibUUID'              => 0,
+        'DateTime::Format::Strptime'       => 0,
+        'Email::Valid'                     => 0,
+        'Email::Sender::Simple'            => 0,
     },
     script_files => [qw(
         script/meon-web.psgi

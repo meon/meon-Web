@@ -13,6 +13,7 @@ use Class::Load 'load_class';
 
 use meon::Web::Form::Process::SendEmail;
 use meon::Web::Form::Login;
+use meon::Web::Member;
 
 BEGIN { extends 'Catalyst::Controller' }
 
@@ -93,12 +94,18 @@ sub resolve_xml : Private {
     }
 
     # form submit
-    my ($form) = $xpc->findnodes('/w:page/w:meta/w:form',$dom);
-    if ($form) {
-        my ($process) = 'meon::Web::Form::Process::'.$xpc->findnodes('//w:process', $form);
+    my ($form_config) = $xpc->findnodes('/w:page/w:meta/w:form',$dom);
+    if ($form_config) {
+        my ($process) = 'meon::Web::Form::Process::'.$xpc->findnodes('//w:process', $form_config);
         load_class($process);
-        $process->submitted($c, $form)
+        my $form = $process->get_form($c);
+        $process->submitted($c, $form_config, $form)
             if $c->req->method eq 'POST';
+        if ($form) {
+            $c->model('ResponseXML')->add_xhtml_form(
+                $form->render
+            );
+        }
     }
 
     # folder listing
@@ -173,22 +180,43 @@ sub login : Local {
     my $login_form = meon::Web::Form::Login->new(
         action => $c->req->uri,
     );
-    $login_form->process(params=>$c->req->params);
 
-    if ($username && $password && $login_form->is_valid) {
-        if (
-            $c->authenticate({
-                username => $username,
-                password => $password,
-            })
-        ) {
-            $c->log->info('login of user '.$username.' authenticated');
+    # token authentication
+    if (my $token = $c->req->param('auth-token')) {
+        my $members_folder = $c->default_auth_store->folder;
+        my $member = meon::Web::Member->find_by_token(
+            members_folder => $members_folder,
+            token          => $token,
+        );
+        if ($member) {
+            my $username = $member->username;
+            $c->set_authenticated($c->find_user({ username => $username }));
+            $c->log->info('user '.$username.' authenticated via token');
             $c->change_session_id;
-            return $c->res->redirect($c->req->uri);
+            $c->session->{old_pw_not_required} = 1;
+            return $c->res->redirect($c->req->uri_with({'auth-token'=> undef})->absolute);
         }
         else {
-            $c->log->info('login of user '.$username.' fail');
-            $login_form->field('password')->add_error('authentication failed');
+            $login_form->add_form_error('Invalid authentication token.');
+        }
+    }
+    else {
+        $login_form->process(params=>$c->req->params);
+        if ($username && $password && $login_form->is_valid) {
+            if (
+                $c->authenticate({
+                    username => $username,
+                    password => $password,
+                })
+            ) {
+                $c->log->info('user '.$username.' authenticated');
+                $c->change_session_id;
+                return $c->res->redirect($c->req->uri);
+            }
+            else {
+                $c->log->info('login of user '.$username.' fail');
+                $login_form->field('password')->add_error('authentication failed');
+            }
         }
     }
 

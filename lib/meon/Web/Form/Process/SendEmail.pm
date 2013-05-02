@@ -9,6 +9,11 @@ use Email::MIME;
 use Email::Sender::Simple qw(sendmail);
 use Data::Dumper;
 
+sub get_form {
+    my ($self, $c) = @_;
+    return;
+}
+
 sub submitted {
     my ($self, $c, $form) = @_;
 

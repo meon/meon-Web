@@ -34,6 +34,11 @@ sub download : Chained('base') PathPart('download') {
     $c->res->body($file->open('r'));
 }
 
+sub default : Chained('base') PathPart('') {
+    my ( $self, $c ) = @_;
+    $c->forward('/resolve_xml', []);
+}
+
 __PACKAGE__->meta->make_immutable;
 
 1;
