@@ -288,7 +288,7 @@ Support team
         header_str => [
             From    => $from,
             To      => $self->email,
-            Subject => 'Eusahub password reset',
+            Subject => 'Your password reset',
         ],
         attributes => {
             content_type => "text/plain",
