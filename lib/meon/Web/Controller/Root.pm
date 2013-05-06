@@ -10,6 +10,7 @@ use XML::LibXML 1.70;
 use URI::Escape 'uri_escape';
 use IO::Any;
 use Class::Load 'load_class';
+use File::MimeInfo 'mimetype';
 
 use meon::Web::Form::Process::SendEmail;
 use meon::Web::Form::Login;
@@ -63,12 +64,19 @@ sub resolve_xml : Private {
     my ( $self, $c ) = @_;
 
     my $hostname_folder = $c->stash->{hostname_folder};
-    my $path            = $c->stash->{path} || $c->req->uri->path;
+    my $path            = $c->stash->{path} || $c->req->uri;
 
-    my $xml_file = file($hostname_folder, 'content', $path);
+    my $xml_file = file($hostname_folder, 'content', $path->path_segments);
     $xml_file .= '.xml';
     if ((! -f $xml_file) && (-d substr($xml_file,0,-4))) {
         $xml_file = file(substr($xml_file,0,-4), 'index.xml');
+    }
+    if ((! -f $xml_file) && (-f substr($xml_file,0,-4))) {
+        my $static_file = file(substr($xml_file,0,-4));
+        my $mime_type = mimetype($static_file->basename);
+        $c->res->content_type($mime_type);
+        $c->res->body($static_file->open('r'));
+        return;
     }
 
     $c->detach('/status_not_found', [($c->debug ? $path.' '.$xml_file : $path)])
@@ -114,7 +122,10 @@ sub resolve_xml : Private {
         $xpc->findnodes('/w:page/w:meta/w:dir-listing',$dom);
     foreach my $folder_name (@folders) {
         my $folder_rel = dir($folder_name);
-        my $folder = dir($hostname_folder, $folder_rel)->absolute->resolve;
+        my $folder = dir(file($xml_file)->dir, $folder_rel)->absolute;
+        $c->detach('/status_not_found', [ 'folder '.($c->debug ? $folder : $folder_name).' for listing not found' ])
+            unless -d $folder;
+        $folder = $folder->resolve;
         $c->detach('/status_forbidden', [])
             unless $hostname_folder->contains($folder);
 
@@ -127,7 +138,7 @@ sub resolve_xml : Private {
         foreach my $file (@files) {
             $file = $file->basename;
             my $file_el = $c->model('ResponseXML')->create_element('file');
-            $file_el->setAttribute('href' => join('/', '', map { uri_escape($_) } $folder_rel->dir_list, $file));
+            $file_el->setAttribute('href' => join('/', map { uri_escape($_) } $folder_rel->dir_list, $file));
             $file_el->appendText($file);
             $folder_el->appendChild($file_el);
         }
@@ -220,7 +231,7 @@ sub login : Local {
         }
     }
 
-    $c->stash->{path} = '/login';
+    $c->stash->{path} = URI->new('/login');
     $c->forward('resolve_xml', []);
     $c->model('ResponseXML')->add_xhtml_form(
         $login_form->render
