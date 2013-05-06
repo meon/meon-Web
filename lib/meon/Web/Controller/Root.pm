@@ -123,8 +123,7 @@ sub resolve_xml : Private {
     foreach my $folder_name (@folders) {
         my $folder_rel = dir($folder_name);
         my $folder = dir(file($xml_file)->dir, $folder_rel)->absolute;
-        $c->detach('/status_not_found', [ 'folder '.($c->debug ? $folder : $folder_name).' for listing not found' ])
-            unless -d $folder;
+        next unless -d $folder;
         $folder = $folder->resolve;
         $c->detach('/status_forbidden', [])
             unless $hostname_folder->contains($folder);
