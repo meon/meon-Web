@@ -101,19 +101,17 @@ sub resolve_xml : Private {
         }
     }
 
-    # form submit
-    my ($form_config) = $xpc->findnodes('/w:page/w:meta/w:form',$dom);
-    if ($form_config) {
-        my ($process) = 'meon::Web::Form::Process::'.$xpc->findnodes('//w:process', $form_config);
-        load_class($process);
-        my $form = $process->get_form($c);
-        $process->submitted($c, $form_config, $form)
-            if $c->req->method eq 'POST';
-        if ($form) {
-            $c->model('ResponseXML')->add_xhtml_form(
-                $form->render
-            );
-        }
+    # forms
+    if ($xpc->findnodes('/w:page/w:meta/w:form',$dom)) {
+        my ($form_class) = 'meon::Web::Form::'.$xpc->findnodes('/w:page/w:meta/w:form/w:process', $dom);
+        load_class($form_class);
+        my $form = $form_class->new(c => $c);
+        $form->process(params=>$c->req->params);
+        $form->submitted
+            if $form->is_valid && $form->can('submitted') && ($c->req->method eq 'POST');
+        $c->model('ResponseXML')->add_xhtml_form(
+            $form->render
+        );
     }
 
     # folder listing

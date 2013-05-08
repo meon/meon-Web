@@ -1,8 +1,4 @@
-package meon::Web::Form::Process::MemberRegistration;
-
-use strict;
-use warnings;
-use 5.010;
+package meon::Web::Form::MemberRegistration;
 
 use List::MoreUtils 'uniq';
 use Email::MIME;
@@ -12,14 +8,18 @@ use meon::Web::Util;
 use meon::Web::Member;
 use Path::Class 'dir';
 
-sub get_form {
-    my ($self, $c) = @_;
-    return;
-}
+use HTML::FormHandler::Moose;
+extends 'HTML::FormHandler';
+with 'meon::Web::Role::Form';
+
+has_field 'submit'   => ( type => 'Submit', value => 'Submit', );
 
 sub submitted {
-    my ($self, $c, $form_config) = @_;
+    my ($self) = @_;
 
+    my $c   = $self->c;
+    my $xpc = $c->xpc;
+    my $xml = $c->model('ResponseXML')->dom;
     $c->log->debug(__PACKAGE__.' '.Data::Dumper::Dumper($c->req->params))
         if $c->debug;
 
@@ -33,15 +33,10 @@ sub submitted {
     my $member_folder = dir($members_folder, $username);
     mkdir($member_folder) or die 'failed to create member folder: '.$!;
 
+    my $rcpt_to  = $self->get_config_text('rcpt-to');
+    my $subject  = $self->get_config_text('subject');
+    my $redirect = $self->get_config_text('redirect');
 
-    my $xml = $c->model('ResponseXML')->dom;
-    my $xpc = $c->xpc;
-    my ($rcpt_to) = map { $_->textContent } $xpc->findnodes('w:rcpt-to',$form_config);
-    die 'no email provided' unless $rcpt_to;
-    my ($subject) = map { $_->textContent } $xpc->findnodes('w:subject',$form_config);
-    die 'no subject provided' unless $subject;
-    my ($redirect) = map { $_->textContent } $xpc->findnodes('w:redirect',$form_config);
-    die 'no redirect provided' unless $redirect;
     my $email_content = '';
 
     my (@input_names) =
@@ -57,9 +52,6 @@ sub submitted {
         push(@args, [ $input_name => $input_value ]);
         $email_content .= $input_name.': '.$input_value."\n";    # FIXME use Data::Header::Fields
     }
-
-    $c->log->debug(__PACKAGE__.' '.Data::Dumper::Dumper($c->req->params))
-        if $c->debug;
 
     # create user xml file
     my $member = meon::Web::Member->new(
@@ -77,7 +69,7 @@ sub submitted {
 
     my $email = Email::MIME->create(
         header_str => [
-            From    => 'no-reply@meon.eu',
+            From    => $c->req->param('email'),
             To      => $rcpt_to,
             Subject => $subject,
         ],
@@ -94,13 +86,9 @@ sub submitted {
     );
 
     sendmail($email->as_string);
-
-    unless ($redirect =~ m{^https?://}) {
-        $redirect =~ s{^/}{};
-        $redirect = $c->req->base.$redirect;
-    }
-
-    $c->res->redirect($redirect);
+    $self->redirect($redirect);
 }
+
+no HTML::FormHandler::Moose;
 
 1;

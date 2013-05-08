@@ -89,6 +89,16 @@ sub json_reply {
     $c->detach('View::JSON');
 }
 
+sub member {
+    my $c = shift;
+
+    my $members_folder = $c->default_auth_store->folder;
+    return meon::Web::Member->new(
+        members_folder => $members_folder,
+        username       => $c->user->username,
+    );
+}
+
 1;
 
 __END__

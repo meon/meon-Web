@@ -2,12 +2,10 @@ package meon::Web::Form::PasswordChange;
 
 use HTML::FormHandler::Moose;
 extends 'HTML::FormHandler';
+with 'meon::Web::Role::Form';
 
 has '+name' => (default => 'form_password_change');
 has '+widget_wrapper' => ( default => 'Bootstrap' );
-
-has 'member' => ( is => 'ro', isa => 'Object', required => 1 );
-has 'old_pw_not_required' => ( is => 'ro', isa => 'Bool', default => 0 );
 
 has_field 'old_password' => (
     type => 'Password', required => 0, label => 'Old Password',
@@ -27,10 +25,22 @@ has_field 'password_conf'=> (
 
 has_field 'submit' => ( type => 'Submit', value => 'Update', element_class => 'btn btn-primary', );
 
+before 'process' => sub {
+    my $self = shift;
+
+    $self->field('old_password')->inactive(1)
+        if $self->old_pw_not_required;
+};
+
+sub old_pw_not_required {
+    my $self = shift;
+    $self->c->session->{old_pw_not_required}
+}
+
 sub validate {
     my $self = shift;
 
-    my $usr     = $self->member;
+    my $usr     = $self->c->user;
     my $old_pw  = $self->values->{old_password};
     my $new_pw  = $self->values->{password};
     my $new_pw2 = $self->values->{password_conf};
@@ -62,6 +72,23 @@ sub validate {
     else {
         $self->field('password_conf')->add_error('Required');
     }
+}
+
+sub submitted {
+    my ($self) = @_;
+
+    my $c = $self->c;
+    my $xml = $c->model('ResponseXML')->dom;
+    my $xpc = $c->xpc;
+    my $redirect = $self->get_config_text('redirect');
+
+    return unless $self->is_valid;
+
+    delete $c->session->{old_pw_not_required};
+    my $password = $self->field('password')->value;
+    $c->user->set_password($password);
+
+    $self->redirect($redirect);
 }
 
 no HTML::FormHandler::Moose;
