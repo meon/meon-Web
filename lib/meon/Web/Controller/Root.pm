@@ -11,6 +11,7 @@ use URI::Escape 'uri_escape';
 use IO::Any;
 use Class::Load 'load_class';
 use File::MimeInfo 'mimetype';
+use Scalar::Util 'blessed';
 
 use meon::Web::Form::Process::SendEmail;
 use meon::Web::Form::Login;
@@ -64,7 +65,12 @@ sub resolve_xml : Private {
     my ( $self, $c ) = @_;
 
     my $hostname_folder = $c->stash->{hostname_folder};
-    my $path            = $c->stash->{path} || $c->req->uri;
+    my $path            =
+        delete($c->session->{post_redirect_path})
+        || $c->stash->{path}
+        || $c->req->uri;
+    $path = URI->new($path)
+        unless blessed($path);
 
     my $xml_file = file($hostname_folder, 'content', $path->path_segments);
     $xml_file .= '.xml';

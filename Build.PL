@@ -52,6 +52,7 @@ my $builder = Module::Build::SysPath->new(
         'DateTime::Format::Strptime'       => 0,
         'Email::Valid'                     => 0,
         'Email::Sender::Simple'            => 0,
+        'Scalar::Util'                     => 0,
     },
     script_files => [qw(
         script/meon-web.psgi

@@ -80,7 +80,7 @@ sub submitted {
     my $c = $self->c;
     my $xml = $c->model('ResponseXML')->dom;
     my $xpc = $c->xpc;
-    my $redirect = $self->get_config_text('redirect');
+    my $detach_path = $self->get_config_text('detach');
 
     return unless $self->is_valid;
 
@@ -88,7 +88,7 @@ sub submitted {
     my $password = $self->field('password')->value;
     $c->user->set_password($password);
 
-    $self->redirect($redirect);
+    $self->detach($detach_path);
 }
 
 no HTML::FormHandler::Moose;

@@ -36,29 +36,45 @@ sub get_config_text {
     return $text;
 }
 
-sub redirect {
-    my ($self,$redirect) = @_;
+sub _traverse_uri {
+    my ($self,$path) = @_;
 
     my $c = $self->c;
     if ($c->user_exists) {
         my $username = $c->user->username;
-        $redirect =~ s/{\$USERNAME}/$username/;
+        $path =~ s/{\$USERNAME}/$username/;
     }
 
     # redirect absolute urls
-    if ($redirect =~ m{^https?://}) {
-        $c->res->redirect($redirect);
-        $c->detach;
+    if ($path =~ m{^https?://}) {
+        return URI->new($path);
     }
 
-    my $redirect_uri = $c->req->uri->clone;
-    my @segments = $redirect_uri->path_segments;
+    my $new_uri = $c->req->uri->clone;
+    my @segments = $new_uri->path_segments;
     pop(@segments);
-    $redirect_uri->path_segments(
+    $new_uri->path_segments(
         @segments,
-        URI->new($redirect)->path_segments
+        URI->new($path)->path_segments
     );
-    $c->res->redirect($redirect_uri);
+    return $new_uri;
+}
+
+sub detach {
+    my ($self,$detach_path) = @_;
+
+    my $c = $self->c;
+    my $detach_uri = $self->_traverse_uri($detach_path);
+    $c->session->{post_redirect_path} = $detach_uri;
+    $c->res->redirect($c->req->uri->absolute);
+}
+
+sub redirect {
+    my ($self,$redirect) = @_;
+
+    my $c = $self->c;
+    my $redirect_uri = $self->_traverse_uri($redirect);
+    $c->res->redirect($redirect_uri->absolute);
     $c->detach;
 }
 

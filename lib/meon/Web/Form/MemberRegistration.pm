@@ -35,7 +35,7 @@ sub submitted {
 
     my $rcpt_to  = $self->get_config_text('rcpt-to');
     my $subject  = $self->get_config_text('subject');
-    my $redirect = $self->get_config_text('redirect');
+    my $detach   = $self->get_config_text('detach');
 
     my $email_content = '';
 
@@ -86,7 +86,7 @@ sub submitted {
     );
 
     sendmail($email->as_string);
-    $self->redirect($redirect);
+    $self->detach($detach);
 }
 
 no HTML::FormHandler::Moose;

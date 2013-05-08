@@ -20,7 +20,7 @@ sub submitted {
         if $c->debug;
 
     my $members_folder = $c->default_auth_store->folder;
-    my $redirect       = $self->get_config_text('redirect');
+    my $detach         = $self->get_config_text('detach');
     my $from           = $self->get_config_text('from');
     my $pw_change      = $self->get_config_text('pw-change');
 
@@ -39,7 +39,7 @@ sub submitted {
         $from,
         $c->uri_for($pw_change),
     );
-    $c->res->redirect($redirect);
+    $self->detach($detach);
 }
 
 no HTML::FormHandler::Moose;

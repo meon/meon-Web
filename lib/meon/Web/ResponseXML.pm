@@ -8,18 +8,23 @@ use Scalar::Util 'blessed';
 use Moose;
 use 5.010;
 
-has 'dom' => (is=>'rw',isa=>'XML::LibXML::Document',lazy_build=>1);
-has '_xml_libxml' => (is=>'rw',isa=>'XML::LibXML',lazy=>1,default=>sub { XML::LibXML->new });
+has 'dom' => (is=>'rw',isa=>'XML::LibXML::Document',lazy_build=>1,trigger=>sub{ $_[0]->clear_xml_libxml; $_[0]->clear_elements; });
+has '_xml_libxml' => (is=>'rw',isa=>'XML::LibXML',lazy=>1,default=>sub { XML::LibXML->new },clearer=>'clear_xml_libxml');
 has 'elements' => (
     is      => 'rw',
     isa     => 'ArrayRef[Object]',
-    default => sub{[]},
+    lazy_build => 1,
+    clearer => 'clear_elements',
 	traits  => ['Array'],
 	handles => {
 		'push_element' => 'push',
 		'elements_all' => 'elements',
 	},
 );
+
+sub _build_elements {
+    return [];
+}
 
 sub _build_dom {
     my ($self) = @_;
