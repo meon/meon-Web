@@ -2,6 +2,7 @@ package meon::Web::Role::Form;
 
 use Moose::Role;
 use Carp 'croak';
+use meon::Web::Util 'path_fixup';
 
 has 'c'      => ( is => 'ro', isa => 'Object', required => 1 );
 has 'config' => ( is => 'ro', isa => 'Object', lazy_build => 1 );
@@ -36,14 +37,21 @@ sub get_config_text {
     return $text;
 }
 
+sub get_config_folder {
+    my ($self, $el_name) = @_;
+    my $c = $self->c;
+    my $path = $self->get_config_text($el_name);
+    $path = meon::Web::Util->path_fixup($c,$path);
+    $path = $c->stash->{xml_file}->dir->subdir($path);
+    $path->resolve;
+    return $path;
+}
+
 sub _traverse_uri {
     my ($self,$path) = @_;
 
     my $c = $self->c;
-    if ($c->user_exists) {
-        my $username = $c->user->username;
-        $path =~ s/{\$USERNAME}/$username/;
-    }
+    $path = meon::Web::Util->path_fixup($c,$path);
 
     # redirect absolute urls
     if ($path =~ m{^https?://}) {
@@ -64,7 +72,12 @@ sub detach {
     my ($self,$detach_path) = @_;
 
     my $c = $self->c;
-    my $detach_uri = $self->_traverse_uri($detach_path);
+    my $detach_uri = (
+        $detach_path
+        ? $self->_traverse_uri($detach_path)
+        : $c->req->uri->absolute
+    );
+
     $c->session->{post_redirect_path} = $detach_uri;
     $c->res->redirect($c->req->uri->absolute);
 }

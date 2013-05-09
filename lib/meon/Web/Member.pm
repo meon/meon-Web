@@ -3,7 +3,7 @@ package meon::Web::Member;
 use Moose;
 use 5.010;
 
-use Path::Class 'file', 'dir';
+use Path::Class 'file';
 use DateTime;
 use XML::LibXML 'XML_TEXT_NODE';
 use Email::Valid;
@@ -144,6 +144,12 @@ sub create {
     $self->store;
 }
 
+sub dir {
+    my $self = shift;
+
+    return Path::Class::dir($self->members_folder, $self->username);
+}
+
 sub member_index_filename {
     my $self = shift;
 
@@ -164,7 +170,7 @@ sub _find_by_callback {
     my $members_folder = $args{members_folder};
     croak 'need members_folder as argument'
         unless $members_folder;
-    $members_folder = dir($members_folder);
+    $members_folder = Path::Class::dir($members_folder);
     my $callback = $args{callback};
     croak 'need callback as argument'
         unless $members_folder;
@@ -189,7 +195,7 @@ sub find_by_email {
     my $members_folder = $args{members_folder};
     croak 'need members_folder as argument'
         unless $members_folder;
-    $members_folder = dir($members_folder);
+    $members_folder = Path::Class::dir($members_folder);
     my $email = $args{email};
     croak 'need email as argument'
         unless $members_folder;
@@ -208,7 +214,7 @@ sub find_by_token {
     my $members_folder = $args{members_folder};
     croak 'need members_folder as argument'
         unless $members_folder;
-    $members_folder = dir($members_folder);
+    $members_folder = Path::Class::dir($members_folder);
     my $token = $args{token};
     croak 'need token as argument'
         unless $members_folder;

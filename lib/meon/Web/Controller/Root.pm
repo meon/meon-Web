@@ -5,6 +5,7 @@ use namespace::autoclean;
 use Path::Class 'file', 'dir';
 use meon::Web::SPc;
 use meon::Web::Config;
+use meon::Web::Util;
 use File::MimeInfo;
 use XML::LibXML 1.70;
 use URI::Escape 'uri_escape';
@@ -82,12 +83,13 @@ sub resolve_xml : Private {
         my $mime_type = mimetype($static_file->basename);
         $c->res->content_type($mime_type);
         $c->res->body($static_file->open('r'));
-        return;
+        $c->detach;
     }
 
     $c->detach('/status_not_found', [($c->debug ? $path.' '.$xml_file : $path)])
         unless -e $xml_file;
 
+    $c->stash->{xml_file} = file($xml_file);
     my $dom = XML::LibXML->load_xml(location => $xml_file);
     my $xpc = $c->xpc;
 
@@ -112,7 +114,10 @@ sub resolve_xml : Private {
         my ($form_class) = 'meon::Web::Form::'.$xpc->findnodes('/w:page/w:meta/w:form/w:process', $dom);
         load_class($form_class);
         my $form = $form_class->new(c => $c);
-        $form->process(params=>$c->req->params);
+        my $params = $c->req->params;
+        $params->{'file'} = $c->req->upload('file')
+            if $params->{'file'};
+        $form->process(params=>$params);
         $form->submitted
             if $form->is_valid && $form->can('submitted') && ($c->req->method eq 'POST');
         $c->model('ResponseXML')->add_xhtml_form(
@@ -125,7 +130,7 @@ sub resolve_xml : Private {
         map { $_->textContent }
         $xpc->findnodes('/w:page/w:meta/w:dir-listing',$dom);
     foreach my $folder_name (@folders) {
-        my $folder_rel = dir($folder_name);
+        my $folder_rel = dir(meon::Web::Util->path_fixup($c,$folder_name));
         my $folder = dir(file($xml_file)->dir, $folder_rel)->absolute;
         next unless -d $folder;
         $folder = $folder->resolve;

@@ -23,4 +23,18 @@ sub username_cleanup {
     return $username;
 }
 
+sub path_fixup {
+    my ($self, $c, $path) = @_;
+
+    my $username = (
+        $c->user_exists
+        ? $username = $c->user->username
+        : 'me'
+    );
+
+    $path =~ s/{\$USERNAME}/$username/;
+
+    return $path;
+}
+
 1;

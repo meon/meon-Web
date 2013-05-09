@@ -35,7 +35,7 @@ my $builder = Module::Build::SysPath->new(
         'Email::MIME'                      => 0,
         'Email::Sender::Simple'            => 0,
         'List::MoreUtils'                  => 0,
-        'Path::Class'                      => 0,
+        'Path::Class'                      => 0.04,    # mkpath()
         'HTML::FormHandler::Moose'         => 0,
         'Catalyst::Model::Factory::PerRequest' => 0,
         'URI::Escape'                      => 0,
@@ -53,6 +53,7 @@ my $builder = Module::Build::SysPath->new(
         'Email::Valid'                     => 0,
         'Email::Sender::Simple'            => 0,
         'Scalar::Util'                     => 0,
+        'Digest::SHA1'                     => 0,
     },
     script_files => [qw(
         script/meon-web.psgi
