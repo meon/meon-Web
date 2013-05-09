@@ -53,7 +53,7 @@ my $builder = Module::Build::SysPath->new(
         'Email::Valid'                     => 0,
         'Email::Sender::Simple'            => 0,
         'Scalar::Util'                     => 0,
-        'Digest::SHA1'                     => 0,
+        'Digest::SHA'                      => 0,
     },
     script_files => [qw(
         script/meon-web.psgi
