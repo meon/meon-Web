@@ -12,11 +12,15 @@ use meon::Web::ResponseXML;
 use DateTime::Format::Strptime;
 use Data::UUID::LibUUID 'new_uuid_string';
 use Email::Sender::Simple qw(sendmail);
+use Data::asXML;
+use Scalar::Util;
 
 has 'members_folder' => (is=>'rw',isa=>'Any',required=>1);
 has 'username'       => (is=>'rw',isa=>'Str',required=>1);
 has 'xml'            => (is=>'ro', isa=>'XML::LibXML::Document', lazy => 1, builder => '_build_xml');
 has 'member_meta'    => (is=>'ro', isa=>'XML::LibXML::Node',lazy=>1,builder=>'_build_member_meta');
+
+my $dxml = Data::asXML->new(pretty => 0);
 
 sub _build_xml {
     my ($self) = @_;
@@ -44,18 +48,30 @@ sub set_member_meta {
     $xc->registerNs('w', 'http://web.meon.eu/');
     my ($element) = $xc->findnodes('//w:'.$name);
 
+    my $encoded = 0;
+    if (ref($value) && !blessed($value)) {
+        $value = $dxml->encode($value);
+        $encoded = 1;
+    }
+
     if ($element) {
         foreach my $child ($element->childNodes()) {
             $element->removeChild($child);
         }
-        $element->appendText($value);
     }
     else {
         my ($meta_element) = $xc->findnodes('/w:page/w:meta');
         $meta_element->appendText(q{ }x4);
         $element = $meta_element->addNewChild($meta_element->namespaceURI,$name);
-        $element->appendText($value);
         $meta_element->appendText("\n");
+    }
+
+    if ($encoded) {
+        $element->setAttribute('encoded' => 1);
+        $element->appendChild($value);
+    }
+    else {
+        $element->appendText($value);
     }
 }
 
@@ -66,7 +82,15 @@ sub get_member_meta {
     my $xc = XML::LibXML::XPathContext->new($meta);
     $xc->registerNs('w', 'http://web.meon.eu/');
     my ($element) = $xc->findnodes('//w:'.$name);
-    return ($element ? $element->textContent : undef);
+    return undef unless $element;
+
+    if ($element->getAttribute('encoded')) {
+        ($element) = $xc->findnodes('w:*',$element);
+        return $dxml->decode($element)
+    }
+    else {
+        return $element->textContent;
+    }
 }
 
 sub delete_member_meta {

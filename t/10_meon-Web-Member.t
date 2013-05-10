@@ -28,7 +28,28 @@ sub main {
     register_user();
     find_user_by_email();
     reset_password();
+    set_member_meta_array();
     return 0;
+}
+
+sub set_member_meta_array {
+    my $member = meon::Web::Member->find_by_email(
+        members_folder => $tmp_dir,
+        email          => 'email@email.email',
+    );
+    $member->set_member_meta('languages', [qw(en de)]);
+    $member->store;
+
+    my $member2 = meon::Web::Member->find_by_email(
+        members_folder => $tmp_dir,
+        email          => 'email@email.email',
+    );
+
+    is_deeply(
+        $member2->get_member_meta('languages'),
+        [qw(en de)],
+        'set member meta array',
+    );
 }
 
 sub reset_password {

@@ -55,6 +55,7 @@ my $builder = Module::Build::SysPath->new(
         'Scalar::Util'                     => 0,
         'Digest::SHA'                      => 0,
         'Imager'                           => 0,
+        'Data::asXML'                      => 0,
     },
     script_files => [qw(
         script/meon-web.psgi

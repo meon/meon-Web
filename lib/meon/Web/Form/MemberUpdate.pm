@@ -20,6 +20,13 @@ sub _build_configured_field_list {
         my $name  = $_->getAttribute('name');
         my $type  = $_->getAttribute('type');
         my $label = $_->getAttribute('label');
+        my $multi = $_->getAttribute('multiple');
+        my @options;
+
+        if ($type eq 'Select') {
+             @options = $xpc->findnodes('w:option',$_);
+        }
+
         (
             $name => {
                 type     => $type,
@@ -27,6 +34,15 @@ sub _build_configured_field_list {
                 required => !!$_->getAttribute('required'),
                 default  => $member->get_member_meta($name),
                 (defined($label) ? (label => $label) : ()),
+                (defined($multi) ? (multiple => $multi) : ()),
+                (@options ? (
+                    options => [
+                        map {+{
+                            label => $_->textContent,
+                            value => $_->getAttribute('value'),
+                        }} @options
+                    ],
+                ) : ()),
             }
         )
     } $xpc->findnodes('w:fields/w:field',$form_config);
@@ -62,6 +78,10 @@ sub submitted {
     my $member = $self->c->member;
     foreach my $field_name (@field_names) {
         my $field_value = $self->field($field_name)->value;
+        # empty array is like undef
+        $field_value = undef
+            if ((ref($field_value) eq 'ARRAY') && (@$field_value == 0));
+
         if (defined $field_value) {
             $member->set_member_meta($field_name, $field_value);
         }
