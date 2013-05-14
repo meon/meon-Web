@@ -57,6 +57,7 @@ my $builder = Module::Build::SysPath->new(
         'Imager'                           => 0,
         'Data::asXML'                      => 0,
         'DateTime::Format::Strptime'       => 0,
+        'MooseX::Types::Path::Class'       => 0,
     },
     script_files => [qw(
         script/meon-web.psgi
