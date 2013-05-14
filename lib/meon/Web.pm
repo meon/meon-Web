@@ -4,6 +4,7 @@ use namespace::autoclean;
 
 use Path::Class 'file', 'dir';
 use meon::Web::SPc;
+use meon::Web::Util;
 
 use Catalyst::Plugin::Authentication::Store::UserXML 0.02;
 
@@ -97,6 +98,36 @@ sub member {
         members_folder => $members_folder,
         username       => $c->user->username,
     );
+}
+
+sub traverse_uri {
+    my ($c,$path) = @_;
+
+    $path = meon::Web::Util->path_fixup($c,$path);
+
+    # redirect absolute urls
+    if ($path =~ m{^https?://}) {
+        return URI->new($path);
+    }
+
+    my $new_uri = $c->req->uri->clone;
+    my @segments = $new_uri->path_segments;
+    pop(@segments);
+    $new_uri->path_segments(
+        @segments,
+        URI->new($path)->path_segments
+    );
+    return $new_uri;
+}
+
+sub format_dt {
+    my ($c, $datetime) = @_;
+
+    my $dt = $datetime->clone;
+
+    # FIXME $c->user preferred timezone + format
+    $dt->set_time_zone('Europe/Vienna');
+    return $dt->strftime('%d.%m.%Y %H:%M:%S');
 }
 
 1;

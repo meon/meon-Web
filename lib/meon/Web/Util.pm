@@ -3,6 +3,15 @@ package meon::Web::Util;
 use Text::Unidecode 'unidecode';
 use Path::Class 'dir';
 
+sub filename_cleanup {
+    my ($self, $text) = @_;
+    $text = unidecode($text);
+    $text =~ s/\s/-/g;
+    $text =~ s/-+/-/g;
+    $text =~ s/[^A-Za-z0-9\-_]//g;
+    return $text;
+}
+
 sub username_cleanup {
     my ($self, $username, $folder) = @_;
 

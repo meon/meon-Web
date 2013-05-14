@@ -17,6 +17,7 @@ use Scalar::Util 'blessed';
 use meon::Web::Form::Process::SendEmail;
 use meon::Web::Form::Login;
 use meon::Web::Member;
+use meon::Web::TimelineEntry;
 
 BEGIN { extends 'Catalyst::Controller' }
 
@@ -89,7 +90,8 @@ sub resolve_xml : Private {
     $c->detach('/status_not_found', [($c->debug ? $path.' '.$xml_file : $path)])
         unless -e $xml_file;
 
-    $c->stash->{xml_file} = file($xml_file);
+    $xml_file = file($xml_file);
+    $c->stash->{xml_file} = $xml_file;
     my $dom = XML::LibXML->load_xml(location => $xml_file);
     my $xpc = $c->xpc;
 
@@ -107,6 +109,15 @@ sub resolve_xml : Private {
         if ($xpc->findnodes('/w:page/w:meta/w:members-only',$dom)) {
             $c->detach('/login', []);
         }
+    }
+
+    # redirect
+    my ($redirect) = $xpc->findnodes('/w:page/w:meta/w:redirect', $dom);
+    if ($redirect) {
+        $redirect = $redirect->textContent;
+        my $redirect_uri = $c->traverse_uri($redirect);
+        $c->res->redirect($redirect_uri->absolute);
+        $c->detach;
     }
 
     # forms
@@ -131,7 +142,7 @@ sub resolve_xml : Private {
         $xpc->findnodes('/w:page/w:meta/w:dir-listing',$dom);
     foreach my $folder_name (@folders) {
         my $folder_rel = dir(meon::Web::Util->path_fixup($c,$folder_name));
-        my $folder = dir(file($xml_file)->dir, $folder_rel)->absolute;
+        my $folder = dir($xml_file->dir, $folder_rel)->absolute;
         next unless -d $folder;
         $folder = $folder->resolve;
         $c->detach('/status_forbidden', [])
@@ -150,6 +161,134 @@ sub resolve_xml : Private {
             $file_el->appendText($file);
             $folder_el->appendChild($file_el);
         }
+    }
+
+    # generate timeline
+    my ($timeline_el) = $xpc->findnodes('/w:page/w:content//w:timeline', $dom);
+    if ($timeline_el) {
+        my @entries =
+            sort { $b->created <=> $a->created }
+            map  { meon::Web::TimelineEntry->new(file => $_) }
+            grep { $_->basename ne $xml_file->basename }
+            grep { !$_->is_dir }
+            $xml_file->dir->children(no_hidden => 1)
+        ;
+
+        foreach my $entry (@entries) {
+            my $author = $entry->author;
+            my $intro = $entry->intro;
+            my $body  = $entry->body;
+
+            my $entry_el = $c->model('ResponseXML')->create_element('entry');
+            $timeline_el->appendChild($entry_el);
+            $entry_el->setAttribute('href' => substr($entry->file->basename,0,-4));
+            my $title_el = $c->model('ResponseXML')->create_element('title');
+            $entry_el->appendChild($title_el);
+            $title_el->appendText($entry->title);
+            my $created_el = $c->model('ResponseXML')->create_element('created');
+            $entry_el->appendChild($created_el);
+            $created_el->appendText($c->format_dt($entry->created));
+
+            if (defined($author)) {
+                my $el = $c->model('ResponseXML')->create_element('author');
+                $entry_el->appendChild($el);
+                $el->appendText($author);
+            }
+            if (defined($intro)) {
+                my $intro_snipped_el = $c->model('ResponseXML')->create_element('intro-snipped');
+                $entry_el->appendChild($intro_snipped_el);
+                $intro_snipped_el->appendText(length($intro) > 78 ? substr($intro,0,78).'…' : $intro);
+                my $introduction_el = $c->model('ResponseXML')->create_element('intro');
+                $entry_el->appendChild($introduction_el);
+                $introduction_el->appendText($entry->intro);
+            }
+            if (defined($body)) {
+                my $body_el = $c->model('ResponseXML')->create_element('body');
+                $entry_el->appendChild($body_el);
+                $body_el->appendText($body);
+            }
+        }
+
+        if (my $older = $self->_older_entries($c)) {
+            my $older_el = $c->model('ResponseXML')->create_element('older');
+            $timeline_el->appendChild($older_el);
+            $older_el->setAttribute('href' => $older);
+        }
+        if (my $newer = $self->_newer_entries($c)) {
+            my $newer_el = $c->model('ResponseXML')->create_element('newer');
+            $timeline_el->appendChild($newer_el);
+            $newer_el->setAttribute('href' => $newer);
+        }
+    }
+}
+
+sub _older_entries {
+    my ( $self, $c ) = @_;
+    my $dir = $c->stash->{xml_file}->dir;
+    my $cur_dir = $dir->basename;
+    $dir = $dir->parent;
+    while ($cur_dir =~ m/^\d+$/) {
+        my @min_folders =
+            sort
+            grep { $_ < $cur_dir }
+            grep { m/^\d+$/ }
+            map  { $_->basename }
+            grep { $_->is_dir }
+            $dir->children(no_hidden => 1)
+        ;
+
+        if (@min_folders) {
+            # find the last folder of this folder
+            while (@min_folders) {
+                $dir = $dir->subdir(pop(@min_folders));
+                @min_folders =
+                    sort
+                    grep { m/^\d+$/ }
+                    map { $_->basename }
+                    grep { $_->is_dir }
+                    $dir->children(no_hidden => 1)
+                ;
+            }
+            return $dir->relative($c->stash->{xml_file}->dir).'/';
+        }
+
+        $cur_dir = $dir->basename;
+        $dir = $dir->parent;
+    }
+}
+
+sub _newer_entries {
+    my ( $self, $c ) = @_;
+    my $dir = $c->stash->{xml_file}->dir;
+    my $cur_dir = $dir->basename;
+    $dir = $dir->parent;
+    while ($cur_dir =~ m/^\d+$/) {
+        my @max_folders =
+            sort
+            grep { $_ > $cur_dir }
+            grep { m/^\d+$/ }
+            map  { $_->basename }
+            grep { $_->is_dir }
+            $dir->children(no_hidden => 1)
+        ;
+
+        if (@max_folders) {
+            # find the first folder of this folder
+            while (@max_folders) {
+                $dir = $dir->subdir(shift(@max_folders));
+                @max_folders =
+                    sort
+                    grep { m/^\d+$/ }
+                    map { $_->basename }
+                    grep { $_->is_dir }
+                    $dir->children(no_hidden => 1)
+                ;
+            }
+            return $dir->relative($c->stash->{xml_file}->dir).'/';
+        }
+
+        $cur_dir = $dir->basename;
+        $dir = $dir->parent;
     }
 }
 
