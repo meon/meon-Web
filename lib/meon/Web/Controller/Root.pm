@@ -16,6 +16,7 @@ use Scalar::Util 'blessed';
 
 use meon::Web::Form::Process::SendEmail;
 use meon::Web::Form::Login;
+use meon::Web::Form::Delete;
 use meon::Web::Member;
 use meon::Web::TimelineEntry;
 
@@ -121,19 +122,30 @@ sub resolve_xml : Private {
     }
 
     # forms
-    if ($xpc->findnodes('/w:page/w:meta/w:form',$dom)) {
-        my ($form_class) = 'meon::Web::Form::'.$xpc->findnodes('/w:page/w:meta/w:form/w:process', $dom);
-        load_class($form_class);
-        my $form = $form_class->new(c => $c);
-        my $params = $c->req->params;
-        $params->{'file'} = $c->req->upload('file')
-            if $params->{'file'};
-        $form->process(params=>$params);
-        $form->submitted
-            if $form->is_valid && $form->can('submitted') && ($c->req->method eq 'POST');
-        $c->model('ResponseXML')->add_xhtml_form(
-            $form->render
-        );
+    if (my ($form_el) = $xpc->findnodes('/w:page/w:meta/w:form',$dom)) {
+        my $skip_form = 0;
+        if ($xpc->findnodes('w:owner-only',$form_el)) {
+            my $member = $c->member;
+            my $member_folder = $member->dir;
+
+            $skip_form = 1
+                unless $member_folder->contains($xml_file);
+        }
+
+        unless ($skip_form) {
+            my ($form_class) = 'meon::Web::Form::'.$xpc->findnodes('/w:page/w:meta/w:form/w:process', $dom);
+            load_class($form_class);
+            my $form = $form_class->new(c => $c);
+            my $params = $c->req->params;
+            $params->{'file'} = $c->req->upload('file')
+                if $params->{'file'};
+            $form->process(params=>$params);
+            $form->submitted
+                if $form->is_valid && $form->can('submitted') && ($c->req->method eq 'POST');
+            $c->model('ResponseXML')->add_xhtml_form(
+                $form->render
+            );
+        }
     }
 
     # folder listing

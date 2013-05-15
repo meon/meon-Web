@@ -139,8 +139,13 @@ sub create {
 >
 
 <meta>
-    <title>$title</title>
 $author
+    <title>$title</title>
+    <form>
+        <owner-only/>
+        <process>Delete</process>
+        <redirect>../../</redirect>
+    </form>
 </meta>
 
 <content><div xmlns="http://www.w3.org/1999/xhtml">
@@ -150,6 +155,9 @@ $author
 $intro
 $body
 </div>
+
+<div class="delete-confirmation"><w:form copy-id="form-delete"/></div>
+
 </div></content>
 
 </page>
