@@ -14,6 +14,7 @@ use Class::Load 'load_class';
 use File::MimeInfo 'mimetype';
 use Scalar::Util 'blessed';
 use DateTime::Format::HTTP;
+use Imager;
 
 use meon::Web::Form::Process::SendEmail;
 use meon::Web::Form::Login;
@@ -192,6 +193,55 @@ sub resolve_xml : Private {
             $file_el->setAttribute('href' => join('/', map { uri_escape($_) } $folder_rel->dir_list, $file));
             $file_el->appendText($file);
             $folder_el->appendChild($file_el);
+        }
+    }
+
+    # gallery listing
+    my (@galleries) = $xpc->findnodes('/w:page/w:content//w:gallery',$dom);
+    foreach my $gallery (@galleries) {
+        my $gallery_path = $gallery->getAttribute('href');
+        my $max_width  = $gallery->getAttribute('thumb-width');
+        my $max_height = $gallery->getAttribute('thumb-height');
+
+        my $folder_rel = dir(meon::Web::Util->path_fixup($c,$gallery_path));
+        my $folder = dir($xml_file->dir, $folder_rel)->absolute;
+        die 'no pictures in '.$folder unless -d $folder;
+        $folder = $folder->resolve;
+        $c->detach('/status_forbidden', [])
+            unless $hostname_folder->contains($folder);
+
+        my @files = sort(grep { not $_->is_dir } $folder->children(no_hidden => 1));
+
+        foreach my $file (@files) {
+            $file = $file->basename;
+            next if $file =~ m/\.xml$/;
+            my $thumb_file = file(map { uri_escape($_) } $folder_rel->dir_list, 'thumb', $file);
+            my $img_file   = file(map { uri_escape($_) } $folder_rel->dir_list, $file);
+            my $file_el = $c->model('ResponseXML')->create_element('img');
+            $file_el->setAttribute('src' => $img_file);
+            $file_el->setAttribute('src-thumb' => $thumb_file);
+            $file_el->setAttribute('title' => $file);
+            $file_el->setAttribute('alt' => $file);
+            $gallery->appendChild($file_el);
+
+            # create thumbnail image
+            $thumb_file = file($xml_file->dir, $thumb_file);
+            unless (-e $thumb_file) {
+                $thumb_file->dir->mkpath
+                    unless -e $thumb_file->dir;
+
+                my $img = Imager->new(file => file($xml_file->dir, $img_file))
+                    or die Imager->errstr();
+                if ($img->getwidth > $max_width) {
+                    $img = $img->scale(xpixels => $max_width)
+                        || die 'failed to scale image - '.$img->errstr;
+                }
+                if ($img->getheight > $max_height) {
+                    $img = $img->scale(ypixels => $max_height)
+                        || die 'failed to scale image - '.$img->errstr;
+                }
+                $img->write(file => $thumb_file->stringify) || die 'failed to save image - '.$img->errstr;
+            }
         }
     }
 
