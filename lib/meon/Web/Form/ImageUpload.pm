@@ -51,7 +51,7 @@ sub submitted {
             || die 'failed to scale image - '.$img->errstr;
     }
     if ($img->getheight > $max_height) {
-        $img = $img->scale(xpixels => $max_height)
+        $img = $img->scale(ypixels => $max_height)
             || die 'failed to scale image - '.$img->errstr;
     }
     $img->write(file => $upload_to->file($upload_as).'') || die 'failed to save image - '.$img->errstr;
