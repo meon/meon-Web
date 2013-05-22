@@ -23,7 +23,6 @@ foreach my $hostname_folder (keys %{$config->{domains} || {}}) {
     my $hostname_folder_config = File::Spec->catfile(
         meon::Web::SPc->srvdir, 'www', 'meon-web', $hostname_folder, 'config.ini'
     );
-    warn $hostname_folder_config;
     if (-e $hostname_folder_config) {
         $config->{$hostname_folder} = Config::INI::Reader->read_file(
             $hostname_folder_config
