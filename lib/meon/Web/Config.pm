@@ -1,5 +1,8 @@
 package meon::Web::Config;
 
+use strict;
+use warnings;
+
 use meon::Web::SPc;
 use Config::INI::Reader;
 use File::Basename 'basename';
@@ -16,6 +19,17 @@ my $config = Config::INI::Reader->read_file(
         meon::Web::SPc->sysconfdir, 'meon', 'web-config.ini'
     )
 );
+foreach my $hostname_folder (keys %{$config->{domains} || {}}) {
+    my $hostname_folder_config = File::Spec->catfile(
+        meon::Web::SPc->srvdir, 'www', 'meon-web', $hostname_folder, 'config.ini'
+    );
+    warn $hostname_folder_config;
+    if (-e $hostname_folder_config) {
+        $config->{$hostname_folder} = Config::INI::Reader->read_file(
+            $hostname_folder_config
+        );
+    }
+}
 
 sub get {
     return $config;

@@ -28,12 +28,12 @@ sub auto : Private {
 
     my $uri      = $c->req->uri;
     my $hostname = $uri->host;
-    my $hostname_folder = meon::Web::Config->hostname_to_folder($hostname);
+    my $hostname_folder_name = meon::Web::Config->hostname_to_folder($hostname);
 
     $c->detach('/status_not_found', ['no such domain '.$hostname.' configured'])
-        unless $hostname_folder;
+        unless $hostname_folder_name;
 
-    $hostname_folder = dir(meon::Web::SPc->srvdir, 'www', 'meon-web', $hostname_folder)->absolute->resolve;
+    my $hostname_folder = dir(meon::Web::SPc->srvdir, 'www', 'meon-web', $hostname_folder_name)->absolute->resolve;
     $c->stash->{hostname_folder} = $hostname_folder;
 
     my $template_file = file($hostname_folder, 'template', 'xsl', 'default.xsl');
@@ -42,6 +42,16 @@ sub auto : Private {
     $c->default_auth_store->folder(
         dir($hostname_folder, 'content', 'members')
     );
+
+    # set cookie domain
+    my $cookie_domain = $hostname;
+    my $config_cookie_domain = meon::Web::Config->get->{$hostname_folder_name}{'main'}{'cookie-domain'};
+
+    if ($config_cookie_domain && $hostname =~ m/${config_cookie_domain}$/) {
+        $cookie_domain = $config_cookie_domain;
+    }
+
+    $c->_session_plugin_config->{cookie_domain} = $cookie_domain;
 
     return 1;
 }
