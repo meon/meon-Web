@@ -13,9 +13,12 @@ use IO::Any;
 use Class::Load 'load_class';
 use File::MimeInfo 'mimetype';
 use Scalar::Util 'blessed';
+use DateTime::Format::HTTP;
+use Imager;
 
 use meon::Web::Form::Process::SendEmail;
 use meon::Web::Form::Login;
+use meon::Web::Form::Delete;
 use meon::Web::Member;
 use meon::Web::TimelineEntry;
 
@@ -91,6 +94,25 @@ sub resolve_xml : Private {
     }
     if ((! -f $xml_file) && (-f substr($xml_file,0,-4))) {
         my $static_file = file(substr($xml_file,0,-4));
+        my $mtime = $static_file->stat->mtime;
+        if (!$c->req->param('t')) {
+            $c->res->redirect($c->req->uri_with({t => $mtime})->absolute);
+            $c->detach;
+        }
+
+        my $max_age = 365*24*60*60;
+        $c->res->header('Cache-Control' => 'max-age='.$max_age.', private');
+        $c->res->header(
+            'Expires' => DateTime::Format::HTTP->format_datetime(
+                DateTime->now->add(seconds => $max_age)
+            )
+        );
+        $c->res->header(
+            'Last-Modified' => DateTime::Format::HTTP->format_datetime(
+                DateTime->from_epoch(epoch => $mtime)
+            )
+        );
+
         my $mime_type = mimetype($static_file->basename);
         $c->res->content_type($mime_type);
         $c->res->body($static_file->open('r'));
@@ -131,19 +153,30 @@ sub resolve_xml : Private {
     }
 
     # forms
-    if ($xpc->findnodes('/w:page/w:meta/w:form',$dom)) {
-        my ($form_class) = 'meon::Web::Form::'.$xpc->findnodes('/w:page/w:meta/w:form/w:process', $dom);
-        load_class($form_class);
-        my $form = $form_class->new(c => $c);
-        my $params = $c->req->params;
-        $params->{'file'} = $c->req->upload('file')
-            if $params->{'file'};
-        $form->process(params=>$params);
-        $form->submitted
-            if $form->is_valid && $form->can('submitted') && ($c->req->method eq 'POST');
-        $c->model('ResponseXML')->add_xhtml_form(
-            $form->render
-        );
+    if (my ($form_el) = $xpc->findnodes('/w:page/w:meta/w:form',$dom)) {
+        my $skip_form = 0;
+        if ($xpc->findnodes('w:owner-only',$form_el)) {
+            my $member = $c->member;
+            my $member_folder = $member->dir;
+
+            $skip_form = 1
+                unless $member_folder->contains($xml_file);
+        }
+
+        unless ($skip_form) {
+            my ($form_class) = 'meon::Web::Form::'.$xpc->findnodes('/w:page/w:meta/w:form/w:process', $dom);
+            load_class($form_class);
+            my $form = $form_class->new(c => $c);
+            my $params = $c->req->params;
+            $params->{'file'} = $c->req->upload('file')
+                if $params->{'file'};
+            $form->process(params=>$params);
+            $form->submitted
+                if $form->is_valid && $form->can('submitted') && ($c->req->method eq 'POST');
+            $c->model('ResponseXML')->add_xhtml_form(
+                $form->render
+            );
+        }
     }
 
     # folder listing
@@ -170,6 +203,55 @@ sub resolve_xml : Private {
             $file_el->setAttribute('href' => join('/', map { uri_escape($_) } $folder_rel->dir_list, $file));
             $file_el->appendText($file);
             $folder_el->appendChild($file_el);
+        }
+    }
+
+    # gallery listing
+    my (@galleries) = $xpc->findnodes('/w:page/w:content//w:gallery',$dom);
+    foreach my $gallery (@galleries) {
+        my $gallery_path = $gallery->getAttribute('href');
+        my $max_width  = $gallery->getAttribute('thumb-width');
+        my $max_height = $gallery->getAttribute('thumb-height');
+
+        my $folder_rel = dir(meon::Web::Util->path_fixup($c,$gallery_path));
+        my $folder = dir($xml_file->dir, $folder_rel)->absolute;
+        die 'no pictures in '.$folder unless -d $folder;
+        $folder = $folder->resolve;
+        $c->detach('/status_forbidden', [])
+            unless $hostname_folder->contains($folder);
+
+        my @files = sort(grep { not $_->is_dir } $folder->children(no_hidden => 1));
+
+        foreach my $file (@files) {
+            $file = $file->basename;
+            next if $file =~ m/\.xml$/;
+            my $thumb_file = file(map { uri_escape($_) } $folder_rel->dir_list, 'thumb', $file);
+            my $img_file   = file(map { uri_escape($_) } $folder_rel->dir_list, $file);
+            my $file_el = $c->model('ResponseXML')->create_element('img');
+            $file_el->setAttribute('src' => $img_file);
+            $file_el->setAttribute('src-thumb' => $thumb_file);
+            $file_el->setAttribute('title' => $file);
+            $file_el->setAttribute('alt' => $file);
+            $gallery->appendChild($file_el);
+
+            # create thumbnail image
+            $thumb_file = file($xml_file->dir, $thumb_file);
+            unless (-e $thumb_file) {
+                $thumb_file->dir->mkpath
+                    unless -e $thumb_file->dir;
+
+                my $img = Imager->new(file => file($xml_file->dir, $img_file))
+                    or die Imager->errstr();
+                if ($img->getwidth > $max_width) {
+                    $img = $img->scale(xpixels => $max_width)
+                        || die 'failed to scale image - '.$img->errstr;
+                }
+                if ($img->getheight > $max_height) {
+                    $img = $img->scale(ypixels => $max_height)
+                        || die 'failed to scale image - '.$img->errstr;
+                }
+                $img->write(file => $thumb_file->stringify) || die 'failed to save image - '.$img->errstr;
+            }
         }
     }
 

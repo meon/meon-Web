@@ -9,9 +9,9 @@ use 5.010;
 
 has 'file'           => (is=>'rw', isa=>'Path::Class::File',coerce=>1,lazy_build=>1,);
 has 'timeline_dir'   => (is=>'rw', isa=>'Path::Class::Dir',coerce=>1,lazy_build=>1);
-has 'xml'            => (is=>'ro', isa=>'XML::LibXML::Document', lazy_build => 1);
+has 'xml'            => (is=>'rw', isa=>'XML::LibXML::Document', lazy_build => 1);
 has 'title'          => (is=>'ro', isa=>'Str',lazy_build=>1,);
-has 'created'        => (is=>'ro', isa=>'DateTime',lazy_build=>1,);
+has 'created'        => (is=>'rw', isa=>'DateTime',lazy_build=>1,);
 has 'author'         => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_author');
 has 'intro'          => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_intro');
 has 'body'           => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_body');
@@ -26,8 +26,8 @@ my $strptime_iso8601 = DateTime::Format::Strptime->new(
 sub _build_file {
     my ($self) = @_;
 
-    my $year  = $self->created->year;
-    my $month = $self->created->month;
+    my $year  = $self->created->strftime('%Y');
+    my $month = $self->created->strftime('%m');
     my $filename = meon::Web::Util->filename_cleanup($self->title);
     while (length($filename) < 5) {
         $filename .= chr(97+rand(26));
@@ -121,9 +121,12 @@ sub _build_body {
 sub create {
     my ($self) = @_;
 
-    my $created  = $self->created->iso8601;
+    my $created  = DateTime->now(time_zone=>'UTC');
+    $self->created($created);
+    $created = $created->iso8601;
+
     my $title    = $self->title;
-    my $intro    = $self->has_intro  ? '<p>'.$self->into.'</p>' : '';
+    my $intro    = $self->has_intro  ? '<p>'.$self->intro.'</p>' : '';
     my $body     = $self->has_body   ? '<p>'.$self->body.'</p>' : '';
     my $author   = $self->has_author ? '    <author>'.$self->author.'</author>' : '';
 
@@ -136,15 +139,25 @@ sub create {
 >
 
 <meta>
-    <title>$title</title>
 $author
+    <title>$title</title>
+    <form>
+        <owner-only/>
+        <process>Delete</process>
+        <redirect>../../</redirect>
+    </form>
 </meta>
 
 <content><div xmlns="http://www.w3.org/1999/xhtml">
-<span class="datetime">$created</span>
+<div class="timeline-entry">
+<span class="created">$created</span>
 <h1>$title</h1>
 $intro
 $body
+</div>
+
+<div class="delete-confirmation"><w:form copy-id="form-delete"/></div>
+
 </div></content>
 
 </page>
@@ -160,7 +173,7 @@ sub store {
     my $file = $self->file;
     
     unless (-e $file->dir) {
-        die 'FIXME create index.xml';
+        die 'FIXME create index.xml in '.$file->dir;
         $file->dir->mkpath;
     }
 
