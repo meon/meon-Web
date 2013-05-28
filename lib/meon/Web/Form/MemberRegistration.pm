@@ -14,6 +14,13 @@ with 'meon::Web::Role::Form';
 
 has_field 'submit'   => ( type => 'Submit', value => 'Submit', );
 
+before 'validate' => sub {
+    my ($self) = @_;
+
+    $self->add_form_error('Are you real?')
+        if $self->c->req->param('yreo');
+};
+
 sub submitted {
     my ($self) = @_;
 
