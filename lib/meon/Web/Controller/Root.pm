@@ -50,7 +50,7 @@ sub auto : Private {
     my $cookie_domain = $hostname;
     my $config_cookie_domain = meon::Web::Config->get->{$hostname_folder_name}{'main'}{'cookie-domain'};
 
-    if ($config_cookie_domain && $hostname =~ m/${config_cookie_domain}$/) {
+    if ($config_cookie_domain && (substr($hostname,0-length($config_cookie_domain)) eq $config_cookie_domain)) {
         $cookie_domain = $config_cookie_domain;
     }
 
