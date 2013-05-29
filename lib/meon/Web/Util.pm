@@ -46,7 +46,7 @@ sub path_fixup {
     if ($path =~ m/^(.*){\$TIMELINE_NEWEST}/) {
         my $base_dir = dir($c->stash->{xml_file}->dir, (defined($1) ? $1 : ()));
         my $dir = $base_dir;
-        while (my @subfolders = sort grep { $_->is_dir } $dir->children(no_hidden => 1)) {
+        while (my @subfolders = sort grep { $_->basename =~ m/^\d+$/ } grep { $_->is_dir } $dir->children(no_hidden => 1)) {
             $dir = pop(@subfolders);
         }
         $dir = $dir->relative($base_dir);
