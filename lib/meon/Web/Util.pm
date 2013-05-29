@@ -44,11 +44,12 @@ sub path_fixup {
     $path =~ s/{\$USERNAME}/$username/;
 
     if ($path =~ m/^(.*){\$TIMELINE_NEWEST}/) {
-        my $dir = dir($c->stash->{xml_file}->dir, (defined($1) ? $1 : ()));
+        my $base_dir = dir($c->stash->{xml_file}->dir, (defined($1) ? $1 : ()));
+        my $dir = $base_dir;
         while (my @subfolders = sort grep { $_->is_dir } $dir->children(no_hidden => 1)) {
             $dir = pop(@subfolders);
         }
-        $dir = $dir->relative($c->stash->{xml_file}->dir);
+        $dir = $dir->relative($base_dir);
         $dir .= '';
         $path =~ s/{\$TIMELINE_NEWEST}/$dir/;
     }
