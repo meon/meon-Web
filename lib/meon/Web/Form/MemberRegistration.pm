@@ -42,6 +42,8 @@ sub submitted {
 
     my $rcpt_to  = $self->get_config_text('rcpt-to');
     my $subject  = $self->get_config_text('subject');
+    $subject    .= ' - '.$c->req->param('name')
+        if $c->req->param('name');
     my $detach   = $self->get_config_text('detach');
 
     my $email_content = '';
