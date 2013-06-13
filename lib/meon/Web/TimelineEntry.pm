@@ -2,10 +2,13 @@ package meon::Web::TimelineEntry;
 
 use meon::Web::Util;
 use DateTime::Format::Strptime;
+use File::Copy 'copy';
+use Path::Class qw();
 
 use Moose;
 use MooseX::Types::Path::Class;
 use 5.010;
+use utf8;
 
 has 'file'           => (is=>'rw', isa=>'Path::Class::File',coerce=>1,lazy_build=>1,);
 has 'timeline_dir'   => (is=>'rw', isa=>'Path::Class::Dir',coerce=>1,lazy_build=>1);
@@ -171,10 +174,25 @@ sub store {
     my $self = shift;
     my $xml = $self->xml;
     my $file = $self->file;
+    my $dir  = $file->dir;
+    my $timeline_dir = $self->timeline_dir;
     
-    unless (-e $file->dir) {
-        die 'FIXME create index.xml in '.$file->dir;
-        $file->dir->mkpath;
+    $dir->mkpath
+        unless -e $dir;
+    unless (-e $dir->file('index.xml')) {
+        $dir->resolve;
+        $timeline_dir->resolve;
+        my $list_index_file = Path::Class::file(
+            meon::Web::SPc->datadir, 'meon-web', 'template', 'xml','timeline-list-index.xml'
+        );
+        my $timeline_index_file = Path::Class::file(
+            meon::Web::SPc->datadir, 'meon-web', 'template', 'xml','timeline-index.xml'
+        );
+        copy($list_index_file, $dir->file('index.xml')) or die 'copy failed: '.$!;
+
+        while (($dir = $dir->parent) && $timeline_dir->contains($dir) && !-e $dir->file('index.xml')) {
+            copy($timeline_index_file, $dir->file('index.xml')) or die 'copy failed: '.$!;
+        }
     }
 
     $file->spew($xml->toString);

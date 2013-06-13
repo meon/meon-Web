@@ -59,6 +59,7 @@ my $builder = Module::Build::SysPath->new(
         'DateTime::Format::Strptime'       => 0,
         'MooseX::Types::Path::Class'       => 0,
         'DateTime::Format::HTTP'           => 0,
+        'File::Copy'                       => 0,
     },
     script_files => [qw(
         script/meon-web.psgi
