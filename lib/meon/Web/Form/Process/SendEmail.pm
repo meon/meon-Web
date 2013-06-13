@@ -8,6 +8,7 @@ use List::MoreUtils 'uniq';
 use Email::MIME;
 use Email::Sender::Simple qw(sendmail);
 use Data::Dumper;
+use meon::Web::Util;
 
 sub get_form {
     my ($self, $c) = @_;
@@ -21,7 +22,7 @@ sub submitted {
         if $c->debug;
 
     my $xml = $c->model('ResponseXML')->dom;
-    my $xpc = $c->xpc;
+    my $xpc = meon::Web::Util->xpc;
     my ($rcpt_to) = map { $_->textContent } $xpc->findnodes('w:rcpt-to',$form);
     die 'no email provided' unless $rcpt_to;
     my ($subject) = map { $_->textContent } $xpc->findnodes('w:subject',$form);

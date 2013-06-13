@@ -125,7 +125,7 @@ sub resolve_xml : Private {
     $xml_file = file($xml_file);
     $c->stash->{xml_file} = $xml_file;
     my $dom = XML::LibXML->load_xml(location => $xml_file);
-    my $xpc = $c->xpc;
+    my $xpc = meon::Web::Util->xpc;
 
     $c->model('ResponseXML')->dom($dom);
 

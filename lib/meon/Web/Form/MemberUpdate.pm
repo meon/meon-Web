@@ -1,5 +1,7 @@
 package meon::Web::Form::MemberUpdate;
 
+use meon::Web::Util;
+
 use HTML::FormHandler::Moose;
 extends 'HTML::FormHandler';
 with 'meon::Web::Role::Form';
@@ -14,7 +16,7 @@ sub _build_configured_field_list {
     my $self = shift;
 
     my $member = $self->c->member;
-    my $xpc = $self->c->xpc;
+    my $xpc = meon::Web::Util->xpc;
     my $form_config = $self->config;
     my @fields = map {
         my $name  = $_->getAttribute('name');

@@ -25,7 +25,7 @@ sub submitted {
     my ($self) = @_;
 
     my $c   = $self->c;
-    my $xpc = $c->xpc;
+    my $xpc = meon::Web::Util->xpc;
     my $xml = $c->model('ResponseXML')->dom;
     $c->log->debug(__PACKAGE__.' '.Data::Dumper::Dumper($c->req->params))
         if $c->debug;

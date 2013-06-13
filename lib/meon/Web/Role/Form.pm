@@ -12,7 +12,7 @@ sub _build_config {
 
     my $c = $self->c;
     my $dom = $c->model('ResponseXML')->dom;
-    my $xpc = $c->xpc;
+    my $xpc = meon::Web::Util->xpc;
     my ($form_config) = $xpc->findnodes('/w:page/w:meta/w:form',$dom);
     return $form_config;
 }
@@ -28,7 +28,7 @@ sub get_config_text {
     croak 'need element name argument'
         unless defined $el_name && length($el_name);
 
-    my $xpc = $self->c->xpc;
+    my $xpc = meon::Web::Util->xpc;
     my $form_config = $self->config;
     my ($text) = map { $_->textContent } $xpc->findnodes('w:'.$el_name,$form_config);
     die 'config element '.$el_name.' not found'

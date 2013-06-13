@@ -1,5 +1,7 @@
 package meon::Web::Form::PasswordChange;
 
+use meon::Web::Util;
+
 use HTML::FormHandler::Moose;
 extends 'HTML::FormHandler';
 with 'meon::Web::Role::Form';
@@ -79,7 +81,7 @@ sub submitted {
 
     my $c = $self->c;
     my $xml = $c->model('ResponseXML')->dom;
-    my $xpc = $c->xpc;
+    my $xpc = meon::Web::Util->xpc;
     my $detach_path = $self->get_config_text('detach');
 
     return unless $self->is_valid;

@@ -76,13 +76,6 @@ sub static_include_path {
     return [ dir(meon::Web::SPc->srvdir, 'www', 'meon-web', $hostname_folder, 'www') ];
 }
 
-sub xpc {
-    my $xpc = XML::LibXML::XPathContext->new;
-    $xpc->registerNs('x', 'http://www.w3.org/1999/xhtml');
-    $xpc->registerNs('w', 'http://web.meon.eu/');
-    return $xpc;
-}
-
 sub json_reply {
     my ( $c, $json_data ) = @_;
 

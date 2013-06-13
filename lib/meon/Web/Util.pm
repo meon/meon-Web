@@ -2,6 +2,14 @@ package meon::Web::Util;
 
 use Text::Unidecode 'unidecode';
 use Path::Class 'dir', 'file';
+use XML::LibXML::XPathContext;
+
+sub xpc {
+    my $xpc = XML::LibXML::XPathContext->new;
+    $xpc->registerNs('x', 'http://www.w3.org/1999/xhtml');
+    $xpc->registerNs('w', 'http://web.meon.eu/');
+    return $xpc;
+}
 
 sub filename_cleanup {
     my ($self, $text) = @_;
