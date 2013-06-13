@@ -6,6 +6,7 @@ use meon::Web::TimelineEntry;
 use DateTime::Format::Strptime;
 use File::Copy 'copy';
 use Path::Class qw();
+use IO::Any;
 
 use Moose;
 use MooseX::Types::Path::Class;
