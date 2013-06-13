@@ -39,8 +39,8 @@ sub auto : Private {
     my $hostname_folder = dir(meon::Web::SPc->srvdir, 'www', 'meon-web', $hostname_folder_name)->absolute->resolve;
     $c->stash->{hostname_folder} = $hostname_folder;
 
-    my $template_file = file($hostname_folder, 'template', 'xsl', 'default.xsl');
-    $c->stash->{template} = $template_file;
+    my $template_file = file($hostname_folder, 'template', 'xsl', 'default.xsl')->stringify;
+    $c->stash->{template} = XML::LibXML->load_xml(location => $template_file);
 
     $c->default_auth_store->folder(
         dir($hostname_folder, 'content', 'members')
@@ -311,6 +311,17 @@ sub resolve_xml : Private {
             $timeline_el->appendChild($newer_el);
             $newer_el->setAttribute('href' => $newer);
         }
+    }
+
+    # generate exists
+    my (@exists) = (
+        $xpc->findnodes('//w:exists', $dom),
+        $xpc->findnodes('//w:exists', $c->stash->{template}),
+    );
+    foreach my $exist_el (@exists) {
+        my $href = $exist_el->getAttribute('href');
+        my $path = meon::Web::Util->full_path_fixup($c,$href,$xml_file->dir);
+        $exist_el->appendText(-e $path ? 1 : 0);
     }
 }
 

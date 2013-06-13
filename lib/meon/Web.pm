@@ -20,6 +20,7 @@ use Catalyst qw(
     Unicode::Encoding
 );
 extends 'Catalyst';
+use Catalyst::View::XSLT 0.10;
 
 our $VERSION = '0.01';
 

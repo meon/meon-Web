@@ -1,7 +1,7 @@
 package meon::Web::Util;
 
 use Text::Unidecode 'unidecode';
-use Path::Class 'dir';
+use Path::Class 'dir', 'file';
 
 sub filename_cleanup {
     my ($self, $text) = @_;
@@ -55,6 +55,14 @@ sub path_fixup {
     }
 
     return $path;
+}
+
+sub full_path_fixup {
+    my ($self, $c, $path, $cur_dir) = @_;
+    $path = $self->path_fixup($c, $path);
+    $cur_dir = dir($c->stash->{hostname_folder}, 'content')
+        if $path =~ m{^/};
+    $path = file($cur_dir, $path)->absolute;
 }
 
 1;
