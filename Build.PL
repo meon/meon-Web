@@ -60,9 +60,12 @@ my $builder = Module::Build::SysPath->new(
         'MooseX::Types::Path::Class'       => 0,
         'DateTime::Format::HTTP'           => 0,
         'File::Copy'                       => 0,
+        'Getopt::Long'                     => 0,
+        'Pod::Usage'                       => 0,
     },
     script_files => [qw(
         script/meon-web.psgi
+        script/meon-web-aggregate-timelines
     )],
     add_to_cleanup => [ 'meon-Web-*' ],
     create_readme  => 1,
