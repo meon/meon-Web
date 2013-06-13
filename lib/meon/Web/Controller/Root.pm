@@ -258,22 +258,35 @@ sub resolve_xml : Private {
     # generate timeline
     my ($timeline_el) = $xpc->findnodes('/w:page/w:content//w:timeline', $dom);
     if ($timeline_el) {
+        my @entries_files = $xml_file->dir->children(no_hidden => 1);
+        foreach my $href_entry ($xpc->findnodes('w:entry[@href]', $timeline_el)) {
+            my $href = $href_entry->getAttribute('href');
+            $timeline_el->removeChild($href_entry);
+            my $path = file(meon::Web::Util->full_path_fixup($c,$href).'.xml');
+            push(@entries_files,$path)
+                if -e $path;
+        }
+
         my @entries =
             sort { $b->created <=> $a->created }
             map  { meon::Web::TimelineEntry->new(file => $_) }
             grep { $_->basename ne $xml_file->basename }
             grep { !$_->is_dir }
-            $xml_file->dir->children(no_hidden => 1)
+            @entries_files
         ;
 
         foreach my $entry (@entries) {
             my $author = $entry->author;
             my $intro = $entry->intro;
             my $body  = $entry->body;
+            my $href = $entry->file->resolve;
+            return unless $href;
+            $href = substr($href,0,-4);
+            $href = substr($href,length($c->stash->{hostname_folder}.'/content'));
 
             my $entry_el = $c->model('ResponseXML')->create_element('entry');
             $timeline_el->appendChild($entry_el);
-            $entry_el->setAttribute('href' => substr($entry->file->basename,0,-4));
+            $entry_el->setAttribute('href' => $href);
             my $title_el = $c->model('ResponseXML')->create_element('title');
             $entry_el->appendChild($title_el);
             $title_el->appendText($entry->title);
@@ -320,7 +333,7 @@ sub resolve_xml : Private {
     );
     foreach my $exist_el (@exists) {
         my $href = $exist_el->getAttribute('href');
-        my $path = meon::Web::Util->full_path_fixup($c,$href,$xml_file->dir);
+        my $path = meon::Web::Util->full_path_fixup($c,$href);
         $exist_el->appendText(-e $path ? 1 : 0);
     }
 }

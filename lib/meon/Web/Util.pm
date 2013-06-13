@@ -58,8 +58,9 @@ sub path_fixup {
 }
 
 sub full_path_fixup {
-    my ($self, $c, $path, $cur_dir) = @_;
+    my ($self, $c, $path) = @_;
     $path = $self->path_fixup($c, $path);
+    my $cur_dir = $c->stash->{xml_file}->dir;
     $cur_dir = dir($c->stash->{hostname_folder}, 'content')
         if $path =~ m{^/};
     $path = file($cur_dir, $path)->absolute;
