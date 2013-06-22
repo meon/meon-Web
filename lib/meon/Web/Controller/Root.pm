@@ -16,7 +16,6 @@ use Scalar::Util 'blessed';
 use DateTime::Format::HTTP;
 use Imager;
 
-use meon::Web::Form::Process::SendEmail;
 use meon::Web::Form::Login;
 use meon::Web::Form::Delete;
 use meon::Web::Member;
