@@ -129,6 +129,9 @@ sub resolve_xml : Private {
 
     $c->model('ResponseXML')->dom($dom);
 
+    my $path_el = $c->model('ResponseXML')->push_new_element('current-path');
+    $path_el->appendText($path->path);
+
     # user
     if ($c->user_exists) {
         my $user_el = $c->model('ResponseXML')->create_element('user');
