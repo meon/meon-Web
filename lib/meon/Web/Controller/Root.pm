@@ -258,7 +258,7 @@ sub resolve_xml : Private {
     # generate timeline
     my ($timeline_el) = $xpc->findnodes('/w:page/w:content//w:timeline', $dom);
     if ($timeline_el) {
-        my @entries_files = $xml_file->dir->children(no_hidden => 1);
+        my @entries_files;
         foreach my $href_entry ($xpc->findnodes('w:entry[@href]', $timeline_el)) {
             my $href = $href_entry->getAttribute('href');
             $timeline_el->removeChild($href_entry);
@@ -266,6 +266,8 @@ sub resolve_xml : Private {
             push(@entries_files,$path)
                 if -e $path;
         }
+        @entries_files = $xml_file->dir->children(no_hidden => 1)
+            unless @entries_files;
 
         my @entries =
             sort { $b->created <=> $a->created }
