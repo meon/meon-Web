@@ -13,13 +13,19 @@ exit main();
 
 sub main {
     my $help;
+    my $month = DateTime->now->strftime('%m');
+    my $year = DateTime->now->strftime('%Y');
     GetOptions(
-        'help|h' => \$help,
+        'help|h'  => \$help,
+        'month=s' => \$month,
+        'year=s'  => \$year,
     ) or pod2usage;
     pod2usage if $help;
 
-    my $year  = DateTime->now->strftime('%Y');
-    my $month = DateTime->now->strftime('%m');
+    die 'bad year'
+        if $year !~ m/^20[0-9]{2}$/;
+    die 'bad month (01 02 … 12)'
+        unless ($month =~ m/^[0-9]{2}$/) || $month < 1 || $month > 12;
 
     my $timeline_dir = shift(@ARGV);
     pod2usage unless $timeline_dir;

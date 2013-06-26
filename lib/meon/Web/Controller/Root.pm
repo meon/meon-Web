@@ -16,7 +16,6 @@ use Scalar::Util 'blessed';
 use DateTime::Format::HTTP;
 use Imager;
 
-use meon::Web::Form::Process::SendEmail;
 use meon::Web::Form::Login;
 use meon::Web::Form::Delete;
 use meon::Web::Member;
@@ -128,6 +127,9 @@ sub resolve_xml : Private {
     my $xpc = meon::Web::Util->xpc;
 
     $c->model('ResponseXML')->dom($dom);
+
+    my $path_el = $c->model('ResponseXML')->push_new_element('current-path');
+    $path_el->appendText($path->path);
 
     # user
     if ($c->user_exists) {

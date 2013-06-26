@@ -1,34 +1,40 @@
-package meon::Web::Form::Process::SendEmail;
-
-use strict;
-use warnings;
-use 5.010;
+package meon::Web::Form::SendEmail;
 
 use List::MoreUtils 'uniq';
 use Email::MIME;
 use Email::Sender::Simple qw(sendmail);
 use Data::Dumper;
 use meon::Web::Util;
+use meon::Web::Member;
+use Path::Class 'dir';
 
-sub get_form {
-    my ($self, $c) = @_;
-    return;
-}
+use HTML::FormHandler::Moose;
+extends 'HTML::FormHandler';
+with 'meon::Web::Role::Form';
+
+has_field 'submit'   => ( type => 'Submit', value => 'Submit', );
+
+before 'validate' => sub {
+    my ($self) = @_;
+
+    $self->add_form_error('Are you real?')
+        if $self->c->req->param('yreo');
+};
 
 sub submitted {
-    my ($self, $c, $form) = @_;
+    my ($self) = @_;
 
+    my $c   = $self->c;
+    my $xpc = meon::Web::Util->xpc;
     $c->log->debug(__PACKAGE__.' '.Data::Dumper::Dumper($c->req->params))
         if $c->debug;
 
     my $xml = $c->model('ResponseXML')->dom;
-    my $xpc = meon::Web::Util->xpc;
-    my ($rcpt_to) = map { $_->textContent } $xpc->findnodes('w:rcpt-to',$form);
-    die 'no email provided' unless $rcpt_to;
-    my ($subject) = map { $_->textContent } $xpc->findnodes('w:subject',$form);
-    die 'no subject provided' unless $subject;
-    my ($redirect) = map { $_->textContent } $xpc->findnodes('w:redirect',$form);
-    die 'no redirect provided' unless $redirect;
+    my $rcpt_to  = $self->get_config_text('rcpt-to');
+    my $subject  = $self->get_config_text('subject');
+    $subject    .= ' - '.$c->req->param('email')
+        if $c->req->param('name');
+    my $detach   = $self->get_config_text('detach');
     my $email_content = '';
 
     my (@input_names) =
@@ -64,13 +70,9 @@ sub submitted {
     );
 
     sendmail($email->as_string);
-
-    unless ($redirect =~ m{^https?://}) {
-        $redirect =~ s{^/}{};
-        $redirect = $c->req->base.$redirect;
-    }
-
-    $c->res->redirect($redirect);
+    $self->detach($detach);
 }
+
+no HTML::FormHandler::Moose;
 
 1;
