@@ -43,7 +43,7 @@ sub auto : Private {
     $c->stash->{template} = XML::LibXML->load_xml(location => $template_file);
 
     $c->default_auth_store->folder(
-        dir($hostname_folder, 'content', 'members')
+        dir($hostname_folder, 'content', 'members', 'profile')
     );
 
     # set cookie domain
