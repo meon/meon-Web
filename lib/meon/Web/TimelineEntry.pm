@@ -164,6 +164,9 @@ $body
 
 <div class="delete-confirmation"><w:form copy-id="form-delete"/></div>
 
+<w:timeline class="comments">
+</w:timeline>
+
 </div></content>
 
 </page>
