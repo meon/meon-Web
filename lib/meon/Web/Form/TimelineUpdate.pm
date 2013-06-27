@@ -2,6 +2,8 @@ package meon::Web::Form::TimelineUpdate;
 
 use meon::Web::Util;
 use meon::Web::TimelineEntry;
+use meon::Web::XML2Comment;
+use Path::Class 'dir';
 
 use HTML::FormHandler::Moose;
 extends 'HTML::FormHandler';
@@ -35,19 +37,28 @@ sub submitted {
     my $title = $self->field('title')->value;
     my $intro = $self->field('intro')->value;
     my $body  = $self->field('body')->value;
+    my $comment_to_uri = $c->stash->{comment_to};
+    my $comment_to;
+    if ($comment_to_uri) {
+        $comment_to = meon::Web::XML2Comment->new(
+            path => $comment_to_uri.'.xml',
+            c    => $c,
+        );
+    }
 
     my $timeline_path = $self->get_config_text('timeline');
-    my $timeline_full_path = $c->stash->{xml_file}->dir->subdir(meon::Web::Util->path_fixup($c, $timeline_path));
+    my $timeline_full_path = dir(meon::Web::Util->full_path_fixup($c, $timeline_path));
     my $entry = meon::Web::TimelineEntry->new(
         timeline_dir => $timeline_full_path,
         title        => $title,
         author       => $c->user->username,
         (defined($intro) ? (intro => $intro) : ()),
         (defined($body)  ? (body  => $body)  : ()),
+        (defined($comment_to) ? (comment_to => $comment_to)  : ()),
     );
     $entry->create;
 
-    $self->redirect($timeline_path);
+    $self->redirect($comment_to_uri // $timeline_path);
 }
 
 no HTML::FormHandler::Moose;

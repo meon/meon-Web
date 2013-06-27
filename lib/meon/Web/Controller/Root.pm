@@ -15,6 +15,7 @@ use File::MimeInfo 'mimetype';
 use Scalar::Util 'blessed';
 use DateTime::Format::HTTP;
 use Imager;
+use URI::Escape 'uri_escape';
 
 use meon::Web::Form::Login;
 use meon::Web::Form::Delete;
@@ -128,8 +129,8 @@ sub resolve_xml : Private {
 
     $c->model('ResponseXML')->dom($dom);
 
-    my $path_el = $c->model('ResponseXML')->push_new_element('current-path');
-    $path_el->appendText($path->path);
+    $c->model('ResponseXML')->push_new_element('current-path')->appendText($path->path);
+    $c->model('ResponseXML')->push_new_element('current-path-escaped')->appendText(uri_escape($path->path));
 
     # user
     if ($c->user_exists) {
@@ -166,6 +167,11 @@ sub resolve_xml : Private {
         }
 
         unless ($skip_form) {
+            my $comment_to = delete $c->req->params->{comment_to};
+            if (defined($comment_to)) {
+                $c->model('ResponseXML')->push_new_element('comment-to')->appendText($comment_to);
+                $c->stash->{comment_to} = $comment_to;
+            }
             my ($form_class) = 'meon::Web::Form::'.$xpc->findnodes('/w:page/w:meta/w:form/w:process', $dom);
             load_class($form_class);
             my $form = $form_class->new(c => $c);
@@ -260,6 +266,7 @@ sub resolve_xml : Private {
     # generate timeline
     my ($timeline_el) = $xpc->findnodes('/w:page/w:content//w:timeline', $dom);
     if ($timeline_el) {
+        my $timeline_class = $timeline_el->getAttribute('class') // 'folder';
         my @entries_files;
         foreach my $href_entry ($xpc->findnodes('w:entry[@href]', $timeline_el)) {
             my $href = $href_entry->getAttribute('href');
@@ -269,7 +276,7 @@ sub resolve_xml : Private {
                 if -e $path;
         }
         @entries_files = $xml_file->dir->children(no_hidden => 1)
-            unless @entries_files;
+            if $timeline_class eq 'folder';
 
         my @entries =
             sort { $b->created <=> $a->created }

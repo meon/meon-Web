@@ -18,6 +18,7 @@ has 'created'        => (is=>'rw', isa=>'DateTime',lazy_build=>1,);
 has 'author'         => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_author');
 has 'intro'          => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_intro');
 has 'body'           => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_body');
+has 'comment_to'     => (is=>'ro', isa=>'Maybe[Object]',lazy_build=>1,predicate=>'has_parent');
 has 'xc'             => (is=>'ro', isa=>'XML::LibXML::XPathContext',lazy_build=>1,);
 
 my $strptime_iso8601 = DateTime::Format::Strptime->new(
@@ -128,10 +129,11 @@ sub create {
     $self->created($created);
     $created = $created->iso8601;
 
-    my $title    = $self->title;
-    my $intro    = $self->has_intro  ? '<p>'.$self->intro.'</p>' : '';
-    my $body     = $self->has_body   ? '<p>'.$self->body.'</p>' : '';
-    my $author   = $self->has_author ? '    <author>'.$self->author.'</author>' : '';
+    my $title      = $self->title;
+    my $intro      = $self->has_intro  ? '<p>'.$self->intro.'</p>' : '';
+    my $body       = $self->has_body   ? '<p>'.$self->body.'</p>' : '';
+    my $author     = $self->has_author ? '    <author>'.$self->author.'</author>' : '';
+    my $comment_to = $self->has_parent ? '<div class="comment-to"><a href="'.$self->comment_to->web_uri.'">comment</a></div>' : '';
 
     # FIXME instead of direct string interpolation, use setters so that XML special chars are properly escaped
     my $xml = XML::LibXML->load_xml(string => qq{<?xml version="1.0" encoding="UTF-8"?>
@@ -155,6 +157,7 @@ $author
 <div class="timeline-entry">
 <span class="created">$created</span>
 <h1>$title</h1>
+$comment_to
 $intro
 $body
 </div>
@@ -176,7 +179,7 @@ sub store {
     my $file = $self->file;
     my $dir  = $file->dir;
     my $timeline_dir = $self->timeline_dir;
-    
+
     $dir->mkpath
         unless -e $dir;
     unless (-e $dir->file('index.xml')) {
@@ -196,6 +199,13 @@ sub store {
     }
 
     $file->spew($xml->toString);
+    if ($self->has_parent) {
+        my $base_dir = $self->comment_to->_full_path->dir;
+        my $path = $file->resolve;
+        $path = $path->relative($base_dir);
+        $path =~ s/\.xml$//;
+        $self->comment_to->add_comment($path);
+    }
 }
 
 sub previous_month {

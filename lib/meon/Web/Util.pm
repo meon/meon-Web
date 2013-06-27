@@ -62,6 +62,11 @@ sub path_fixup {
         $path =~ s/{\$TIMELINE_NEWEST}/$dir/;
     }
 
+    if ($path =~ m/{\$COMMENT_TO}/) {
+        my $comment_to = $c->stash->{comment_to};
+        $path =~ s/{\$COMMENT_TO}/$comment_to/;
+    }
+
     return $path;
 }
 

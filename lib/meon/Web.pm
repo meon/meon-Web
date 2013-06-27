@@ -99,9 +99,16 @@ sub traverse_uri {
 
     $path = meon::Web::Util->path_fixup($c,$path);
 
-    # redirect absolute urls
+    # redirect absolute urls with hostname
     if ($path =~ m{^https?://}) {
         return URI->new($path);
+    }
+
+    # redirect absolute urls
+    if ($path =~ m{^/}) {
+        my $new_uri = $c->req->base->clone;
+        $new_uri->path($path);
+        return $new_uri;
     }
 
     my $new_uri = $c->req->uri->clone;
