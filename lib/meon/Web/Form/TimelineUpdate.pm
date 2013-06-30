@@ -37,9 +37,11 @@ sub submitted {
     my $title = $self->field('title')->value;
     my $intro = $self->field('intro')->value;
     my $body  = $self->field('body')->value;
+    my $category = 'news';
     my $comment_to_uri = $c->stash->{comment_to};
     my $comment_to;
     if ($comment_to_uri) {
+        $category = 'comment';
         $comment_to = meon::Web::XML2Comment->new(
             path => $comment_to_uri.'.xml',
             c    => $c,
@@ -52,6 +54,7 @@ sub submitted {
         timeline_dir => $timeline_full_path,
         title        => $title,
         author       => $c->user->username,
+        category     => $category,
         (defined($intro) ? (intro => $intro) : ()),
         (defined($body)  ? (body  => $body)  : ()),
         (defined($comment_to) ? (comment_to => $comment_to)  : ()),

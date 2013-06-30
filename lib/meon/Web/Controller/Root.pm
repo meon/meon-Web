@@ -280,6 +280,7 @@ sub resolve_xml : Private {
 
         my @entries =
             sort { $b->created <=> $a->created }
+            grep { eval { $_->element } }
             map  { meon::Web::TimelineEntry->new(file => $_) }
             grep { $_->basename ne $xml_file->basename }
             grep { !$_->is_dir }
@@ -287,42 +288,20 @@ sub resolve_xml : Private {
         ;
 
         foreach my $entry (@entries) {
-            my $author = $entry->author;
+            my $entry_el = $entry->element;
             my $intro = $entry->intro;
-            my $body  = $entry->body;
             my $href = $entry->file->resolve;
             return unless $href;
             $href = substr($href,0,-4);
             $href = substr($href,length($c->stash->{hostname_folder}.'/content'));
-
-            my $entry_el = $c->model('ResponseXML')->create_element('entry');
-            $timeline_el->appendChild($entry_el);
             $entry_el->setAttribute('href' => $href);
-            my $title_el = $c->model('ResponseXML')->create_element('title');
-            $entry_el->appendChild($title_el);
-            $title_el->appendText($entry->title);
-            my $created_el = $c->model('ResponseXML')->create_element('created');
-            $entry_el->appendChild($created_el);
-            $created_el->appendText($c->format_dt($entry->created));
-
-            if (defined($author)) {
-                my $el = $c->model('ResponseXML')->create_element('author');
-                $entry_el->appendChild($el);
-                $el->appendText($author);
-            }
             if (defined($intro)) {
                 my $intro_snipped_el = $c->model('ResponseXML')->create_element('intro-snipped');
                 $entry_el->appendChild($intro_snipped_el);
                 $intro_snipped_el->appendText(length($intro) > 78 ? substr($intro,0,78).'…' : $intro);
-                my $introduction_el = $c->model('ResponseXML')->create_element('intro');
-                $entry_el->appendChild($introduction_el);
-                $introduction_el->appendText($entry->intro);
             }
-            if (defined($body)) {
-                my $body_el = $c->model('ResponseXML')->create_element('body');
-                $entry_el->appendChild($body_el);
-                $body_el->appendText($body);
-            }
+
+            $timeline_el->appendChild($entry_el);
         }
 
         if (my $older = $self->_older_entries($c)) {

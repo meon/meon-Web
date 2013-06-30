@@ -20,6 +20,7 @@ has 'intro'          => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'h
 has 'body'           => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_body');
 has 'comment_to'     => (is=>'ro', isa=>'Maybe[Object]',lazy_build=>1,predicate=>'has_parent');
 has 'xc'             => (is=>'ro', isa=>'XML::LibXML::XPathContext',lazy_build=>1,);
+has 'category'       => (is=>'ro', isa=>'Str',lazy_build=>1,);
 
 my $strptime_iso8601 = DateTime::Format::Strptime->new(
     pattern => '%FT%T',
@@ -69,7 +70,7 @@ sub _build_title {
 
     my $xml = $self->xml;
     my $xc  = $self->xc;
-    my ($title) = $xc->findnodes('/w:page/w:content//x:h1');
+    my ($title) = $xc->findnodes('/w:page/w:content//w:timeline-entry/w:title');
     die 'missing title in '.$self->file
         unless $title;
 
@@ -81,7 +82,7 @@ sub _build_created {
 
     my $xml = $self->xml;
     my $xc  = $self->xc;
-    my ($created_iso8601) = $xc->findnodes('/w:page/w:content//x:span[@class="created"]');
+    my ($created_iso8601) = $xc->findnodes('/w:page/w:content//w:timeline-entry/w:created');
     die 'missing created in '.$self->file
         unless $created_iso8601;
     $created_iso8601 = $created_iso8601->textContent;
@@ -94,7 +95,7 @@ sub _build_author {
 
     my $xml = $self->xml;
     my $xc  = $self->xc;
-    my ($author) = $xc->findnodes('/w:page/w:meta/w:author');
+    my ($author) = $xc->findnodes('/w:page/w:content//w:timeline-entry/w:author');
     return undef unless $author;
 
     return $author->textContent;
@@ -105,7 +106,7 @@ sub _build_intro {
 
     my $xml = $self->xml;
     my $xc  = $self->xc;
-    my ($intro) = $xc->findnodes('/w:page/w:content//x:p');
+    my ($intro) = $xc->findnodes('/w:page/w:content//w:timeline-entry/w:intro');
     return undef unless $intro;
 
     return $intro->textContent;
@@ -116,10 +117,22 @@ sub _build_body {
 
     my $xml = $self->xml;
     my $xc  = $self->xc;
-    my (undef,$body) = $xc->findnodes('/w:page/w:content//x:p');
+    my (undef,$body) = $xc->findnodes('/w:page/w:content//w:timeline-entry/w:text');
     return undef unless $body;
 
     return $body->textContent;
+}
+
+sub _build_category {
+    my ($self) = @_;
+
+    my $xml = $self->xml;
+    my $xc  = $self->xc;
+    my ($category) = $xc->findnodes('/w:page/w:content//w:timeline-entry/@category');
+    return 'news'
+        unless $category;
+
+    return $category->textContent;
 }
 
 sub create {
@@ -130,10 +143,11 @@ sub create {
     $created = $created->iso8601;
 
     my $title      = $self->title;
-    my $intro      = $self->has_intro  ? '<p>'.$self->intro.'</p>' : '';
-    my $body       = $self->has_body   ? '<p>'.$self->body.'</p>' : '';
-    my $author     = $self->has_author ? '    <author>'.$self->author.'</author>' : '';
-    my $comment_to = $self->has_parent ? '<div class="comment-to"><a href="'.$self->comment_to->web_uri.'">comment</a></div>' : '';
+    my $intro      = $self->has_intro  ? '<w:intro>'.$self->intro.'</w:intro>' : '';
+    my $body       = $self->has_body   ? '<w:text>'.$self->body.'</w:text>' : '';
+    my $author     = $self->has_author ? '<w:author>'.$self->author.'</w:author>' : '';
+    my $comment_to = $self->has_parent ? '<w:parent>'.$self->comment_to->web_uri.'</w:parent>' : '';
+    my $category   = $self->category;
 
     # FIXME instead of direct string interpolation, use setters so that XML special chars are properly escaped
     my $xml = XML::LibXML->load_xml(string => qq{<?xml version="1.0" encoding="UTF-8"?>
@@ -144,7 +158,6 @@ sub create {
 >
 
 <meta>
-$author
     <title>$title</title>
     <form>
         <owner-only/>
@@ -154,18 +167,19 @@ $author
 </meta>
 
 <content><div xmlns="http://www.w3.org/1999/xhtml">
-<div class="timeline-entry">
-<span class="created">$created</span>
-<h1>$title</h1>
-$comment_to
-$intro
-$body
-</div>
 
-<div class="delete-confirmation"><w:form copy-id="form-delete"/></div>
+<w:timeline-entry category="$category">
+    <w:created>$created</w:created>
+    $author
+    <w:title>$title</w:title>
+    $comment_to
+    $intro
+    $body
 
-<w:timeline class="comments">
-</w:timeline>
+    <w:timeline class="comments">
+    </w:timeline>
+</w:timeline-entry>
+
 
 </div></content>
 
@@ -222,7 +236,16 @@ sub store {
     }
 }
 
-sub previous_month {
+sub element {
+    my ($self) = @_;
+
+    my $xml = $self->xml;
+    my $xc  = $self->xc;
+    my ($el) = $xc->findnodes('/w:page/w:content//w:timeline-entry');
+    die 'no timeline entry in '.$self->file
+        unless $el;
+
+    return $el;
 }
 
 __PACKAGE__->meta->make_immutable;
