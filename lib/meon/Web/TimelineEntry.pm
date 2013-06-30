@@ -201,6 +201,17 @@ sub store {
         }
     }
 
+    # generate new filename if current one already exists
+    while (-e $file) {
+        if ($file =~ m/^(.+)-(\d{2,}).xml/) {
+            $file = $1.'-'.sprintf('%02d', $2+1).'.xml';
+        }
+        else {
+            $file = substr($file,0,-4).'-01.xml';
+        }
+        $file = Path::Class::file($file);
+    }
+
     $file->spew($xml->toString);
     if ($self->has_parent) {
         my $base_dir = $self->comment_to->_full_path->dir;
