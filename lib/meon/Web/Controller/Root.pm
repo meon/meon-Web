@@ -268,7 +268,7 @@ sub resolve_xml : Private {
     if ($timeline_el) {
         my $timeline_class = $timeline_el->getAttribute('class') // 'folder';
         my @entries_files;
-        foreach my $href_entry ($xpc->findnodes('w:entry[@href]', $timeline_el)) {
+        foreach my $href_entry ($xpc->findnodes('w:timeline-entry[@href]', $timeline_el)) {
             my $href = $href_entry->getAttribute('href');
             $timeline_el->removeChild($href_entry);
             my $path = file(meon::Web::Util->full_path_fixup($c,$href).'.xml');

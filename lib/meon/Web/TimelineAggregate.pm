@@ -51,6 +51,7 @@ sub refresh {
         $timeline_el->removeChild($old_entry);
     }
     $timeline_el->appendText("\n");
+    $timeline_el->setAttribute('class' => 'aggregate');
 
     my @entries_files;
     foreach my $other_timeline_dir (@{$self->other_timeline_dirs}) {
@@ -67,7 +68,7 @@ sub refresh {
     ;
 
     foreach my $entry (@entries) {
-        my $entry_node = $timeline_el->addNewChild( undef, 'w:entry' );
+        my $entry_node = $timeline_el->addNewChild( undef, 'w:timeline-entry' );
         $entry_node->setAttribute('href' => $entry);
         $timeline_el->appendText("\n");
     }
