@@ -176,8 +176,12 @@ sub resolve_xml : Private {
             load_class($form_class);
             my $form = $form_class->new(c => $c);
             my $params = $c->req->params;
-            $params->{'file'} = $c->req->upload('file')
-                if $params->{'file'};
+            foreach my $field ($form->fields) {
+                next if $field->type ne 'Upload';
+                my $field_name = $field->name;
+                $params->{$field_name} = $c->req->upload($field_name)
+                    if $params->{$field_name};
+            }
             $form->process(params=>$params);
             $form->submitted
                 if $form->is_valid && $form->can('submitted') && ($c->req->method eq 'POST');

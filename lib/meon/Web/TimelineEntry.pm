@@ -23,8 +23,8 @@ has 'intro'        => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has
 has 'text'         => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_text');
 has 'comment_to'   => (is=>'ro', isa=>'Maybe[Object]',lazy_build=>1,predicate=>'has_parent');
 has 'category'     => (is=>'ro', isa=>'Str',lazy_build=>1,);
-has 'image'        => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_image');
-has 'attachment'   => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_attachment');
+has 'image'        => (is=>'ro', lazy_build=>1,predicate=>'has_image');
+has 'attachment'   => (is=>'ro', lazy_build=>1,predicate=>'has_attachment');
 has 'link'         => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_link');
 has 'source_link'  => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_source_link');
 has 'audio'        => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_audio');
@@ -37,6 +37,7 @@ my $strptime_iso8601 = DateTime::Format::Strptime->new(
     on_error => 'croak',
 );
 my $IDENT = ' 'x4;
+my $MEON_WEB_NS = "http://web.meon.eu/";
 
 sub _build_file {
     my ($self) = @_;
@@ -70,7 +71,7 @@ sub _build_xc {
 
     my $xml = $self->xml;
     my $xc = XML::LibXML::XPathContext->new($xml);
-    $xc->registerNs('w', 'http://web.meon.eu/');
+    $xc->registerNs('w', $MEON_WEB_NS);
     $xc->registerNs('x', 'http://www.w3.org/1999/xhtml');
     return $xc;
 }
@@ -161,8 +162,8 @@ sub create {
     my $xml = XML::LibXML->load_xml(string => qq{<?xml version="1.0" encoding="UTF-8"?>
 <page
     xmlns:xhtml="http://www.w3.org/1999/xhtml"
-    xmlns="http://web.meon.eu/"
-    xmlns:w="http://web.meon.eu/"
+    xmlns="$MEON_WEB_NS"
+    xmlns:w="$MEON_WEB_NS"
 >
 
 <meta>
@@ -187,7 +188,7 @@ sub create {
     $meta_el->addNewChild(undef,'title')->appendText($title);
     $meta_el->appendText("\n");
     my ($content_el) = $xc->findnodes('/w:page/w:content/x:div');
-    my $entry_el = $content_el->addNewChild(undef,'w:timeline-entry');
+    my $entry_el = $content_el->addNewChild($MEON_WEB_NS,'w:timeline-entry');
     $content_el->appendText("\n");
     $entry_el->setAttribute(category => $self->category);
     $entry_el->appendText("\n");
@@ -207,7 +208,7 @@ sub create {
 sub appendTextElement {
     my ($el,$child_name,$child_text) = @_;
     $el->appendText($IDENT);
-    my $child = $el->addNewChild(undef,$child_name);
+    my $child = $el->addNewChild($MEON_WEB_NS,$child_name);
     $child->appendText($child_text);
     $el->appendText("\n");
     return $child;
@@ -238,17 +239,23 @@ sub store {
         }
     }
 
-    # generate new filename if current one already exists
-    while (-e $file) {
-        if ($file =~ m/^(.+)-(\d{2,}).xml/) {
-            $file = $1.'-'.sprintf('%02d', $2+1).'.xml';
-        }
-        else {
-            $file = substr($file,0,-4).'-01.xml';
-        }
-        $file = Path::Class::file($file);
+    foreach my $upload_name (qw(image attachment)) {
+        my $has = 'has_'.$upload_name;
+        next unless $self->$has;
+        next unless eval { $self->$upload_name->isa('Catalyst::Request::Upload') };
+
+        my $upload = $self->$upload_name;
+        my $upload_filename = $upload->filename;
+        my $upload_file = $self->non_existing_filename($dir->file($upload_filename));
+        copy($upload->tempname, $upload_file) || die 'failed to copy upload file - '.$!;
+        $upload_filename = $upload_file->basename;
+
+        my $xc  = $self->xc;
+        my ($el) = $xc->findnodes('//w:timeline-entry/w:'.$upload_name.'/text()', $xml);
+        $el->setData($upload_filename);
     }
 
+    $file = $self->non_existing_filename($file);
     $file->spew($xml->toString);
     if ($self->has_parent) {
         my $base_dir = $self->comment_to->_full_path->dir;
@@ -257,6 +264,21 @@ sub store {
         $path =~ s/\.xml$//;
         $self->comment_to->add_comment($path);
     }
+}
+
+sub non_existing_filename {
+    my ($self,$file) = @_;
+    while (-e $file) {
+        my $ext = ($file =~ m/\.([^.]+)$/ ? $1 : '');
+        if ($file =~ m/^(.+)-(\d{2,})\.$ext/) {
+            $file = $1.'-'.sprintf('%02d', $2+1).'.'.$ext;
+        }
+        else {
+            $file = substr($file,0,-1-length($ext)).'-01.'.$ext;
+        }
+        $file = Path::Class::file($file);
+    }
+    return $file;
 }
 
 sub element {

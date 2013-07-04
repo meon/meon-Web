@@ -16,6 +16,14 @@ has '+widget_wrapper' => ( default => 'Bootstrap' );
 has '+enctype' => ( default => 'multipart/form-data');
 sub build_form_element_class { ['form-horizontal'] };
 
+has_field 'category'     => (
+    type => 'Select', required => 1, label => 'Category',
+    options => [
+        { value => 'news',     label => "News" },
+        { value => 'question', label => "Question" },
+    ],
+);
+
 has_field 'title'     => (
     type => 'Text', required => 1, label => 'Title',
     element_attr => { placeholder => 'title or a short message' }
@@ -71,33 +79,43 @@ has_field 'submit' => (
     max_size => 1024*4000,
 );
 
+sub entry_fields {
+    return qw(category title intro text image attachment link source_link audio video quote_author);
+}
+
 sub submitted {
     my $self = shift;
 
     my $c = $self->c;
-    my $title = $self->field('title')->value;
-    my $intro = $self->field('intro')->value;
-    my $text  = $self->field('text')->value;
-    my $category = 'news';
+    my %fields = map {
+        $_ => $self->field($_)->value
+    } $self->entry_fields;
     my $comment_to_uri = $c->stash->{comment_to};
     my $comment_to;
     if ($comment_to_uri) {
-        $category = 'comment';
+        $fields{category} = 'comment';
         $comment_to = meon::Web::XML2Comment->new(
             path => $comment_to_uri.'.xml',
             c    => $c,
         );
     }
 
+    for my $upload_name (qw(image attachment)) {
+        next unless defined $fields{$upload_name};
+        $fields{$upload_name} = $c->req->upload($upload_name);
+    }
+
     my $timeline_path = $self->get_config_text('timeline');
     my $timeline_full_path = dir(meon::Web::Util->full_path_fixup($c, $timeline_path));
     my $entry = meon::Web::TimelineEntry->new(
         timeline_dir => $timeline_full_path,
-        title        => $title,
         author       => $c->user->username,
-        category     => $category,
-        (defined($intro) ? (intro => $intro) : ()),
-        (defined($text)  ? (text  => $text)  : ()),
+        (
+            map {
+                my $val = $fields{$_};
+                (defined($val) ? ($_ => $val) : ()),
+            } ($self->entry_fields)
+        ),
         (defined($comment_to) ? (comment_to => $comment_to)  : ()),
     );
     $entry->create;
