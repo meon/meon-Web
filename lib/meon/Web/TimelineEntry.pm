@@ -1,32 +1,42 @@
 package meon::Web::TimelineEntry;
 
 use meon::Web::Util;
+use meon::Web::SPc;
 use DateTime::Format::Strptime;
 use File::Copy 'copy';
 use Path::Class qw();
 
 use Moose;
+use MooseX::StrictConstructor;
 use MooseX::Types::Path::Class;
 use 5.010;
 use utf8;
 
-has 'file'           => (is=>'rw', isa=>'Path::Class::File',coerce=>1,lazy_build=>1,);
-has 'timeline_dir'   => (is=>'rw', isa=>'Path::Class::Dir',coerce=>1,lazy_build=>1);
-has 'xml'            => (is=>'rw', isa=>'XML::LibXML::Document', lazy_build => 1);
-has 'title'          => (is=>'ro', isa=>'Str',lazy_build=>1,);
-has 'created'        => (is=>'rw', isa=>'DateTime',lazy_build=>1,);
-has 'author'         => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_author');
-has 'intro'          => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_intro');
-has 'body'           => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_body');
-has 'comment_to'     => (is=>'ro', isa=>'Maybe[Object]',lazy_build=>1,predicate=>'has_parent');
-has 'xc'             => (is=>'ro', isa=>'XML::LibXML::XPathContext',lazy_build=>1,);
-has 'category'       => (is=>'ro', isa=>'Str',lazy_build=>1,);
+has 'xc'           => (is=>'ro', isa=>'XML::LibXML::XPathContext',lazy_build=>1,);
+has 'file'         => (is=>'rw', isa=>'Path::Class::File',coerce=>1,lazy_build=>1,predicate=>'has_file');
+has 'timeline_dir' => (is=>'rw', isa=>'Path::Class::Dir',coerce=>1,lazy_build=>1);
+has 'xml'          => (is=>'rw', isa=>'XML::LibXML::Document', lazy_build => 1);
+has 'title'        => (is=>'ro', isa=>'Str',lazy_build=>1,);
+has 'created'      => (is=>'rw', isa=>'DateTime',lazy_build=>1,);
+has 'author'       => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_author');
+has 'intro'        => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_intro');
+has 'text'         => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_text');
+has 'comment_to'   => (is=>'ro', isa=>'Maybe[Object]',lazy_build=>1,predicate=>'has_parent');
+has 'category'     => (is=>'ro', isa=>'Str',lazy_build=>1,);
+has 'image'        => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_image');
+has 'attachment'   => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_attachment');
+has 'link'         => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_link');
+has 'source_link'  => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_source_link');
+has 'audio'        => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_audio');
+has 'video'        => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_video');
+has 'quote_author' => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_quote_author');
 
 my $strptime_iso8601 = DateTime::Format::Strptime->new(
     pattern => '%FT%T',
     time_zone => 'UTC',
     on_error => 'croak',
 );
+my $IDENT = ' 'x4;
 
 sub _build_file {
     my ($self) = @_;
@@ -112,23 +122,27 @@ sub _build_intro {
     return $intro->textContent;
 }
 
-sub _build_body {
+sub _build_text {
     my ($self) = @_;
 
     my $xml = $self->xml;
     my $xc  = $self->xc;
-    my (undef,$body) = $xc->findnodes('/w:page/w:content//w:timeline-entry/w:text');
-    return undef unless $body;
+    my (undef,$text) = $xc->findnodes('/w:page/w:content//w:timeline-entry/w:text');
+    return undef unless $text;
 
-    return $body->textContent;
+    return $text->textContent;
 }
 
 sub _build_category {
     my ($self) = @_;
 
-    my $xml = $self->xml;
-    my $xc  = $self->xc;
-    my ($category) = $xc->findnodes('/w:page/w:content//w:timeline-entry/@category');
+    my $category;
+
+    if ($self->has_file) {
+        my $xml = $self->xml;
+        my $xc  = $self->xc;
+        ($category) = $xc->findnodes('/w:page/w:content//w:timeline-entry/@category');
+    }
     return 'news'
         unless $category;
 
@@ -143,13 +157,7 @@ sub create {
     $created = $created->iso8601;
 
     my $title      = $self->title;
-    my $intro      = $self->has_intro  ? '<w:intro>'.$self->intro.'</w:intro>' : '';
-    my $body       = $self->has_body   ? '<w:text>'.$self->body.'</w:text>' : '';
-    my $author     = $self->has_author ? '<w:author>'.$self->author.'</w:author>' : '';
-    my $comment_to = $self->has_parent ? '<w:parent>'.$self->comment_to->web_uri.'</w:parent>' : '';
-    my $category   = $self->category;
 
-    # FIXME instead of direct string interpolation, use setters so that XML special chars are properly escaped
     my $xml = XML::LibXML->load_xml(string => qq{<?xml version="1.0" encoding="UTF-8"?>
 <page
     xmlns:xhtml="http://www.w3.org/1999/xhtml"
@@ -158,7 +166,6 @@ sub create {
 >
 
 <meta>
-    <title>$title</title>
     <form>
         <owner-only/>
         <process>Delete</process>
@@ -168,26 +175,42 @@ sub create {
 
 <content><div xmlns="http://www.w3.org/1999/xhtml">
 
-<w:timeline-entry category="$category">
-    <w:created>$created</w:created>
-    $author
-    <w:title>$title</w:title>
-    $comment_to
-    $intro
-    $body
-
-    <w:timeline class="comments">
-    </w:timeline>
-</w:timeline-entry>
-
-
 </div></content>
 
 </page>
 });
-    $self->xml($xml);
 
+    $self->xml($xml);
+    my $xc  = $self->xc;
+    my ($meta_el) = $xc->findnodes('/w:page/w:meta');
+    $meta_el->appendText($IDENT);
+    $meta_el->addNewChild(undef,'title')->appendText($title);
+    $meta_el->appendText("\n");
+    my ($content_el) = $xc->findnodes('/w:page/w:content/x:div');
+    my $entry_el = $content_el->addNewChild(undef,'w:timeline-entry');
+    $content_el->appendText("\n");
+    $entry_el->setAttribute(category => $self->category);
+    $entry_el->appendText("\n");
+    appendTextElement($entry_el,'w:created',$created);
+    appendTextElement($entry_el,'w:parent',$self->comment_to->web_uri) if $self->has_parent;
+
+    foreach my $el_name (qw(author title intro text image attachment link source_link audio video quote_author)) {
+        my $el_has = 'has_'.$el_name;
+        appendTextElement($entry_el,'w:'.$el_name,$self->$el_name) if $self->$el_has;
+    }
+
+    appendTextElement($entry_el,'w:timeline',"\n$IDENT")->setAttribute('class' => 'comments');
+    $content_el->appendText("\n");
     return $self->store;
+}
+
+sub appendTextElement {
+    my ($el,$child_name,$child_text) = @_;
+    $el->appendText($IDENT);
+    my $child = $el->addNewChild(undef,$child_name);
+    $child->appendText($child_text);
+    $el->appendText("\n");
+    return $child;
 }
 
 sub store {

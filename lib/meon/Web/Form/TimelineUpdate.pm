@@ -5,12 +5,15 @@ use meon::Web::TimelineEntry;
 use meon::Web::XML2Comment;
 use Path::Class 'dir';
 
+use utf8;
+
 use HTML::FormHandler::Moose;
 extends 'HTML::FormHandler';
 with 'meon::Web::Role::Form';
 
 has '+name' => (default => 'form-timeline-update');
 has '+widget_wrapper' => ( default => 'Bootstrap' );
+has '+enctype' => ( default => 'multipart/form-data');
 sub build_form_element_class { ['form-horizontal'] };
 
 has_field 'title'     => (
@@ -20,15 +23,53 @@ has_field 'title'     => (
 
 has_field 'intro'     => (
     type => 'TextArea', required => 0, label => 'Introduction',
-    element_attr => { placeholder => '(optional) short text or introduction' }
+    element_attr => { placeholder => 'short text or introduction' }
 );
 
-has_field 'body'     => (
+has_field 'text'     => (
     type => 'TextArea', required => 0, label => 'Body text',
-    element_attr => { placeholder => '(optional) long text' }
+    element_attr => { placeholder => 'long text' }
 );
 
-has_field 'submit' => ( type => 'Submit', value => 'Post', element_class => 'btn btn-primary', );
+has_field 'image'     => (
+    type => 'Upload', required => 0, label => 'Image',
+);
+
+has_field 'attachment'     => (
+    type => 'Upload', required => 0, label => 'File Upload',
+);
+
+has_field 'link'     => (
+    type => 'Text', required => 0, label => 'Web Link',
+    element_attr => { placeholder => 'http://' }
+);
+
+has_field 'source_link'     => (
+    type => 'Text', required => 0, label => 'Source Link',
+    element_attr => { placeholder => 'http://' }
+);
+
+has_field 'audio'     => (
+    type => 'Text', required => 0, label => 'Audio Widget Code',
+    element_attr => { placeholder => '&lt;iframe … &gt;' }
+);
+
+has_field 'video'     => (
+    type => 'Text', required => 0, label => 'Video Widget Code',
+    element_attr => { placeholder => '&lt;iframe … &gt;' }
+);
+
+has_field 'quote_author'     => (
+    type => 'Text', required => 0, label => 'Author',
+    element_attr => { placeholder => 'author name' }
+);
+
+has_field 'submit' => (
+    type => 'Submit',
+    value => 'Post',
+    element_class => 'btn btn-primary',
+    max_size => 1024*4000,
+);
 
 sub submitted {
     my $self = shift;
@@ -36,7 +77,7 @@ sub submitted {
     my $c = $self->c;
     my $title = $self->field('title')->value;
     my $intro = $self->field('intro')->value;
-    my $body  = $self->field('body')->value;
+    my $text  = $self->field('text')->value;
     my $category = 'news';
     my $comment_to_uri = $c->stash->{comment_to};
     my $comment_to;
@@ -56,7 +97,7 @@ sub submitted {
         author       => $c->user->username,
         category     => $category,
         (defined($intro) ? (intro => $intro) : ()),
-        (defined($body)  ? (body  => $body)  : ()),
+        (defined($text)  ? (text  => $text)  : ()),
         (defined($comment_to) ? (comment_to => $comment_to)  : ()),
     );
     $entry->create;
