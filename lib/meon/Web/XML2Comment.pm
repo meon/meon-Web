@@ -48,7 +48,7 @@ sub add_comment {
     croak 'comments not allowed'
         unless $comments_el;
 
-    my $entry_node = $comments_el->addNewChild( undef, 'w:entry' );
+    my $entry_node = $comments_el->addNewChild( undef, 'w:timeline-entry' );
     $entry_node->setAttribute('href' => $comment_path);
     $comments_el->appendText("\n");
 
