@@ -237,6 +237,7 @@ sub store {
         while (($dir = $dir->parent) && $timeline_dir->contains($dir) && !-e $dir->file('index.xml')) {
             copy($timeline_index_file, $dir->file('index.xml')) or die 'copy failed: '.$!;
         }
+        $dir = $file->dir;
     }
 
     foreach my $upload_name (qw(image attachment)) {
