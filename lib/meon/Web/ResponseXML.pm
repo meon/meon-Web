@@ -3,6 +3,7 @@ package meon::Web::ResponseXML;
 use strict;
 use warnings;
 
+use meon::Web::Util;
 use XML::LibXML;
 use Scalar::Util 'blessed';
 use Moose;
@@ -116,9 +117,18 @@ sub add_xhtml_form {
 
     my $forms = $self->get_or_create_element('forms', 'forms');
 
-    $forms->appendChild(
-        $self->parse_xhtml_string($xml)
-    );
+    my $form = $self->parse_xhtml_string($xml);
+
+    # add input like id-s to controll group divs
+    my $xpc = meon::Web::Util->xpc;
+    my (@inputs) = $xpc->findnodes(q{//x:input[@id!='']|//x:select[@id!='']|//x:textarea[@id!='']},$form);
+    foreach my $input (@inputs) {
+        my $control_group = $input->parentNode->parentNode;
+        next if $control_group->getAttribute('class') ne 'control-group';
+        my $control_id = 'control-group-'.$input->getAttribute('id');
+        $control_group->setAttribute(id => $control_id);
+    }
+    $forms->appendChild($form);
 
     return $self;
 }
@@ -130,7 +140,6 @@ sub add_xhtml_link {
         unless blessed($link) && $link->isa('eusahub::Data::Link');
 
     my $forms = $self->get_or_create_element('links', 'links');
-
     $forms->appendChild($link->as_xml);
 
     return $self;

@@ -18,10 +18,6 @@ sub build_form_element_class { ['form-horizontal'] };
 
 has_field 'category'     => (
     type => 'Select', required => 1, label => 'Category',
-    options => [
-        { value => 'news',     label => "News" },
-        { value => 'question', label => "Question" },
-    ],
 );
 
 has_field 'title'     => (
@@ -31,6 +27,7 @@ has_field 'title'     => (
 
 has_field 'intro'     => (
     type => 'TextArea', required => 0, label => 'Introduction',
+    rows => '3',
     element_attr => { placeholder => 'short text or introduction' }
 );
 
@@ -121,6 +118,24 @@ sub submitted {
     $entry->create;
 
     $self->redirect($comment_to_uri // $timeline_path);
+}
+
+sub options_category {
+    my $self = shift;
+
+    my $xpc = meon::Web::Util->xpc;
+    my $form_config = $self->config;
+    my @options = map {
+        +{ value => $_->getAttribute('value'), label => $_->textContent },
+    } $xpc->findnodes('w:category/w:option',$form_config);
+    return \@options
+        if @options;
+
+    return [
+        { value => 'news',     label => "News" },
+        { value => 'thought',  label => "Thought" },
+        { value => 'question', label => "Question" },
+    ];
 }
 
 no HTML::FormHandler::Moose;
