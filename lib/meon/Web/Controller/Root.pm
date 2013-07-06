@@ -29,6 +29,7 @@ __PACKAGE__->config(namespace => '');
 sub auto : Private {
     my ( $self, $c ) = @_;
 
+    meon::Web::env->clear;
     my $uri      = $c->req->uri;
     my $hostname = $uri->host;
     my $hostname_folder_name = meon::Web::Config->hostname_to_folder($hostname);
@@ -125,7 +126,9 @@ sub resolve_xml : Private {
 
     $xml_file = file($xml_file);
     $c->stash->{xml_file} = $xml_file;
-    my $dom = XML::LibXML->load_xml(location => $xml_file);
+    meon::Web::env->xml_file($xml_file);
+
+    my $dom = meon::Web::env->xml;
     my $xpc = meon::Web::Util->xpc;
 
     $c->model('ResponseXML')->dom($dom);
