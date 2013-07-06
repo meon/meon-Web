@@ -12,6 +12,7 @@ has 'c'    => ( is => 'ro', isa => 'Object', required => 1 );
 has 'path' => (is=>'rw',isa=>'Path::Class::File',required=>1,coerce=>1);
 has '_full_path' => (is=>'ro',isa=>'Path::Class::File',lazy=>1,builder=>'_build_full_path');
 has 'xml'  => (is=>'ro', isa=>'XML::LibXML::Document', lazy => 1, builder => '_build_xml');
+has 'title'        => (is=>'ro', isa=>'Str',lazy_build=>1,);
 
 sub _build_xml {
     my ($self) = @_;
@@ -24,6 +25,18 @@ sub _build_xml {
 sub _build_full_path {
     my ($self) = @_;
     return meon::Web::Util->full_path_fixup($self->c, $self->path);
+}
+
+sub _build_title {
+    my ($self) = @_;
+
+    my $xml = $self->xml;
+    my $xc  = meon::Web::Util->xpc;
+    my ($title) = $xc->findnodes('/w:page/w:content//w:timeline-entry/w:title',$xml);
+    die 'missing title in '.$self->file
+        unless $title;
+
+    return $title->textContent;
 }
 
 sub web_uri {

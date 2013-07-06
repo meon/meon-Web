@@ -193,7 +193,10 @@ sub create {
     $entry_el->setAttribute(category => $self->category);
     $entry_el->appendText("\n");
     appendTextElement($entry_el,'w:created',$created);
-    appendTextElement($entry_el,'w:parent',$self->comment_to->web_uri) if $self->has_parent;
+    if ($self->has_parent) {
+        appendTextElement($entry_el,'w:parent',$self->comment_to->web_uri)
+            ->setAttribute('title' => $self->comment_to->title);
+    }
 
     foreach my $el_name (qw(author title intro text image attachment link source_link audio video quote_author)) {
         my $el_has = 'has_'.$el_name;
