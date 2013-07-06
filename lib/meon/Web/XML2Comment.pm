@@ -61,9 +61,10 @@ sub add_comment {
     croak 'comments not allowed'
         unless $comments_el;
 
+    $comments_el->appendText(' 'x4);
     my $entry_node = $comments_el->addNewChild( undef, 'w:timeline-entry' );
     $entry_node->setAttribute('href' => $comment_path);
-    $comments_el->appendText("\n");
+    $comments_el->appendText("\n".' 'x4);
 
     IO::Any->spew($self->_full_path, $xml->toString, { atomic => 1 });
 }

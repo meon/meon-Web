@@ -1,6 +1,7 @@
 package meon::Web::TimelineEntry;
 
 use meon::Web::Util;
+use meon::Web::env;
 use meon::Web::SPc;
 use DateTime::Format::Strptime;
 use File::Copy 'copy';
@@ -262,9 +263,9 @@ sub store {
     $file = $self->non_existing_filename($file);
     $file->spew($xml->toString);
     if ($self->has_parent) {
-        my $base_dir = $self->comment_to->_full_path->dir;
+        my $base_dir = meon::Web::env->content_base;
         my $path = $file->resolve;
-        $path = $path->relative($base_dir);
+        $path = '/'.$path->relative($base_dir);
         $path =~ s/\.xml$//;
         $self->comment_to->add_comment($path);
     }

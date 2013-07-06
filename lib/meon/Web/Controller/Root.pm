@@ -38,6 +38,7 @@ sub auto : Private {
 
     my $hostname_folder = dir(meon::Web::SPc->srvdir, 'www', 'meon-web', $hostname_folder_name)->absolute->resolve;
     $c->stash->{hostname_folder} = $hostname_folder;
+    meon::Web::env->content_base(dir($hostname_folder,'content'));
 
     my $template_file = file($hostname_folder, 'template', 'xsl', 'default.xsl')->stringify;
     $c->stash->{template} = XML::LibXML->load_xml(location => $template_file);
