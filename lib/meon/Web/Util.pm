@@ -41,18 +41,18 @@ sub username_cleanup {
 }
 
 sub path_fixup {
-    my ($self, $c, $path) = @_;
+    my ($self, $path) = @_;
 
     my $username = (
-        $c->user_exists
-        ? $username = $c->user->username
-        : 'me'
+        meon::Web::env->user
+        ? $username = meon::Web::env->user->username
+        : 'anonymous'
     );
 
     $path =~ s/{\$USERNAME}/$username/;
 
     if ($path =~ m/^(.*){\$TIMELINE_NEWEST}/) {
-        my $base_dir = dir($c->stash->{xml_file}->dir, (defined($1) ? $1 : ()));
+        my $base_dir = dir(meon::Web::env->current_dir, (defined($1) ? $1 : ()));
         my $dir = $base_dir;
         while (my @subfolders = sort grep { $_->basename =~ m/^\d+$/ } grep { $_->is_dir } $dir->children(no_hidden => 1)) {
             $dir = pop(@subfolders);
@@ -63,7 +63,7 @@ sub path_fixup {
     }
 
     if ($path =~ m/{\$COMMENT_TO}/) {
-        my $comment_to = $c->stash->{comment_to};
+        my $comment_to = meon::Web::env->stash->{comment_to};
         $path =~ s/{\$COMMENT_TO}/$comment_to/;
     }
 
@@ -71,10 +71,10 @@ sub path_fixup {
 }
 
 sub full_path_fixup {
-    my ($self, $c, $path) = @_;
-    $path = $self->path_fixup($c, $path);
-    my $cur_dir = $c->stash->{xml_file}->dir;
-    $cur_dir = dir($c->stash->{hostname_folder}, 'content')
+    my ($self, $path) = @_;
+    $path = $self->path_fixup($path);
+    my $cur_dir = meon::Web::env->current_dir;
+    $cur_dir = meon::Web::env->content_dir
         if $path =~ m{^/};
     $path = file($cur_dir, $path)->absolute;
 }

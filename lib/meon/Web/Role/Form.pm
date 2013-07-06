@@ -41,7 +41,7 @@ sub get_config_folder {
     my ($self, $el_name) = @_;
     my $c = $self->c;
     my $path = $self->get_config_text($el_name);
-    $path = meon::Web::Util->path_fixup($c,$path);
+    $path = meon::Web::Util->path_fixup($path);
     $path = $c->stash->{xml_file}->dir->subdir($path);
     return $path;
 }

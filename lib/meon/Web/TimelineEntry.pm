@@ -263,7 +263,7 @@ sub store {
     $file = $self->non_existing_filename($file);
     $file->spew($xml->toString);
     if ($self->has_parent) {
-        my $base_dir = meon::Web::env->content_base;
+        my $base_dir = meon::Web::env->content_dir;
         my $path = $file->resolve;
         $path = '/'.$path->relative($base_dir);
         $path =~ s/\.xml$//;

@@ -97,7 +97,7 @@ sub member {
 sub traverse_uri {
     my ($c,$path) = @_;
 
-    $path = meon::Web::Util->path_fixup($c,$path);
+    $path = meon::Web::Util->path_fixup($path);
 
     # redirect absolute urls with hostname
     if ($path =~ m{^https?://}) {

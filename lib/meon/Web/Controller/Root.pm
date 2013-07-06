@@ -6,6 +6,7 @@ use Path::Class 'file', 'dir';
 use meon::Web::SPc;
 use meon::Web::Config;
 use meon::Web::Util;
+use meon::Web::env;
 use File::MimeInfo;
 use XML::LibXML 1.70;
 use URI::Escape 'uri_escape';
@@ -22,6 +23,7 @@ use meon::Web::Form::Delete;
 use meon::Web::Member;
 use meon::Web::TimelineEntry;
 
+
 BEGIN { extends 'Catalyst::Controller' }
 
 __PACKAGE__->config(namespace => '');
@@ -30,6 +32,9 @@ sub auto : Private {
     my ( $self, $c ) = @_;
 
     meon::Web::env->clear;
+    meon::Web::env->stash($c->stash);
+    meon::Web::env->user($c->user);
+
     my $uri      = $c->req->uri;
     my $hostname = $uri->host;
     my $hostname_folder_name = meon::Web::Config->hostname_to_folder($hostname);
@@ -39,7 +44,7 @@ sub auto : Private {
 
     my $hostname_folder = dir(meon::Web::SPc->srvdir, 'www', 'meon-web', $hostname_folder_name)->absolute->resolve;
     $c->stash->{hostname_folder} = $hostname_folder;
-    meon::Web::env->content_base(dir($hostname_folder,'content'));
+    meon::Web::env->content_dir(dir($hostname_folder,'content'));
 
     my $template_file = file($hostname_folder, 'template', 'xsl', 'default.xsl')->stringify;
     $c->stash->{template} = XML::LibXML->load_xml(location => $template_file);
@@ -89,6 +94,7 @@ sub resolve_xml : Private {
     $path = URI->new($path)
         unless blessed($path);
 
+    meon::Web::env->current_path(file($path->path));
     my $xml_file = file($hostname_folder, 'content', $path->path_segments);
     $xml_file .= '.xml';
     if ((! -f $xml_file) && (-d substr($xml_file,0,-4))) {
@@ -200,7 +206,7 @@ sub resolve_xml : Private {
         map { $_->textContent }
         $xpc->findnodes('/w:page/w:meta/w:dir-listing',$dom);
     foreach my $folder_name (@folders) {
-        my $folder_rel = dir(meon::Web::Util->path_fixup($c,$folder_name));
+        my $folder_rel = dir(meon::Web::Util->path_fixup($folder_name));
         my $folder = dir($xml_file->dir, $folder_rel)->absolute;
         next unless -d $folder;
         $folder = $folder->resolve;
@@ -229,7 +235,7 @@ sub resolve_xml : Private {
         my $max_width  = $gallery->getAttribute('thumb-width');
         my $max_height = $gallery->getAttribute('thumb-height');
 
-        my $folder_rel = dir(meon::Web::Util->path_fixup($c,$gallery_path));
+        my $folder_rel = dir(meon::Web::Util->path_fixup($gallery_path));
         my $folder = dir($xml_file->dir, $folder_rel)->absolute;
         die 'no pictures in '.$folder unless -d $folder;
         $folder = $folder->resolve;
@@ -279,7 +285,7 @@ sub resolve_xml : Private {
         foreach my $href_entry ($xpc->findnodes('w:timeline-entry[@href]', $timeline_el)) {
             my $href = $href_entry->getAttribute('href');
             $timeline_el->removeChild($href_entry);
-            my $path = file(meon::Web::Util->full_path_fixup($c,$href).'.xml');
+            my $path = file(meon::Web::Util->full_path_fixup($href).'.xml');
             push(@entries_files,$path)
                 if -e $path;
         }
@@ -331,7 +337,7 @@ sub resolve_xml : Private {
     );
     foreach my $exist_el (@exists) {
         my $href = $exist_el->getAttribute('href');
-        my $path = meon::Web::Util->full_path_fixup($c,$href);
+        my $path = meon::Web::Util->full_path_fixup($href);
         $exist_el->appendText(-e $path ? 1 : 0);
     }
 }

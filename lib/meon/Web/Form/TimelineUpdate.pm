@@ -92,8 +92,7 @@ sub submitted {
     if ($comment_to_uri) {
         $fields{category} = 'comment';
         $comment_to = meon::Web::XML2Comment->new(
-            path => $comment_to_uri.'.xml',
-            c    => $c,
+            path => $comment_to_uri,
         );
     }
 
@@ -103,7 +102,7 @@ sub submitted {
     }
 
     my $timeline_path = $self->get_config_text('timeline');
-    my $timeline_full_path = dir(meon::Web::Util->full_path_fixup($c, $timeline_path));
+    my $timeline_full_path = dir(meon::Web::Util->full_path_fixup($timeline_path));
     my $entry = meon::Web::TimelineEntry->new(
         timeline_dir => $timeline_full_path,
         author       => $c->user->username,

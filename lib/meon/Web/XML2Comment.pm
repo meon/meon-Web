@@ -7,8 +7,8 @@ use 5.010;
 use meon::Web::Util;
 use Path::Class 'dir';
 use Carp 'croak';
+use XML::LibXML 'XML_TEXT_NODE';
 
-has 'c'    => ( is => 'ro', isa => 'Object', required => 1 );
 has 'path' => (is=>'rw',isa=>'Path::Class::File',required=>1,coerce=>1);
 has '_full_path' => (is=>'ro',isa=>'Path::Class::File',lazy=>1,builder=>'_build_full_path');
 has 'xml'  => (is=>'ro', isa=>'XML::LibXML::Document', lazy => 1, builder => '_build_xml');
@@ -24,7 +24,7 @@ sub _build_xml {
 
 sub _build_full_path {
     my ($self) = @_;
-    return meon::Web::Util->full_path_fixup($self->c, $self->path);
+    return meon::Web::Util->full_path_fixup($self->path.'.xml');
 }
 
 sub _build_title {
@@ -42,8 +42,7 @@ sub _build_title {
 sub web_uri {
     my ($self) = @_;
 
-    my $c = $self->c;
-    my $base_dir = dir($c->stash->{hostname_folder}, 'content');
+    my $base_dir = meon::Web::env->content_dir;
     my $path = $self->_full_path;
     $path = '/'.$path->relative($base_dir);
     $path =~ s/\.xml$//;
@@ -65,6 +64,30 @@ sub add_comment {
     my $entry_node = $comments_el->addNewChild( undef, 'w:timeline-entry' );
     $entry_node->setAttribute('href' => $comment_path);
     $comments_el->appendText("\n".' 'x4);
+
+    IO::Any->spew($self->_full_path, $xml->toString, { atomic => 1 });
+}
+
+sub rm_comment {
+    my ($self, $comment_path) = @_;
+    croak 'missing comment_path argument'
+        unless $comment_path;
+
+    return
+        unless -e $self->_full_path;
+
+    my $xml = $self->xml;
+    my $xpc = meon::Web::Util->xpc;
+    my ($comment_el) = $xpc->findnodes('/w:page/w:content//w:timeline[@class="comments"]/w:timeline-entry[@href="'.$comment_path.'"]',$xml);
+    return unless $comment_el;
+
+    my $timeline = $comment_el->parentNode;
+    my (@whitespaces) =
+        grep { $_->nodeType == XML_TEXT_NODE && $_->textContent =~ m/^\s*$/ }
+        ($comment_el->previousSibling);
+    foreach my $el ($comment_el, @whitespaces) {
+        $timeline->removeChild($el);
+    }
 
     IO::Any->spew($self->_full_path, $xml->toString, { atomic => 1 });
 }
