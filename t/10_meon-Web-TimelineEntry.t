@@ -54,12 +54,12 @@ sub new_entry_xml_01 {
 <page xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns="http://web.meon.eu/" xmlns:w="http://web.meon.eu/">
 
 <meta>
+    <title>some title</title>
     <form>
         <owner-only/>
         <process>Delete</process>
         <redirect>../../</redirect>
     </form>
-    <title>some title</title>
 </meta>
 
 <content><div xmlns="http://www.w3.org/1999/xhtml">
@@ -74,6 +74,7 @@ sub new_entry_xml_01 {
     </w:timeline>
 </w:timeline-entry>
 
+<div class="delete-confirmation"><w:form copy-id="form-delete"/></div>
 </div></content>
 
 </page>

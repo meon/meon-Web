@@ -167,6 +167,7 @@ sub create {
 >
 
 <meta>
+    <title/>
     <form>
         <owner-only/>
         <process>Delete</process>
@@ -176,6 +177,9 @@ sub create {
 
 <content><div xmlns="http://www.w3.org/1999/xhtml">
 
+<w:timeline-entry/>
+
+<div class="delete-confirmation"><w:form copy-id="form-delete"/></div>
 </div></content>
 
 </page>
@@ -183,13 +187,10 @@ sub create {
 
     $self->xml($xml);
     my $xc  = $self->xc;
-    my ($meta_el) = $xc->findnodes('/w:page/w:meta');
-    $meta_el->appendText($IDENT);
-    $meta_el->addNewChild(undef,'title')->appendText($title);
-    $meta_el->appendText("\n");
+    my ($title_el) = $xc->findnodes('/w:page/w:meta/w:title');
+    $title_el->appendText($title);
     my ($content_el) = $xc->findnodes('/w:page/w:content/x:div');
-    my $entry_el = $content_el->addNewChild($MEON_WEB_NS,'w:timeline-entry');
-    $content_el->appendText("\n");
+    my ($entry_el) = $xc->findnodes('//w:timeline-entry',$content_el);
     $entry_el->setAttribute(category => $self->category);
     $entry_el->appendText("\n");
     appendTextElement($entry_el,'w:created',$created);
@@ -204,7 +205,6 @@ sub create {
     }
 
     appendTextElement($entry_el,'w:timeline',"\n$IDENT")->setAttribute('class' => 'comments');
-    $content_el->appendText("\n");
     return $self->store;
 }
 
