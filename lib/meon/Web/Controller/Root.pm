@@ -33,7 +33,6 @@ sub auto : Private {
 
     meon::Web::env->clear;
     meon::Web::env->stash($c->stash);
-    meon::Web::env->user($c->user);
 
     my $uri      = $c->req->uri;
     my $hostname = $uri->host;
@@ -52,6 +51,7 @@ sub auto : Private {
     $c->default_auth_store->folder(
         dir($hostname_folder, 'content', 'members', 'profile')
     );
+    meon::Web::env->user($c->user);
 
     # set cookie domain
     my $cookie_domain = $hostname;
