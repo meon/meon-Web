@@ -51,6 +51,7 @@ my $builder = Module::Build::SysPath->new(
         'Data::UUID::LibUUID'              => 0,
         'DateTime::Format::Strptime'       => 0,
         'Email::Valid'                     => 0,
+        'Email::MIME'                      => 0,
         'Email::Sender::Simple'            => 0,
         'Scalar::Util'                     => 0,
         'Digest::SHA'                      => 0,

@@ -11,6 +11,7 @@ use Carp 'croak';
 use meon::Web::ResponseXML;
 use DateTime::Format::Strptime;
 use Data::UUID::LibUUID 'new_uuid_string';
+use Email::MIME;
 use Email::Sender::Simple qw(sendmail);
 use Data::asXML;
 use Scalar::Util;
