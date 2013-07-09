@@ -333,6 +333,15 @@ Support team
     sendmail($email->as_string);
 }
 
+sub last_name {
+    my ($self) = @_;
+
+    my $full_name = $self->get_member_meta('full-name');
+    $full_name =~ s/\s+$//;   # remove trailing space
+    $full_name =~ s/,.+?$//;  # remove title
+    my @names = split(/\s+/,$full_name);
+    return $names[-1];
+}
 
 __PACKAGE__->meta->make_immutable;
 

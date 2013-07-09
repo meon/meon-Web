@@ -36,26 +36,23 @@ sub auto : Private {
 
     my $uri      = $c->req->uri;
     my $hostname = $uri->host;
-    my $hostname_folder_name = meon::Web::Config->hostname_to_folder($hostname);
+    meon::Web::env->hostname($hostname);
+    my $hostname_dir_name = meon::Web::Config->hostname_to_folder($hostname);
 
     $c->detach('/status_not_found', ['no such domain '.$hostname.' configured'])
-        unless $hostname_folder_name;
+        unless $hostname_dir_name;
 
-    my $hostname_folder = dir(meon::Web::SPc->srvdir, 'www', 'meon-web', $hostname_folder_name)->absolute->resolve;
-    $c->stash->{hostname_folder} = $hostname_folder;
-    meon::Web::env->content_dir(dir($hostname_folder,'content'));
+    my $hostname_dir = $c->stash->{hostname_dir} = meon::Web::env->hostname_dir;
 
-    my $template_file = file($hostname_folder, 'template', 'xsl', 'default.xsl')->stringify;
+    my $template_file = file($hostname_dir, 'template', 'xsl', 'default.xsl')->stringify;
     $c->stash->{template} = XML::LibXML->load_xml(location => $template_file);
 
-    $c->default_auth_store->folder(
-        dir($hostname_folder, 'content', 'members', 'profile')
-    );
+    $c->default_auth_store->folder(meon::Web::env->profiles_dir);
     meon::Web::env->user($c->user);
 
     # set cookie domain
     my $cookie_domain = $hostname;
-    my $config_cookie_domain = meon::Web::Config->get->{$hostname_folder_name}{'main'}{'cookie-domain'};
+    my $config_cookie_domain = meon::Web::Config->get->{$hostname_dir_name}{'main'}{'cookie-domain'};
 
     if ($config_cookie_domain && (substr($hostname,0-length($config_cookie_domain)) eq $config_cookie_domain)) {
         $cookie_domain = $config_cookie_domain;
@@ -86,7 +83,7 @@ sub default :Path {
 sub resolve_xml : Private {
     my ( $self, $c ) = @_;
 
-    my $hostname_folder = $c->stash->{hostname_folder};
+    my $hostname_dir = $c->stash->{hostname_dir};
     my $path            =
         delete($c->session->{post_redirect_path})
         || $c->stash->{path}
@@ -95,7 +92,7 @@ sub resolve_xml : Private {
         unless blessed($path);
 
     meon::Web::env->current_path(file($path->path));
-    my $xml_file = file($hostname_folder, 'content', $path->path_segments);
+    my $xml_file = file($hostname_dir, 'content', $path->path_segments);
     $xml_file .= '.xml';
     if ((! -f $xml_file) && (-d substr($xml_file,0,-4))) {
         $xml_file = file(substr($xml_file,0,-4), 'index.xml');
@@ -211,7 +208,7 @@ sub resolve_xml : Private {
         next unless -d $folder;
         $folder = $folder->resolve;
         $c->detach('/status_forbidden', [])
-            unless $hostname_folder->contains($folder);
+            unless $hostname_dir->contains($folder);
 
         my @files = sort(grep { not $_->is_dir } $folder->children(no_hidden => 1));
 
@@ -240,7 +237,7 @@ sub resolve_xml : Private {
         die 'no pictures in '.$folder unless -d $folder;
         $folder = $folder->resolve;
         $c->detach('/status_forbidden', [])
-            unless $hostname_folder->contains($folder);
+            unless $hostname_dir->contains($folder);
 
         my @files = sort(grep { not $_->is_dir } $folder->children(no_hidden => 1));
 
@@ -307,7 +304,7 @@ sub resolve_xml : Private {
             my $href = $entry->file->resolve;
             return unless $href;
             $href = substr($href,0,-4);
-            $href = substr($href,length($c->stash->{hostname_folder}.'/content'));
+            $href = substr($href,length($c->stash->{hostname_dir}.'/content'));
             $entry_el->setAttribute('href' => $href);
             if (defined($intro)) {
                 my $intro_snipped_el = $c->model('ResponseXML')->create_element('intro-snipped');

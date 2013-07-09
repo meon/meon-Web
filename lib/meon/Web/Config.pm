@@ -19,13 +19,13 @@ my $config = Config::INI::Reader->read_file(
         meon::Web::SPc->sysconfdir, 'meon', 'web-config.ini'
     )
 );
-foreach my $hostname_folder (keys %{$config->{domains} || {}}) {
-    my $hostname_folder_config = File::Spec->catfile(
-        meon::Web::SPc->srvdir, 'www', 'meon-web', $hostname_folder, 'config.ini'
+foreach my $hostname_dir (keys %{$config->{domains} || {}}) {
+    my $hostname_dir_config = File::Spec->catfile(
+        meon::Web::SPc->srvdir, 'www', 'meon-web', $hostname_dir, 'config.ini'
     );
-    if (-e $hostname_folder_config) {
-        $config->{$hostname_folder} = Config::INI::Reader->read_file(
-            $hostname_folder_config
+    if (-e $hostname_dir_config) {
+        $config->{$hostname_dir} = Config::INI::Reader->read_file(
+            $hostname_dir_config
         );
     }
 }

@@ -8,6 +8,9 @@ use Carp 'confess';
 use XML::LibXML;
 use XML::LibXML::XPathContext;
 use Scalar::Util 'weaken';
+use meon::Web::Config;
+use meon::Web::SPc;
+use Path::Class 'dir';
 
 my $env = {};
 sub get { return $env; }
@@ -19,6 +22,13 @@ sub xpc {
     $xpc->registerNs('x', 'http://www.w3.org/1999/xhtml');
     $xpc->registerNs('w', 'http://web.meon.eu/');
     return $xpc;
+}
+
+sub hostname {
+    my $self = shift;
+    $env->{hostname} = shift
+        if @_;
+    return $env->{hostname} // confess('unset');
 }
 
 sub current_dir {
@@ -33,11 +43,38 @@ sub current_path {
     return $env->{current_path} // confess('unset');
 }
 
+sub hostname_dir {
+    my $self = shift;
+
+    unless (defined($env->{hostname_dir})) {
+        my $hostname_dir_name = meon::Web::Config->hostname_to_folder($self->hostname);
+        $env->{hostname_dir} = dir(meon::Web::SPc->srvdir, 'www', 'meon-web', $hostname_dir_name)->absolute->resolve;
+    }
+    return $env->{hostname_dir};
+}
+
 sub content_dir {
     my $self = shift;
     $env->{content_dir} = shift
         if @_;
-    return $env->{content_dir} // confess('unset');
+
+    $env->{content_dir} //= dir($self->hostname_dir,'content');
+    return $env->{content_dir};
+}
+
+sub static_dir {
+    my $self = shift;
+    $env->{static_dir} = shift
+        if @_;
+
+    $env->{static_dir} //= dir($self->hostname_dir,'www','static');
+    return $env->{static_dir};
+}
+
+sub profiles_dir {
+    my $self = shift;
+    $env->{profiles_dir} //= dir($self->content_dir, 'members', 'profile');
+    return $env->{profiles_dir};
 }
 
 sub xml_file {

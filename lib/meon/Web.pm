@@ -68,12 +68,12 @@ sub static_include_path {
 
     my $uri      = $c->req->uri;
     my $hostname = $uri->host;
-    my $hostname_folder = meon::Web::Config->hostname_to_folder($hostname);
+    my $hostname_dir = meon::Web::Config->hostname_to_folder($hostname);
 
     $c->detach('/status_not_found', ['no such domain '.$hostname.' configured'])
-        unless $hostname_folder;
+        unless $hostname_dir;
 
-    return [ dir(meon::Web::SPc->srvdir, 'www', 'meon-web', $hostname_folder, 'www') ];
+    return [ dir(meon::Web::SPc->srvdir, 'www', 'meon-web', $hostname_dir, 'www') ];
 }
 
 sub json_reply {
