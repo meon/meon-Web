@@ -143,9 +143,11 @@ sub resolve_xml : Private {
     # user
     if ($c->user_exists) {
         my $user_el = $c->model('ResponseXML')->create_element('user');
+
         my $user_el_username = $c->model('ResponseXML')->create_element('username');
         $user_el_username->appendText($c->user->username);
         $user_el->appendChild($user_el_username);
+
         my $roles_el = $c->model('ResponseXML')->create_element('roles');
         foreach my $role ($c->user->roles) {
             $roles_el->appendChild(
@@ -153,6 +155,12 @@ sub resolve_xml : Private {
             );
         }
         $user_el->appendChild($roles_el);
+
+        my $member = $c->member;
+        my $full_name_el = $c->model('ResponseXML')->create_element('full-name');
+        $full_name_el->appendText($member->get_member_meta('full-name'));
+        $user_el->appendChild($full_name_el);
+
         $c->model('ResponseXML')->append_xml($user_el);
     }
     else {
