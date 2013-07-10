@@ -1,6 +1,7 @@
 package meon::Web::Controller::Root;
 use Moose;
 use namespace::autoclean;
+use 5.010;
 
 use Path::Class 'file', 'dir';
 use meon::Web::SPc;
@@ -141,9 +142,24 @@ sub resolve_xml : Private {
     # user
     if ($c->user_exists) {
         my $user_el = $c->model('ResponseXML')->create_element('user');
+
         my $user_el_username = $c->model('ResponseXML')->create_element('username');
         $user_el_username->appendText($c->user->username);
         $user_el->appendChild($user_el_username);
+
+        my $roles_el = $c->model('ResponseXML')->create_element('roles');
+        foreach my $role ($c->user->roles) {
+            $roles_el->appendChild(
+                $c->model('ResponseXML')->create_element($role)
+            );
+        }
+        $user_el->appendChild($roles_el);
+
+        my $member = $c->member;
+        my $full_name_el = $c->model('ResponseXML')->create_element('full-name');
+        $full_name_el->appendText($member->get_member_meta('full-name'));
+        $user_el->appendChild($full_name_el);
+
         $c->model('ResponseXML')->append_xml($user_el);
     }
     else {
@@ -441,34 +457,55 @@ sub logout : Local {
 sub login : Local {
     my ( $self, $c ) = @_;
 
+    my $token    = $c->req->param('auth-token');
+    my $username = $c->req->param('username');
+    my $password = $c->req->param('password');
+    my $back_to  = $c->req->param('back-to');
+
     if ($c->action eq 'logout') {
         return $c->res->redirect($c->uri_for('/'));
     }
-    if ($c->user_exists) {
-        return $c->res->redirect($c->uri_for('/'));
+    if ($c->user_exists && !$token) {
+        $back_to ||= '/';
+        return $c->res->redirect($c->uri_for($back_to));
     }
-
-    my $username = $c->req->param('username');
-    my $password = $c->req->param('password');
 
     my $login_form = meon::Web::Form::Login->new(
         action => $c->req->uri,
     );
 
     # token authentication
-    if (my $token = $c->req->param('auth-token')) {
+    if ($token) {
         my $members_folder = $c->default_auth_store->folder;
-        my $member = meon::Web::Member->find_by_token(
-            members_folder => $members_folder,
-            token          => $token,
-        );
+        my $member;
+        if (($token eq 'admin') && $c->user_exists) {
+            my @roles = $c->user->roles;
+            if ('admin' ~~ \@roles) {
+                $member = meon::Web::Member->new(
+                    members_folder => $members_folder,
+                    username       => $username,
+                );
+            }
+        }
+        else {
+            $member = meon::Web::Member->find_by_token(
+                members_folder => $members_folder,
+                token          => $token,
+            );
+        }
+
         if ($member) {
             my $username = $member->username;
             $c->set_authenticated($c->find_user({ username => $username }));
             $c->log->info('user '.$username.' authenticated via token');
             $c->change_session_id;
             $c->session->{old_pw_not_required} = 1;
-            return $c->res->redirect($c->req->uri_with({'auth-token'=> undef})->absolute);
+            return $c->res->redirect(
+                $c->req->uri_with({
+                    'auth-token' => undef,
+                    'username'   => undef,
+                })->absolute
+            );
         }
         else {
             $login_form->add_form_error('Invalid authentication token.');
