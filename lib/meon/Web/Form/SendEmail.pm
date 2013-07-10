@@ -1,5 +1,9 @@
 package meon::Web::Form::SendEmail;
 
+use strict;
+use warnings;
+use 5.010;
+
 use List::MoreUtils 'uniq';
 use Email::MIME;
 use Email::Sender::Simple qw(sendmail);
@@ -7,6 +11,7 @@ use Data::Dumper;
 use meon::Web::Util;
 use meon::Web::Member;
 use Path::Class 'dir';
+use File::MimeInfo 'mimetype';
 
 use HTML::FormHandler::Moose;
 extends 'HTML::FormHandler';
@@ -29,6 +34,8 @@ sub submitted {
     $c->log->debug(__PACKAGE__.' '.Data::Dumper::Dumper($c->req->params))
         if $c->debug;
 
+    my $from = ($c->user_exists ? $c->member->email : 'no-reply@meon.eu');
+
     my $xml = $c->model('ResponseXML')->dom;
     my $rcpt_to  = $self->get_config_text('rcpt-to');
     my $subject  = $self->get_config_text('subject');
@@ -37,11 +44,29 @@ sub submitted {
     my $detach   = $self->get_config_text('detach');
     my $email_content = '';
 
-    my (@input_names) =
-        uniq
-        grep { defined $_ }
-        map { $_->getAttribute('name') }
-        $xpc->findnodes('//x:form//x:input | //x:form//x:textarea',$xml);
+    my @input_names;
+    my @file_attachments;
+    foreach my $input ($xpc->findnodes('//x:form//x:input | //x:form//x:textarea',$xml)) {
+        my $field_name = $input->getAttribute('name');
+        my $field_type = lc($input->getAttribute('type') // '');
+        next unless $input;
+
+        if ($field_type eq 'file') {
+            my $upload = $c->req->upload($field_name);
+            push(@file_attachments, Email::MIME->create(
+                attributes => {
+                    filename     => $upload->filename,
+                    name         => $upload->filename,
+                    content_type => $upload->type,
+                    encoding     => 'base64',
+                },
+                body => $upload->slurp,
+            ));
+        }
+        elsif ($field_type ne 'submit') {
+            push(@input_names, $field_name);
+        }
+    }
 
     my @args;
     foreach my $input_name (@input_names) {
@@ -53,19 +78,20 @@ sub submitted {
 
     my $email = Email::MIME->create(
         header_str => [
-            From    => 'no-reply@meon.eu',
+            From    => $from,
             To      => $rcpt_to,
             Subject => $subject,
         ],
         parts => [
             Email::MIME->create(
                 attributes => {
-                content_type => "text/plain",
-                charset      => "UTF-8",
-                encoding     => "8bit",
-            },
+                    content_type => "text/plain",
+                    charset      => "UTF-8",
+                    encoding     => "8bit",
+                },
                 body_str => $email_content,
             ),
+            @file_attachments,
         ],
     );
 

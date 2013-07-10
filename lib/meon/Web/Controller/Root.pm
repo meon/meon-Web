@@ -7,7 +7,6 @@ use meon::Web::SPc;
 use meon::Web::Config;
 use meon::Web::Util;
 use meon::Web::env;
-use File::MimeInfo;
 use XML::LibXML 1.70;
 use URI::Escape 'uri_escape';
 use IO::Any;
