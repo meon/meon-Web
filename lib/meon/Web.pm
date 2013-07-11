@@ -113,7 +113,7 @@ sub traverse_uri {
 
     my $new_uri = $c->req->uri->clone;
     my @segments = $new_uri->path_segments;
-    pop(@segments);
+    pop(@segments) if length($path); # allow keeping current uri with path set to ''
     $new_uri->path_segments(
         @segments,
         URI->new($path)->path_segments

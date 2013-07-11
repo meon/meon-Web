@@ -36,9 +36,8 @@ sub _build_member_meta {
     my ($self) = @_;
 
     my $xml = $self->xml;
-    my $xc = XML::LibXML::XPathContext->new($xml);
-    $xc->registerNs('w', 'http://web.meon.eu/');
-    my ($member_meta) = $xc->findnodes('//w:meta');
+    my $xpc = meon::Web::env->xpc;
+    my ($member_meta) = $xpc->findnodes('//w:meta',$xml);
     return $member_meta;
 }
 
@@ -351,6 +350,35 @@ sub user {
         xml_filename => $self->member_index_filename,
         xml          => $self->xml,
     });
+}
+
+sub expires {
+    my ($self) = @_;
+    my $expires = DateTime::Format::Strptime->new(
+        pattern   => '%F',
+    )->parse_datetime($self->get_member_meta('expires'));
+    return $expires;
+}
+
+sub extend_expiration_by_1y {
+    my ($self) = @_;
+    my $now = DateTime->now;
+    my $expires = $self->expires;
+    $expires = $now
+        if (!$expires || $expires < $now);
+    $expires->add('years' => 1);
+    $self->set_member_meta('expires',$expires->strftime('%Y-%m-%d'));
+    $self->user->set_status('active');
+}
+
+sub shred_password {
+    my ($self) = @_;
+    my $xml = $self->xml;
+    my $xpc = meon::Web::env->xpc;
+    my ($pw_el) = $xpc->findnodes('//u:password',$xml);
+    $pw_el->removeChildNodes();
+    $pw_el->appendText('***');
+
 }
 
 __PACKAGE__->meta->make_immutable;

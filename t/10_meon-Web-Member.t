@@ -30,6 +30,7 @@ sub main {
     reset_password();
     set_member_meta_array();
     member_user();
+    member_expires();
     return 0;
 }
 
@@ -122,6 +123,16 @@ sub member_user {
     );
     my $user = $member->user;
     is($user->status, 'registration-pending', 'user status "registration-pending"');
+}
+
+sub member_expires {
+    my $member = meon::Web::Member->new(
+        members_folder => $tmp_dir,
+        username       => 'usr01',
+    );
+    ok(!$member->expires, 'no expires set');
+    $member->extend_expiration_by_1y;
+    is($member->expires, DateTime->now->add('years' => 1)->strftime('%Y-%m-%dT00:00:00'), 'expires +1y');
 }
 
 sub usr01_content {

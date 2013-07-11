@@ -165,9 +165,7 @@ sub resolve_xml : Private {
 
         my @access_roles = map { $_->textContent } $xpc->findnodes('/w:page/w:meta/w:access/w:role',$dom);
         if (@access_roles && (none { $_ ~~ \@user_roles } @access_roles)) {
-            $c->session->{post_redirect_path} = '/forbidden';
-            $c->res->redirect($c->req->uri->absolute);
-            $c->detach;
+            $c->detach('/status_forbidden', []);
         }
     }
     else {
@@ -350,6 +348,16 @@ sub resolve_xml : Private {
         }
     }
 
+    # generate members list
+    my ($members_list_el) = $xpc->findnodes('/w:page/w:content//w:members-list', $dom);
+    if ($members_list_el) {
+        foreach my $member (meon::Web::env->all_members) {
+            $member->shred_password;
+            my $meta = $member->member_meta;
+            $members_list_el->appendChild($member->member_meta);
+        }
+    }
+
     # generate exists
     my (@exists) = (
         $xpc->findnodes('//w:exists', $dom),
@@ -435,11 +443,9 @@ sub _newer_entries {
 sub status_forbidden : Private {
     my ( $self, $c, $message ) = @_;
 
-    $message = '401 - Forbidden: '.$c->req->uri."\n".($message // '');
-
-    $c->res->status(401);
-    $c->res->content_type('text/plain');
-    $c->res->body($message);
+    $c->session->{post_redirect_path} = '/forbidden';
+    $c->res->redirect($c->req->uri->absolute);
+    $c->detach;
 }
 
 sub status_not_found : Private {

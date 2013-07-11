@@ -13,6 +13,7 @@ use meon::Web::Config;
 use meon::Web::SPc;
 use Path::Class 'dir';
 use URI::Escape 'uri_escape';
+use meon::Web::Member;
 
 my $env = {};
 sub get { return $env; }
@@ -29,6 +30,7 @@ sub xpc {
     my $xpc = XML::LibXML::XPathContext->new($self->xml);
     $xpc->registerNs('x', 'http://www.w3.org/1999/xhtml');
     $xpc->registerNs('w', 'http://web.meon.eu/');
+    $xpc->registerNs('u', 'http://search.cpan.org/perldoc?Catalyst%3A%3APlugin%3A%3AAuthentication%3A%3AStore%3A%3AUserXML');
     return $xpc;
 }
 
@@ -115,6 +117,26 @@ sub user {
         weaken($env->{user});
     }
     return $env->{user};
+}
+
+sub all_members {
+    my $self = shift;
+
+    my @members;
+    my $profiles_dir = $self->profiles_dir;
+    foreach my $username_dir ($profiles_dir->children(no_hidden => 1)) {
+        next unless $username_dir->is_dir;
+
+        my $username = $username_dir->basename;
+        my $member = meon::Web::Member->new(
+            members_folder => $profiles_dir,
+            username       => $username,
+        );
+
+        push(@members, $member)
+            if (eval { $member->xml });
+    }
+    return @members;
 }
 
 1;
