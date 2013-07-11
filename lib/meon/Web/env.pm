@@ -7,14 +7,22 @@ use 5.010;
 use Carp 'confess';
 use XML::LibXML;
 use XML::LibXML::XPathContext;
+use XML::LibXSLT;
 use Scalar::Util 'weaken';
 use meon::Web::Config;
 use meon::Web::SPc;
 use Path::Class 'dir';
+use URI::Escape 'uri_escape';
 
 my $env = {};
 sub get { return $env; }
 sub clear { $env = {}; return $env; }
+
+XML::LibXSLT->register_function(
+    'http://web.meon.eu/',
+    'uri_escape',
+    sub { uri_escape($_[0]) }
+);
 
 sub xpc {
     my $self = shift;

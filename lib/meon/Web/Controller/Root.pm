@@ -137,7 +137,6 @@ sub resolve_xml : Private {
     $c->model('ResponseXML')->dom($dom);
 
     $c->model('ResponseXML')->push_new_element('current-path')->appendText($path->path);
-    $c->model('ResponseXML')->push_new_element('current-path-escaped')->appendText(uri_escape($path->path));
 
     # user
     if ($c->user_exists) {
