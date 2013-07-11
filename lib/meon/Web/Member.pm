@@ -338,6 +338,7 @@ sub last_name {
     my ($self) = @_;
 
     my $full_name = $self->get_member_meta('full-name');
+    return undef unless defined($full_name);
     $full_name =~ s/\s+$//;   # remove trailing space
     $full_name =~ s/,.+?$//;  # remove title
     my @names = split(/\s+/,$full_name);
