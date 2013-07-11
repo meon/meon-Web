@@ -41,6 +41,8 @@ sub submitted {
     my $subject  = $self->get_config_text('subject');
     $subject    .= ' - '.$c->req->param('email')
         if $c->req->param('name');
+    $subject    .= ' - '.$c->req->param('subject')
+        if $c->req->param('subject');
     my $detach   = $self->get_config_text('detach');
     my $email_content = '';
 
