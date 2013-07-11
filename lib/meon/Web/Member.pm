@@ -381,6 +381,11 @@ sub shred_password {
 
 }
 
+sub is_active {
+    my ($self) = @_;
+    return $self->user->status eq 'active';
+}
+
 __PACKAGE__->meta->make_immutable;
 
 1;
