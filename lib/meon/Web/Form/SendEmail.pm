@@ -53,15 +53,17 @@ sub submitted {
 
         if ($field_type eq 'file') {
             my $upload = $c->req->upload($field_name);
-            push(@file_attachments, Email::MIME->create(
-                attributes => {
-                    filename     => $upload->filename,
-                    name         => $upload->filename,
-                    content_type => $upload->type,
-                    encoding     => 'base64',
-                },
-                body => $upload->slurp,
-            ));
+            if ($upload) {
+                push(@file_attachments, Email::MIME->create(
+                    attributes => {
+                        filename     => $upload->filename,
+                        name         => $upload->filename,
+                        content_type => $upload->type,
+                        encoding     => 'base64',
+                    },
+                    body => $upload->slurp,
+                ));
+            }
         }
         elsif ($field_type ne 'submit') {
             push(@input_names, $field_name);

@@ -87,7 +87,7 @@ sub submitted {
     my %fields = map {
         $_ => $self->field($_)->value
     } $self->entry_fields;
-    my $comment_to_uri = $c->stash->{comment_to};
+    my $comment_to_uri = $c->stash->{back_link};
     my $comment_to;
     if ($comment_to_uri) {
         $fields{category} = 'comment';

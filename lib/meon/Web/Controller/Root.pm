@@ -189,15 +189,15 @@ sub resolve_xml : Private {
         }
 
         unless ($skip_form) {
-            my $comment_to = delete $c->req->params->{comment_to};
-            if (defined($comment_to)) {
-                $c->model('ResponseXML')->push_new_element('comment-to')->appendText($comment_to);
-                $c->stash->{comment_to} = $comment_to;
+            my $back_link = delete $c->req->params->{_back_link};
+            if (defined($back_link)) {
+                $c->model('ResponseXML')->push_new_element('back-link')->appendText($back_link);
+                $c->stash->{back_link} = $back_link;
             }
             my ($form_class) = 'meon::Web::Form::'.$xpc->findnodes('/w:page/w:meta/w:form/w:process', $dom);
             load_class($form_class);
             my $form = $form_class->new(c => $c);
-            my $params = $c->req->params;
+            my $params = $c->req->body_parameters;
             foreach my $field ($form->fields) {
                 next if $field->type ne 'Upload';
                 my $field_name = $field->name;
