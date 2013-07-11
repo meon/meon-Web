@@ -506,7 +506,7 @@ sub login : Local {
                 members_folder => $members_folder,
                 token          => $token,
             );
-            unless ($member->is_active) {
+            if ($member && !$member->is_active) {
                 $member = undef;
                 $login_form->add_form_error('Account not activated or expired.');
             }
