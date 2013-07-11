@@ -17,6 +17,7 @@ use Scalar::Util 'blessed';
 use DateTime::Format::HTTP;
 use Imager;
 use URI::Escape 'uri_escape';
+use List::MoreUtils 'none';
 
 use meon::Web::Form::Login;
 use meon::Web::Form::Delete;
@@ -136,7 +137,7 @@ sub resolve_xml : Private {
 
     $c->model('ResponseXML')->dom($dom);
 
-    $c->model('ResponseXML')->push_new_element('current-path')->appendText($path->path);
+    $c->model('ResponseXML')->push_new_element('current-path')->appendText($c->req->uri->path);
 
     # user
     if ($c->user_exists) {
@@ -146,8 +147,9 @@ sub resolve_xml : Private {
         $user_el_username->appendText($c->user->username);
         $user_el->appendChild($user_el_username);
 
+        my @user_roles = $c->user->roles;
         my $roles_el = $c->model('ResponseXML')->create_element('roles');
-        foreach my $role ($c->user->roles) {
+        foreach my $role (@user_roles) {
             $roles_el->appendChild(
                 $c->model('ResponseXML')->create_element($role)
             );
@@ -160,6 +162,13 @@ sub resolve_xml : Private {
         $user_el->appendChild($full_name_el);
 
         $c->model('ResponseXML')->append_xml($user_el);
+
+        my @access_roles = map { $_->textContent } $xpc->findnodes('/w:page/w:meta/w:access/w:role',$dom);
+        if (@access_roles && (none { $_ ~~ \@user_roles } @access_roles)) {
+            $c->session->{post_redirect_path} = '/forbidden';
+            $c->res->redirect($c->req->uri->absolute);
+            $c->detach;
+        }
     }
     else {
         if ($xpc->findnodes('/w:page/w:meta/w:members-only',$dom)) {
