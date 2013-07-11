@@ -15,6 +15,7 @@ use Email::MIME;
 use Email::Sender::Simple qw(sendmail);
 use Data::asXML;
 use Scalar::Util;
+use Catalyst::Plugin::Authentication::Store::UserXML::User;
 
 has 'members_folder' => (is=>'rw',isa=>'Any',required=>1);
 has 'username'       => (is=>'rw',isa=>'Str',required=>1);
@@ -341,6 +342,14 @@ sub last_name {
     $full_name =~ s/,.+?$//;  # remove title
     my @names = split(/\s+/,$full_name);
     return $names[-1];
+}
+
+sub user {
+    my ($self) = @_;
+    return Catalyst::Plugin::Authentication::Store::UserXML::User->new({
+        xml_filename => $self->member_index_filename,
+        xml          => $self->xml,
+    });
 }
 
 __PACKAGE__->meta->make_immutable;

@@ -29,6 +29,7 @@ sub main {
     find_user_by_email();
     reset_password();
     set_member_meta_array();
+    member_user();
     return 0;
 }
 
@@ -112,6 +113,15 @@ sub register_user {
         usr01_content($created),
         'check user xml file content',
     );
+}
+
+sub member_user {
+    my $member = meon::Web::Member->new(
+        members_folder => $tmp_dir,
+        username       => 'usr01',
+    );
+    my $user = $member->user;
+    is($user->status, 'registration-pending', 'user status "registration-pending"');
 }
 
 sub usr01_content {
