@@ -68,6 +68,11 @@ my $builder = Module::Build::SysPath->new(
     script_files => [qw(
         script/meon-web.psgi
         script/meon-web-aggregate-timelines
+        script/meon-web-expire-members
+    )],
+    conffiles => [qw(
+        etc/meon/web-config.ini
+        etc/cron.d/meon-web
     )],
     add_to_cleanup => [ 'meon-Web-*' ],
     create_readme  => 1,
