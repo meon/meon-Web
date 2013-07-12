@@ -544,6 +544,15 @@ sub login : Local {
     }
     else {
         $login_form->process(params=>$c->req->params);
+        if ($username =~ m/\@/) {
+            my $members_folder = $c->default_auth_store->folder;
+            my $member = meon::Web::Member->find_by_email(
+                members_folder => $members_folder,
+                email          => $username,
+            );
+            $username = $member->user->username
+                if $member;
+        }
         if ($username && $password && $login_form->is_valid) {
             if (
                 $c->authenticate({
