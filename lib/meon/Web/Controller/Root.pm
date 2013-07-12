@@ -351,10 +351,21 @@ sub resolve_xml : Private {
     # generate members list
     my ($members_list_el) = $xpc->findnodes('/w:page/w:content//w:members-list', $dom);
     if ($members_list_el) {
-        foreach my $member (meon::Web::env->all_members) {
+        my %members_by_section;
+        foreach my $member (sort { $a->section cmp $b->section } meon::Web::env->all_members) {
             $member->shred_password;
-            my $meta = $member->member_meta;
-            $members_list_el->appendChild($member->member_meta);
+            my $sec = $member->section;
+            $members_by_section{$sec} //= [];
+            push(@{$members_by_section{$sec}}, $member);
+        }
+        foreach my $sec (sort keys %members_by_section) {
+            my $sec_el = $c->model('ResponseXML')->create_element('section');
+            $sec_el->setAttribute('name' => $sec);
+            $members_list_el->appendChild($sec_el);
+            foreach my $member (@{$members_by_section{$sec}}) {
+                my $meta = $member->member_meta;
+                $sec_el->appendChild($meta);
+            }
         }
     }
 

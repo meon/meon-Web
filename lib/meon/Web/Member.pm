@@ -387,6 +387,11 @@ sub is_active {
     return $self->user->status eq 'active';
 }
 
+sub section {
+    my ($self) = @_;
+    return lc(substr($self->last_name // '-',0,1))
+}
+
 __PACKAGE__->meta->make_immutable;
 
 1;
