@@ -210,7 +210,7 @@ sub resolve_xml : Private {
                 next if $field->type ne 'Upload';
                 my $field_name = $field->name;
                 $params->{$field_name} = $c->req->upload($field_name)
-                    if $params->{$field_name};
+                    if $c->req->params->{$field_name};
             }
             $form->process(params=>$params);
             $form->submitted
