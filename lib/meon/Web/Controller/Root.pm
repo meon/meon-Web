@@ -179,7 +179,9 @@ sub resolve_xml : Private {
     if ($redirect) {
         $redirect = $redirect->textContent;
         my $redirect_uri = $c->traverse_uri($redirect);
-        $c->res->redirect($redirect_uri->absolute);
+        $redirect_uri = $redirect_uri->absolute
+            if $redirect_uri->can('absolute');
+        $c->res->redirect($redirect_uri);
         $c->detach;
     }
 
