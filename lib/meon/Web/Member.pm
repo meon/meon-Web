@@ -137,7 +137,6 @@ sub create {
 >
 
 <meta>
-    <dir-listing>archive/</dir-listing>
     <title></title>
     <user xmlns="http://search.cpan.org/perldoc?Catalyst%3A%3APlugin%3A%3AAuthentication%3A%3AStore%3A%3AUserXML">
         <status>registration-pending</status>
@@ -154,7 +153,9 @@ sub create {
 </meta>
 
 <content><div xmlns="http://www.w3.org/1999/xhtml">
-<w:member-profile/>
+<w:member-profile>
+    <w:dir-listing path="archive/"/>
+</w:member-profile>
 </div></content>
 
 </page>

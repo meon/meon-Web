@@ -237,10 +237,10 @@ sub resolve_xml : Private {
     }
 
     # folder listing
-    my (@folders) =
-        map { $_->textContent }
-        $xpc->findnodes('/w:page/w:meta/w:dir-listing',$dom);
-    foreach my $folder_name (@folders) {
+    my (@folder_elements) =
+        $xpc->findnodes('/w:page/w:content//w:dir-listing',$dom);
+    foreach my $folder_el (@folder_elements) {
+        my $folder_name = $folder_el->getAttribute('path');
         my $folder_rel = dir(meon::Web::Util->path_fixup($folder_name));
         my $folder = dir($xml_file->dir, $folder_rel)->absolute;
         next unless -d $folder;
@@ -249,10 +249,6 @@ sub resolve_xml : Private {
             unless $hostname_dir->contains($folder);
 
         my @files = sort(grep { not $_->is_dir } $folder->children(no_hidden => 1));
-
-        my $folder_el = $c->model('ResponseXML')->create_element('folder');
-        $folder_el->setAttribute('name' => $folder_name);
-        $c->model('ResponseXML')->append_xml($folder_el);
 
         foreach my $file (@files) {
             $file = $file->basename;
