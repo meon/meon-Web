@@ -241,6 +241,10 @@ sub resolve_xml : Private {
         $xpc->findnodes('/w:page/w:content//w:dir-listing',$dom);
     foreach my $folder_el (@folder_elements) {
         my $folder_name = $folder_el->getAttribute('path');
+        unless ($folder_name) {
+            $folder_el->appendText('path attribute missing');
+            next;
+        }
         my $folder_rel = dir(meon::Web::Util->path_fixup($folder_name));
         my $folder = dir($xml_file->dir, $folder_rel)->absolute;
         next unless -d $folder;
