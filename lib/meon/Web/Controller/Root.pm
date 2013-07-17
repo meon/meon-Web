@@ -92,12 +92,27 @@ sub resolve_xml : Private {
     $path = URI->new($path)
         unless blessed($path);
 
+    # replace …/index by …/ in url
+    if ($path =~ m{/index$}) {
+        my $new_uri = $c->req->uri;
+        $new_uri->path(substr($path->path,0,-5));
+        $c->res->redirect($new_uri->absolute);
+        $c->detach;
+    }
+
     meon::Web::env->current_path(file($path->path));
     my $xml_file = file($hostname_dir, 'content', $path->path_segments);
+    $xml_file .= 'index' if ($xml_file =~ m{/$});
     $xml_file .= '.xml';
+
+    # add trailing slash and redirect when uri points to a folder
     if ((! -f $xml_file) && (-d substr($xml_file,0,-4))) {
-        $xml_file = file(substr($xml_file,0,-4), 'index.xml');
+        my $new_uri = $c->req->uri;
+        $new_uri->path($path->path.'/');
+        $c->res->redirect($new_uri->absolute);
+        $c->detach;
     }
+
     if ((! -f $xml_file) && (-f substr($xml_file,0,-4))) {
         my $static_file = file(substr($xml_file,0,-4));
         my $mtime = $static_file->stat->mtime;
