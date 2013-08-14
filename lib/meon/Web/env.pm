@@ -12,7 +12,7 @@ use Scalar::Util 'weaken';
 use meon::Web::Config;
 use meon::Web::SPc;
 use Path::Class 'dir';
-use URI::Escape 'uri_escape';
+use URI::Escape 'uri_escape_utf8';
 use meon::Web::Member;
 
 my $env = {};
@@ -22,7 +22,7 @@ sub clear { $env = {}; return $env; }
 XML::LibXSLT->register_function(
     'http://web.meon.eu/',
     'uri_escape',
-    sub { uri_escape($_[0]) }
+    sub { uri_escape_utf8($_[0]) }
 );
 
 sub xpc {
