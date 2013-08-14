@@ -141,7 +141,6 @@ sub usr01_content {
 <page xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns="http://web.meon.eu/" xmlns:w="http://web.meon.eu/">
 
 <meta>
-    <dir-listing>archive/</dir-listing>
     <title>somename</title>
     <user xmlns="http://search.cpan.org/perldoc?Catalyst%3A%3APlugin%3A%3AAuthentication%3A%3AStore%3A%3AUserXML">
         <status>registration-pending</status>
@@ -159,7 +158,9 @@ wien</address>
 </meta>
 
 <content><div xmlns="http://www.w3.org/1999/xhtml">
-<w:member-profile/>
+<w:member-profile>
+    <w:dir-listing path="archive/"/>
+</w:member-profile>
 </div></content>
 
 </page>

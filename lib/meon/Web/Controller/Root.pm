@@ -92,12 +92,27 @@ sub resolve_xml : Private {
     $path = URI->new($path)
         unless blessed($path);
 
+    # replace …/index by …/ in url
+    if ($path =~ m{/index$}) {
+        my $new_uri = $c->req->uri;
+        $new_uri->path(substr($path->path,0,-5));
+        $c->res->redirect($new_uri->absolute);
+        $c->detach;
+    }
+
     meon::Web::env->current_path(file($path->path));
     my $xml_file = file($hostname_dir, 'content', $path->path_segments);
+    $xml_file .= 'index' if ($xml_file =~ m{/$});
     $xml_file .= '.xml';
+
+    # add trailing slash and redirect when uri points to a folder
     if ((! -f $xml_file) && (-d substr($xml_file,0,-4))) {
-        $xml_file = file(substr($xml_file,0,-4), 'index.xml');
+        my $new_uri = $c->req->uri;
+        $new_uri->path($path->path.'/');
+        $c->res->redirect($new_uri->absolute);
+        $c->detach;
     }
+
     if ((! -f $xml_file) && (-f substr($xml_file,0,-4))) {
         my $static_file = file(substr($xml_file,0,-4));
         my $mtime = $static_file->stat->mtime;
@@ -222,10 +237,14 @@ sub resolve_xml : Private {
     }
 
     # folder listing
-    my (@folders) =
-        map { $_->textContent }
-        $xpc->findnodes('/w:page/w:meta/w:dir-listing',$dom);
-    foreach my $folder_name (@folders) {
+    my (@folder_elements) =
+        $xpc->findnodes('/w:page/w:content//w:dir-listing',$dom);
+    foreach my $folder_el (@folder_elements) {
+        my $folder_name = $folder_el->getAttribute('path');
+        unless ($folder_name) {
+            $folder_el->appendText('path attribute missing');
+            next;
+        }
         my $folder_rel = dir(meon::Web::Util->path_fixup($folder_name));
         my $folder = dir($xml_file->dir, $folder_rel)->absolute;
         next unless -d $folder;
@@ -234,10 +253,6 @@ sub resolve_xml : Private {
             unless $hostname_dir->contains($folder);
 
         my @files = sort(grep { not $_->is_dir } $folder->children(no_hidden => 1));
-
-        my $folder_el = $c->model('ResponseXML')->create_element('folder');
-        $folder_el->setAttribute('name' => $folder_name);
-        $c->model('ResponseXML')->append_xml($folder_el);
 
         foreach my $file (@files) {
             $file = $file->basename;
