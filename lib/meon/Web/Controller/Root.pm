@@ -101,7 +101,7 @@ sub resolve_xml : Private {
     }
 
     meon::Web::env->current_path(file($path->path));
-    my $xml_file = file($hostname_dir, 'content', $path->path_segments);
+    my $xml_file = file(meon::Web::env->content_dir, $path->path_segments);
     $xml_file .= 'index' if ($xml_file =~ m{/$});
     $xml_file .= '.xml';
 
@@ -471,19 +471,39 @@ sub _newer_entries {
 sub status_forbidden : Private {
     my ( $self, $c, $message ) = @_;
 
-    $c->session->{post_redirect_path} = '/forbidden';
-    $c->res->redirect($c->req->uri->absolute);
-    $c->detach;
+    $c->res->status(403);
+
+    my $xml_file = file(meon::Web::env->content_dir, '403.xml');
+    if (-e $xml_file) {
+        $c->session->{post_redirect_path} = '/403';
+        $self->resolve_xml($c);
+        $c->model('ResponseXML')->push_new_element('error-message')->appendText($message)
+            if $message;
+    }
+    else {
+        $message = '403 - Forbidden: '.$c->req->uri."\n".($message // '');
+        $c->res->content_type('text/plain');
+        $c->res->body($message);
+    }
 }
 
 sub status_not_found : Private {
     my ( $self, $c, $message ) = @_;
 
-    $message = '404 - Page not found: '.$c->req->uri."\n".($message // '');
-
     $c->res->status(404);
-    $c->res->content_type('text/plain');
-    $c->res->body($message);
+
+    my $xml_file = file(meon::Web::env->content_dir, '404.xml');
+    if (-e $xml_file) {
+        $c->session->{post_redirect_path} = '/404';
+        $self->resolve_xml($c);
+        $c->model('ResponseXML')->push_new_element('error-message')->appendText($message)
+            if $message;
+    }
+    else {
+        $message = '404 - Page not found: '.$c->req->uri."\n".($message // '');
+        $c->res->content_type('text/plain');
+        $c->res->body($message);
+    }
 }
 
 sub logout : Local {
