@@ -613,7 +613,45 @@ sub login : Local {
     );
 }
 
-sub end : ActionClass('RenderView') {}
+sub exception : Path('/exception-test') {
+    die 'here';
+}
+
+sub end : ActionClass('RenderView') {
+	my ($self, $c) = @_;
+
+    my @errors = @{ $c->error };
+
+    if (@errors) {
+        $c->response->status(500);
+
+        my $message = join("\n", @errors);
+        $message ||= 'No output';
+
+        my $xml_file = file(meon::Web::env->content_dir, '500.xml');
+        if (-e $xml_file) {
+            eval {
+                $c->session->{post_redirect_path} = '/500';
+                $c->forward('resolve_xml', []);
+                $c->model('ResponseXML')->push_new_element('error-message')->appendText($message)
+                    if $message;
+            };
+            if ($@) {
+                $c->log->error($@);
+                return;
+            }
+        }
+        else {
+            $message = '500 - Internal server error: '.$c->req->uri."\n".($message // '');
+            $c->res->content_type('text/plain');
+            $c->res->body($message);
+        }
+    }
+
+    while (my $error = shift(@{$c->error})) {
+        $c->log->error($error);
+    }
+}
 
 __PACKAGE__->meta->make_immutable;
 
