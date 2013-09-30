@@ -42,6 +42,7 @@ has_field 'image'     => (
 
 has_field 'attachment'     => (
     type => 'Upload', required => 0, label => 'File Upload',
+    max_size => 1024*10_000,
 );
 
 has_field 'link'     => (
@@ -73,7 +74,6 @@ has_field 'submit' => (
     type => 'Submit',
     value => 'Post',
     element_class => 'btn btn-primary',
-    max_size => 1024*4000,
 );
 
 sub entry_fields {
