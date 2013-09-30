@@ -11,12 +11,14 @@ has '+widget_wrapper' => ( default => 'Bootstrap' );
 has '+enctype' => ( default => 'multipart/form-data');
 #sub build_form_element_class { ['form-horizontal'] };
 
-has_field 'file' => ( type => 'Upload', required=>1, label => '');
+has_field 'file' => (
+    type => 'Upload', required=>1, label => '',
+    max_size => 1024*10_000,
+);
 
 has_field 'submit' => (
     type => 'Submit',
     value => 'Upload',
-    max_size => 1024*4000,
     css_class => 'form-row',
 );
 
