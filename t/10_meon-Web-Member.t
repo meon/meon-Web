@@ -147,6 +147,11 @@ sub usr01_content {
         <username>usr01</username>
         <password>***DISABLED***</password>
     </user>
+</meta>
+
+<content><div xmlns="http://www.w3.org/1999/xhtml">
+<w:member-profile xmlns="http://web.meon.eu/">
+    <w:dir-listing path="archive/"/>
     <full-name>somename</full-name>
     <email>name &lt;email\@email.email&gt;</email>
     <created>$created</created>
@@ -155,11 +160,6 @@ wien</address>
     <lat>48.123</lat>
     <lng>16.321</lng>
     <registration-form>&lt;email &amp;&amp; content&gt;</registration-form>
-</meta>
-
-<content><div xmlns="http://www.w3.org/1999/xhtml">
-<w:member-profile>
-    <w:dir-listing path="archive/"/>
 </w:member-profile>
 </div></content>
 

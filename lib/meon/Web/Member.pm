@@ -38,7 +38,7 @@ sub _build_member_meta {
 
     my $xml = $self->xml;
     my $xpc = meon::Web::env->xpc;
-    my ($member_meta) = $xpc->findnodes('//w:meta',$xml);
+    my ($member_meta) = $xpc->findnodes('//w:member-profile',$xml);
     return $member_meta;
 }
 
@@ -62,7 +62,7 @@ sub set_member_meta {
         }
     }
     else {
-        my ($meta_element) = $xc->findnodes('/w:page/w:meta');
+        my $meta_element = $self->member_meta;
         $meta_element->appendText(q{ }x4);
         $element = $meta_element->addNewChild($meta_element->namespaceURI,$name);
         $meta_element->appendText("\n");
@@ -143,6 +143,11 @@ sub create {
         <username>$username</username>
         <password>***DISABLED***</password>
     </user>
+</meta>
+
+<content><div xmlns="http://www.w3.org/1999/xhtml">
+<w:member-profile xmlns="http://web.meon.eu/">
+    <w:dir-listing path="archive/"/>
     <full-name></full-name>
     <email></email>
     <created>$created</created>
@@ -150,11 +155,6 @@ sub create {
     <lat></lat>
     <lng></lng>
     <registration-form></registration-form>
-</meta>
-
-<content><div xmlns="http://www.w3.org/1999/xhtml">
-<w:member-profile>
-    <w:dir-listing path="archive/"/>
 </w:member-profile>
 </div></content>
 
