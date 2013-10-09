@@ -369,7 +369,9 @@ sub resolve_xml : Private {
     my ($members_list_el) = $xpc->findnodes('/w:page/w:content//w:members-list', $dom);
     if ($members_list_el) {
         my %members_by_section;
+        my $active_only = $members_list_el->getAttribute('active-only');
         foreach my $member (sort { $a->section cmp $b->section } meon::Web::env->all_members) {
+            next if ($active_only && !$member->is_active);
             $member->shred_password;
             my $sec = $member->section;
             $members_by_section{$sec} //= [];
@@ -382,6 +384,15 @@ sub resolve_xml : Private {
             foreach my $member (@{$members_by_section{$sec}}) {
                 my $meta = $member->member_meta;
                 $sec_el->appendChild($meta);
+
+                my $username = $member->username;
+                my $username_el = $c->model('ResponseXML')->create_element('username');
+                $username_el->appendText($username);
+                $meta->appendChild($username_el);
+                my $status = $member->user->status;
+                my $status_el = $c->model('ResponseXML')->create_element('status');
+                $status_el->appendText($status);
+                $meta->appendChild($status_el);
             }
         }
     }

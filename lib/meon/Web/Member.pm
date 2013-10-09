@@ -147,7 +147,8 @@ sub create {
 
 <content><div xmlns="http://www.w3.org/1999/xhtml">
 <w:member-profile xmlns="http://web.meon.eu/">
-    <w:dir-listing path="archive/"/>
+    <dir-listing path="archive/"/>
+    <public-listing>1</public-listing>
     <full-name></full-name>
     <email></email>
     <created>$created</created>
