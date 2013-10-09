@@ -24,7 +24,9 @@ sub _build_xml {
 
 sub _build_full_path {
     my ($self) = @_;
-    return meon::Web::Util->full_path_fixup($self->path.'.xml');
+    my $path = $self->path;
+    $path = $path.'index' if $path =~ m{/$};
+    return meon::Web::Util->full_path_fixup($path.'.xml');
 }
 
 sub _build_title {
@@ -33,7 +35,9 @@ sub _build_title {
     my $xml = $self->xml;
     my $xc  = meon::Web::Util->xpc;
     my ($title) = $xc->findnodes('/w:page/w:content//w:timeline-entry/w:title',$xml);
-    die 'missing title in '.$self->file
+    ($title) = $xc->findnodes('/w:page/w:meta/w:title',$xml)
+        unless $title;
+    die 'missing title in '.$self->_full_path
         unless $title;
 
     return $title->textContent;
