@@ -60,6 +60,8 @@ sub auto : Private {
     }
 
     $c->_session_plugin_config->{cookie_domain} = $cookie_domain;
+    $c->change_session_expires( 30*24*60*60 )
+        if $c->session->{remember_login};
 
     return 1;
 }
@@ -534,6 +536,7 @@ sub login : Local {
     my $username = $c->req->param('username');
     my $password = $c->req->param('password');
     my $back_to  = $c->req->param('back-to');
+    $c->session->{remember_login} = $c->req->param('remember_login');
 
     if ($c->action eq 'logout') {
         return $c->res->redirect($c->uri_for('/'));

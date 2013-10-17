@@ -9,6 +9,7 @@ use meon::Web::Util;
 use Catalyst::Plugin::Authentication::Store::UserXML 0.02;
 
 use Catalyst::Runtime 5.80;
+use Catalyst::Plugin::Session 0.37;
 use Catalyst qw(
     ConfigLoader
     Authentication

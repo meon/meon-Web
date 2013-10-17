@@ -24,6 +24,7 @@ my $builder = Module::Build::SysPath->new(
         'Catalyst::Runtime'                => '5.90007',
         'Catalyst::Plugin::ConfigLoader'   => 0,
         'Catalyst::Plugin::Static::Simple' => 0,
+        'Catalyst::Plugin::Session'        => '0.37', # change_session_expires()
         'Catalyst::Plugin::Session::State::Cookie' => 0,
         'Catalyst::Plugin::Session::Store::File' => 0,
         'Catalyst::Plugin::Authentication' => 0,
