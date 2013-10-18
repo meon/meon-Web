@@ -49,6 +49,16 @@ sub create_element {
     return $element;
 }
 
+sub create_xhtml_element {
+    my ($self, $name, $id) = @_;
+
+    my $element = $self->dom->createElementNS('http://www.w3.org/1999/xhtml',$name);
+    $element->setAttribute('id'=>$id)
+        if defined $id;
+
+    return $element;
+}
+
 sub append_xml {
     my ($self, $xml) = @_;
 

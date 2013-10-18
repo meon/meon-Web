@@ -37,6 +37,32 @@ sub get_config_text {
     return $text;
 }
 
+sub set_config_text {
+    my ($self, $el_name, $value) = @_;
+    croak 'need element name argument'
+        unless defined $el_name && length($el_name);
+
+    my $xpc = meon::Web::Util->xpc;
+    my $form_config = $self->config;
+    my ($config_el) = $xpc->findnodes('w:'.$el_name,$form_config);
+    if (defined($value)) {
+        unless ($config_el) {
+            $form_config->appendText(q{ }x4);
+            $config_el = $form_config->addNewChild($form_config->namespaceURI,$el_name);
+            $form_config->appendText("\n".q{ }x4);
+        }
+        $config_el->removeChildNodes();
+        $config_el->appendText($value);
+    }
+    else {
+        # FIXME remove whitespaces textnodes before
+        $form_config->removeChild($config_el)
+            if defined $config_el;
+    }
+
+    return $config_el;
+}
+
 sub get_config_folder {
     my ($self, $el_name) = @_;
     my $c = $self->c;
@@ -69,6 +95,22 @@ sub redirect {
         if $redirect_uri->can('absolute');
     $c->res->redirect($redirect_uri);
     $c->detach;
+}
+
+sub store_config {
+    my $self = shift;
+
+    my $xpc      = meon::Web::Util->xpc;
+    my $filename = meon::Web::env->xml_file;
+    my $dom      = XML::LibXML->load_xml(location => $filename);
+
+    my ($form_config) = $xpc->findnodes('/w:page/w:meta/w:form',$dom);
+    $form_config->replaceNode($self->config);
+    return IO::Any->spew(
+        [$filename],
+        $dom->toString,
+        {atomic => 1},
+    );
 }
 
 1;
