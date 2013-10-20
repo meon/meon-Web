@@ -235,6 +235,24 @@ sub resolve_xml : Private {
             $c->model('ResponseXML')->add_xhtml_form(
                 $form->render
             );
+
+            if (my $form_input_errors = delete $c->session->{form_input_errors}) {
+                foreach my $input_name (keys %$form_input_errors) {
+                    my ($input) = $xpc->findnodes(
+                        './/x:input[@name="'.$input_name.'"]'
+                        .'|.//x:select[@name="'.$input_name.'"]'
+                        .'|.//x:textarea[@name="'.$input_name.'"]'
+                        ,$c->model('ResponseXML')->dom
+                    );
+                    next unless $input;
+                    $input->setAttribute('class' => 'error');
+                    my $span = $input->parentNode->addNewChild($input->namespaceURI, 'span');
+                    $span->setAttribute('class' => 'help-inline');
+                    $span->appendText($form_input_errors->{$input_name});
+                    $input->parentNode->parentNode->setAttribute('class' => 'control-group error');
+                }
+            }
+
         }
     }
 

@@ -160,8 +160,22 @@ sub submitted {
     my $course_form = $self->_course_form;
     return unless $course_form;
 
+    # store/check inputs
+    my $all_required_set = 1;
+    my %inputs = map { $_->getAttribute('name') => $_ } $xpc->findnodes('.//x:input|.//x:select|.//x:textarea',$course_form);
+    foreach my $key (keys %params) {
+        next unless my $input = $inputs{$key};
+        my $value = $params{$key} // '';
+        $value = undef if (length($value) == 0);
+        if (!defined($value) && $input->getAttribute('required')) {
+            $all_required_set = 0;
+            $c->session->{form_input_errors}->{$key} = 'Required';
+        }
+        $self->set_config_text('user_'.$key => $value);
+    }
+
     # set correct step
-    if ($back || $forward) {
+    if ($back || ($forward && $all_required_set)) {
         my $step      = eval { $self->get_config_text('step') } // 0;
         my $step_done = eval { $self->get_config_text('step-done') } // 0;
         $step-- if $back;
@@ -171,15 +185,6 @@ sub submitted {
             if $step_done < $step;
     }
 
-    # store inputs
-    my %inputs = map { $_->getAttribute('name') => $_ } $xpc->findnodes('.//x:input|.//x:select|.//x:textarea',$course_form);
-    foreach my $key (keys %params) {
-        next unless $inputs{$key};
-        my $value = $params{$key} // '';
-        $value = undef if (length($value) == 0);
-        $self->set_config_text('user_'.$key => $value);
-        # TODO check if all required fields were submitted
-    }
     $self->store_config;
 
     $self->redirect($c->req->uri->absolute);
