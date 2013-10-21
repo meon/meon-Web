@@ -43,6 +43,35 @@ before 'process' => sub {
     }
 
     # build-up the content tree
+    foreach my $summary ($xpc->findnodes('//w:training-course-summary',$dom)) {
+        my $div_el = $c->model('ResponseXML')->create_xhtml_element('div');
+        $div_el->setAttribute(class=>'content-tree');
+        $summary->appendChild($div_el);
+
+        my @inputs = $xpc->findnodes('.//x:input|.//x:select|.//x:textarea',$course_form);
+        foreach my $input (@inputs) {
+            my $input_name  = $input->getAttribute('name');
+            my $input_value = eval { $self->get_config_text('user_'.$input_name) } // '';
+
+            my ($label) = $xpc->findnodes('.//x:*[@for="'.$input->getAttribute('id').'"]',$course_form);
+            $input_name = $label->textContent
+                if $label;
+
+            my $input_div_el = $c->model('ResponseXML')->create_xhtml_element('div');
+            $input_div_el->setAttribute(class=>'summary-item');
+            $div_el->appendChild($input_div_el);
+            my $label_div_el = $c->model('ResponseXML')->create_xhtml_element('div');
+            $label_div_el->setAttribute(class=>'label');
+            $input_div_el->appendChild($label_div_el);
+            my $text_pre_el = $c->model('ResponseXML')->create_xhtml_element('pre');
+            $input_div_el->appendChild($text_pre_el);
+
+            $label_div_el->appendText($input_name);
+            $text_pre_el->appendText($input_value);
+        }
+    }
+
+    # build-up the content tree
     foreach my $tree ($xpc->findnodes('//w:training-course-tree',$dom)) {
         my $div_el = $c->model('ResponseXML')->create_xhtml_element('div');
         $div_el->setAttribute(class=>'content-tree');
