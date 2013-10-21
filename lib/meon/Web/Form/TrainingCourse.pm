@@ -166,6 +166,7 @@ sub submitted {
     foreach my $key (keys %params) {
         next unless my $input = $inputs{$key};
         my $value = $params{$key} // '';
+        $value =~ s/\r//g;
         $value = undef if (length($value) == 0);
         if (!defined($value) && $input->getAttribute('required')) {
             $all_required_set = 0;
