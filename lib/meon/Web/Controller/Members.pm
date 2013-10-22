@@ -20,7 +20,15 @@ sub base : Chained('/') PathPart('members') CaptureArgs(0) {
 }
 
 sub default : Chained('base') PathPart('') {
-    my ( $self, $c ) = @_;
+    my ( $self, $c, @args ) = @_;
+
+    # private area, restricted to user him self
+    if (($args[0] eq 'profile') && ($args[2] eq 'private')) {
+        my $username = $args[1] // '';
+        $c->detach('/status_forbidden', [])
+            unless $username eq $c->user->username;
+    }
+
     $c->forward('/resolve_xml', []);
 }
 

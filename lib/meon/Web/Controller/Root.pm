@@ -272,8 +272,16 @@ sub resolve_xml : Private {
         $c->detach('/status_forbidden', [])
             unless $hostname_dir->contains($folder);
 
-        my @files = sort(grep { not $_->is_dir } $folder->children(no_hidden => 1));
+        my @folders = sort(grep { $_->is_dir }     $folder->children(no_hidden => 1));
+        my @files   = sort(grep { not $_->is_dir } $folder->children(no_hidden => 1));
 
+        foreach my $file (@folders) {
+            $file = $file->basename;
+            my $file_el = $c->model('ResponseXML')->create_element('folder');
+            $file_el->setAttribute('href' => join('/', map { uri_escape($_) } $folder_rel->dir_list, $file));
+            $file_el->appendText($file);
+            $folder_el->appendChild($file_el);
+        }
         foreach my $file (@files) {
             $file = $file->basename;
             my $file_el = $c->model('ResponseXML')->create_element('file');
