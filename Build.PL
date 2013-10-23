@@ -70,6 +70,7 @@ my $builder = Module::Build::SysPath->new(
         script/meon-web.psgi
         script/meon-web-aggregate-timelines
         script/meon-web-expire-members
+        script/meon-web-sync-members
     )],
     conffiles => [qw(
         etc/meon/web-config.ini
