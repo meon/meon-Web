@@ -4,6 +4,7 @@ use meon::Web::Util;
 use meon::Web::TimelineEntry;
 use meon::Web::XML2Comment;
 use Path::Class 'dir';
+use Email::Sender::Simple qw(sendmail);
 
 use utf8;
 use 5.010;
@@ -20,6 +21,13 @@ sub _course_form {
     return $course_form;
 }
 
+sub input_enabled {
+    my ($self) = @_;
+    my $cert_status = eval { $self->get_config_text('certificate-status') } // '';
+    return 1 if $cert_status eq 'on-going';
+    return;
+}
+
 before 'process' => sub {
     my ($self) = @_;
     my $c = $self->c;
@@ -30,10 +38,12 @@ before 'process' => sub {
     my $course_form = $self->_course_form;
     return unless $course_form;
 
-    my (@headings) = $xpc->findnodes('.//x:h1|.//x:h2|.//x:h3|.//x:h4',$course_form);
-    my (@inputs)   = $xpc->findnodes('.//x:input|.//x:select|.//x:textarea',$course_form);
-    my $step       = eval { $self->get_config_text('step') } // 0;
-    my $step_done  = eval { $self->get_config_text('step-done') } // 0;
+    my (@headings)  = $xpc->findnodes('.//x:h1|.//x:h2|.//x:h3|.//x:h4',$course_form);
+    my (@inputs)    = $xpc->findnodes('.//x:input|.//x:select|.//x:textarea',$course_form);
+    my $step        = eval { $self->get_config_text('step') } // 0;
+    my $step_done   = eval { $self->get_config_text('step-done') } // 0;
+    my $cert_id     = $self->get_config_text('certificate-id');
+    my $cert_status = $self->get_config_text('certificate-status');
     my $forced_step = $c->req->param('step') // '';
     if (length($forced_step) && ($forced_step <= $step_done)) {
         $self->set_config_text('step' => $forced_step + 0);
@@ -45,7 +55,7 @@ before 'process' => sub {
     # build-up the content tree
     foreach my $summary ($xpc->findnodes('//w:training-course-summary',$dom)) {
         my $div_el = $c->model('ResponseXML')->create_xhtml_element('div');
-        $div_el->setAttribute(class=>'content-tree');
+        $div_el->setAttribute(class=>'training-course-summary');
         $summary->appendChild($div_el);
 
         my @inputs = $xpc->findnodes('.//x:input|.//x:select|.//x:textarea',$course_form);
@@ -60,11 +70,14 @@ before 'process' => sub {
             my $input_div_el = $c->model('ResponseXML')->create_xhtml_element('div');
             $input_div_el->setAttribute(class=>'summary-item');
             $div_el->appendChild($input_div_el);
+            $input_div_el->appendText("\n");
             my $label_div_el = $c->model('ResponseXML')->create_xhtml_element('div');
             $label_div_el->setAttribute(class=>'label');
             $input_div_el->appendChild($label_div_el);
+            $input_div_el->appendText("\n");
             my $text_pre_el = $c->model('ResponseXML')->create_xhtml_element('pre');
             $input_div_el->appendChild($text_pre_el);
+            $input_div_el->appendText("\n");
 
             $label_div_el->appendText($input_name);
             $text_pre_el->appendText($input_value);
@@ -153,6 +166,19 @@ before 'process' => sub {
             $nav_forward_el
         );
     }
+    elsif ($self->input_enabled) {
+        my $nav_forward_el = $c->model('ResponseXML')->create_element('navigate-finish');
+        $parent->appendChild(
+            $nav_forward_el
+        );
+    }
+
+    # add dummy element to the top of the step
+    my $form_top_el = $c->model('ResponseXML')->create_element('form-top');
+    $parent->insertBefore(
+        $form_top_el,
+        $current,
+    );
 
     # populate input/select/textarea fields
     foreach my $input (@inputs) {
@@ -173,6 +199,10 @@ before 'process' => sub {
                 $input->setAttribute(value => $input_value);
             }
         }
+
+        unless ($self->input_enabled) {
+            $input->setAttribute(disabled => 'disabled');
+        }
     }
 };
 
@@ -185,9 +215,13 @@ sub submitted {
     my %params  = %{$c->req->params};
     my $back    = $params{back};
     my $forward = $params{forward};
+    my $finish  = $params{finish};
 
     my $course_form = $self->_course_form;
     return unless $course_form;
+
+    my $rcpt_to = $self->get_config_text('rcpt-to');
+    my $cert_id = $self->get_config_text('certificate-id');
 
     # store/check inputs
     my $all_required_set = 1;
@@ -201,7 +235,9 @@ sub submitted {
             $all_required_set = 0;
             $c->session->{form_input_errors}->{$key} = 'Required';
         }
-        $self->set_config_text('user_'.$key => $value);
+        if ($self->input_enabled) {
+            $self->set_config_text('user_'.$key => $value);
+        }
     }
 
     # set correct step
@@ -213,6 +249,37 @@ sub submitted {
         $self->set_config_text('step'      => $step);
         $self->set_config_text('step-done' => $step)
             if $step_done < $step;
+    }
+    elsif (
+        $finish
+        && $self->input_enabled
+        && $all_required_set
+        && eval { $xpc->findnodes('.//w:navigate-finish',$course_form)->size }
+    ) {
+        $self->set_config_text('certificate-status' => 'submitted');
+
+        my ($email_content) = map { $_->textContent } $xpc->findnodes('//x:*[@class="training-course-summary"]',$dom);
+        die 'failed to extract training course summary'
+            unless defined $email_content;
+        my $email = Email::MIME->create(
+            header_str => [
+                From    => $c->member->email,
+                To      => $rcpt_to,
+                Subject => $cert_id.' finished',
+            ],
+            parts => [
+                Email::MIME->create(
+                    attributes => {
+                    content_type => "text/plain",
+                    charset      => "UTF-8",
+                    encoding     => "8bit",
+                },
+                    body_str => $email_content,
+                ),
+            ],
+        );
+
+        sendmail($email->as_string);
     }
 
     $self->store_config;
