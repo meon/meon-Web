@@ -261,6 +261,7 @@ sub resolve_xml : Private {
         $xpc->findnodes('/w:page/w:content//w:dir-listing',$dom);
     foreach my $folder_el (@folder_elements) {
         my $folder_name = $folder_el->getAttribute('path');
+        my $reverse     = $folder_el->getAttribute('reverse');
         unless ($folder_name) {
             $folder_el->appendText('path attribute missing');
             next;
@@ -273,7 +274,9 @@ sub resolve_xml : Private {
             unless $hostname_dir->contains($folder);
 
         my @folders = sort(grep { $_->is_dir }     $folder->children(no_hidden => 1));
+        @folders = reverse @folders if $reverse;
         my @files   = sort(grep { not $_->is_dir } $folder->children(no_hidden => 1));
+        @files = reverse @files if $reverse;
 
         foreach my $file (@folders) {
             $file = $file->basename;
