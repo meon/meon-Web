@@ -21,9 +21,14 @@ sub _course_form {
     return $course_form;
 }
 
+sub certificate_status {
+    my ($self) = @_;
+    return eval { $self->get_config_text('certificate-status') } // 'on-going';
+}
+
 sub input_enabled {
     my ($self) = @_;
-    my $cert_status = eval { $self->get_config_text('certificate-status') } // '';
+    my $cert_status = $self->certificate_status;
     return 1 if $cert_status eq 'on-going';
     return;
 }
@@ -43,7 +48,7 @@ before 'process' => sub {
     my $step        = eval { $self->get_config_text('step') } // 0;
     my $step_done   = eval { $self->get_config_text('step-done') } // 0;
     my $cert_id     = $self->get_config_text('certificate-id');
-    my $cert_status = $self->get_config_text('certificate-status');
+    my $cert_status = $self->certificate_status;
     my $forced_step = $c->req->param('step') // '';
     if (length($forced_step) && ($forced_step <= $step_done)) {
         $self->set_config_text('step' => $forced_step + 0);
