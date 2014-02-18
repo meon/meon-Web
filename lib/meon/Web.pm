@@ -217,5 +217,9 @@ by the Free Software Foundation; or the Artistic License.
 
 See http://dev.perl.org/licenses/ for more information.
 
+=head1 srv/www/meon-web/bootstrap/
+
+Are examples from L<https://github.com/twbs/bootstrap>, check there for
+license and copyright.
 
 =cut

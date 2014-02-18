@@ -206,11 +206,14 @@ sub resolve_xml : Private {
     if (my ($form_el) = $xpc->findnodes('/w:page/w:meta/w:form',$dom)) {
         my $skip_form = 0;
         if ($xpc->findnodes('w:owner-only',$form_el)) {
-            my $member = $c->member;
-            my $member_folder = $member->dir;
+            $skip_form = 1;
+            if ($c->user_exists) {
+                my $member = $c->member;
+                my $member_folder = $member->dir;
 
-            $skip_form = 1
-                unless $member_folder->contains($xml_file);
+                $skip_form = 0
+                    if $member_folder->contains($xml_file);
+            }
         }
 
         unless ($skip_form) {
