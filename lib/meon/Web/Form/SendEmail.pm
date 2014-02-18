@@ -99,7 +99,13 @@ sub submitted {
         ],
     );
 
-    sendmail($email->as_string);
+    if (Run::Env->prod) {
+        sendmail($email->as_string);
+    }
+    else {
+        warn $email->as_string;
+    }
+
     $self->detach($detach);
 }
 

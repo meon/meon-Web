@@ -3,6 +3,11 @@ package meon::Web::Util;
 use Text::Unidecode 'unidecode';
 use Path::Class 'dir', 'file';
 use XML::LibXML::XPathContext;
+use Carp 'croak';
+use Run::Env;
+use Email::MIME;
+use Email::Sender::Simple qw(sendmail);
+use File::MimeInfo 'mimetype';
 
 sub xpc {
     my $xpc = XML::LibXML::XPathContext->new;
@@ -78,5 +83,81 @@ sub full_path_fixup {
         if $path =~ m{^/};
     $path = file($cur_dir, $path)->absolute;
 }
+
+sub send_email {
+    my ($class, %args) = @_;
+
+    my $from    = $args{from} // croak 'need from';
+    my $to      = $args{to} // croak 'need to';
+    my $bcc     = $args{bcc};
+    my $subject = $args{subject} // croak 'need subject';
+    my $text    = $args{text} // croak 'need text';
+    my @attachments = @{ $args{attachments} // [] };
+
+    my @email_headers = (
+        header_str => [
+            From    => $from,
+            To      => $to,
+            ($bcc ? (Bcc => $bcc) : ()),
+            Subject => $subject,
+        ],
+    );
+    my @email_text = (
+        attributes => {
+            content_type => "text/plain",
+            charset      => "UTF-8",
+            encoding     => "8bit",
+        },
+        body_str => $text,
+    );
+
+    my $email;
+    if (@attachments) {
+        $email = Email::MIME->create(
+            @email_headers,
+            parts => [
+                Email::MIME->create(@email_text),
+                (
+                    map {
+                        my $filename = file(
+                            ref($_) eq 'HASH'
+                            ? $_->{filename}
+                            : $_
+                        );
+                        my $basename = $filename->basename;
+                        my $content_type = (
+                            ref($_) eq 'HASH'
+                            ? $_->{content_type}
+                            : undef
+                        ) // mimetype($basename) // 'application/octet-stream';
+                        Email::MIME->create(
+                            attributes => {
+                                filename     => $basename,
+                                content_type => $content_type,
+                                encoding     => "base64",
+                                name         => $basename,
+                            },
+                            body => IO::Any->slurp($filename),
+                        );
+                    } @attachments
+                ),
+            ],
+        );
+    }
+    else {
+        $email = Email::MIME->create(
+            @email_headers,
+            @email_text,
+        );
+    }
+
+    if (Run::Env->prod) {
+        sendmail($email->as_string);
+    }
+    else {
+        warn $email->as_string;
+    }
+}
+
 
 1;

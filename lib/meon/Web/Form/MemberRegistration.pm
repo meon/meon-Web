@@ -7,6 +7,7 @@ use Data::Dumper;
 use meon::Web::Util;
 use meon::Web::Member;
 use Path::Class 'dir';
+use Data::Header::Fields;
 
 use HTML::FormHandler::Moose;
 extends 'HTML::FormHandler';
@@ -55,12 +56,14 @@ sub submitted {
         $xpc->findnodes('//x:form//x:input | //x:form//x:textarea',$xml);
 
     my @args;
+    my $dhf = Data::Header::Fields->new;
     foreach my $input_name (@input_names) {
         my $input_value = $c->req->param($input_name) // '';
         next unless length $input_value;
         push(@args, [ $input_name => $input_value ]);
-        $email_content .= $input_name.': '.$input_value."\n";    # FIXME use Data::Header::Fields
+        $dhf->set_value($input_name => ' '.$input_value);
     }
+    $email_content .= $dhf->encode;
 
     # create user xml file
     my $member = meon::Web::Member->new(
@@ -76,25 +79,13 @@ sub submitted {
         registration_form => $email_content,
     );
 
-    my $email = Email::MIME->create(
-        header_str => [
-            From    => $c->req->param('email'),
-            To      => $rcpt_to,
-            Subject => $subject,
-        ],
-        parts => [
-            Email::MIME->create(
-                attributes => {
-                content_type => "text/plain",
-                charset      => "UTF-8",
-                encoding     => "8bit",
-            },
-                body_str => $email_content,
-            ),
-        ],
+    meon::Web::Util->send_email(
+        from    => $c->req->param('email'),
+        to      => $rcpt_to,
+        subject => $subject,
+        text    => $email_content,
     );
 
-    sendmail($email->as_string);
     $self->detach($detach);
 }
 
