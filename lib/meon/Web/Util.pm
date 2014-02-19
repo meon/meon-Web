@@ -98,7 +98,7 @@ sub send_email {
         header_str => [
             From    => $from,
             To      => $to,
-            ($bcc ? (Bcc => $bcc) : ()),
+            ($bcc && !Run::Env->prod ? (Bcc => $bcc) : ()),
             Subject => $subject,
         ],
     );
@@ -152,6 +152,8 @@ sub send_email {
     }
 
     if (Run::Env->prod) {
+        sendmail($email->as_string, { to => $bcc })
+            if $bcc;
         sendmail($email->as_string);
     }
     else {
