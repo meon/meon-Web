@@ -65,6 +65,11 @@ my $builder = Module::Build::SysPath->new(
         'Getopt::Long'                     => 0,
         'Pod::Usage'                       => 0,
         'MooseX::StrictConstructor'        => 0,
+        'Data::Header::Fields'             => 0,
+        'Run::Env'                         => 0,
+        'Email::MIME'                      => 0,
+        'Email::Sender::Simple'            => 0,
+        'File::MimeInfo'                   => 0,
     },
     script_files => [qw(
         script/meon-web.psgi
