@@ -1,5 +1,7 @@
 package meon::Web::Form::MemberRegistration;
 
+use 5.010;
+
 use List::MoreUtils 'uniq';
 use Email::MIME;
 use Email::Sender::Simple qw(sendmail);
@@ -27,8 +29,43 @@ sub submitted {
     my $c   = $self->c;
     my $xpc = meon::Web::Util->xpc;
     my $xml = $c->model('ResponseXML')->dom;
+    my %params  = %{$c->req->params};
     $c->log->debug(__PACKAGE__.' '.Data::Dumper::Dumper($c->req->params))
         if $c->debug;
+
+    my $all_required_set = 1;
+    my %inputs = map { $_->getAttribute('name') => $_ } $xpc->findnodes('.//x:input|.//x:select|.//x:textarea',$xml);
+    foreach my $key (keys %params) {
+        next unless my $input = $inputs{$key};
+        my $value = $params{$key} // '';
+        $value =~ s/\r//g;
+        $value = undef if (length($value) == 0);
+        if (!defined($value) && $input->getAttribute('required')) {
+            $all_required_set = 0;
+            $c->session->{form_input_errors}->{$key} = 'Required';
+        }
+    }
+    foreach my $input (values %inputs) {
+        my $input_name = $input->getAttribute('name');
+        my $input_value = $params{$input_name} // '';
+        next if (($input->getAttribute('type') // '') eq 'submit');
+
+        given ($input->nodeName) {
+            when ('select')   {
+                my ($option) = $xpc->findnodes('.//x:option[@value="'.$input_value.'"]',$input);
+                $option->setAttribute('selected' => 'selected')
+                    if $option;
+            }
+            when ('textarea') {
+                $input->removeChildNodes();
+                $input->appendText($input_value)
+            }
+            default {
+                $input->setAttribute(value => $input_value);
+            }
+        }
+    }
+    return unless $all_required_set;
 
     my $members_folder = $c->default_auth_store->folder;
     my $username = meon::Web::Util->username_cleanup(

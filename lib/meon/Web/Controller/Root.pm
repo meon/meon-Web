@@ -248,11 +248,15 @@ sub resolve_xml : Private {
                         ,$c->model('ResponseXML')->dom
                     );
                     next unless $input;
-                    $input->setAttribute('class' => 'error');
+                    $input->setAttribute('class' => $input->hasAttribute('class') ? $input->getAttribute('class').' error' : 'error');
                     my $span = $input->parentNode->addNewChild($input->namespaceURI, 'span');
                     $span->setAttribute('class' => 'help-inline');
                     $span->appendText($form_input_errors->{$input_name});
-                    $input->parentNode->parentNode->setAttribute('class' => 'control-group error');
+                    my $div = $input->parentNode->parentNode;
+                    $div->setAttribute(
+                        'class'
+                        => ($div->hasAttribute('class') ? $div->getAttribute('class').' error' : 'error')
+                    );
                 }
             }
 
