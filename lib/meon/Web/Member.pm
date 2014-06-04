@@ -151,6 +151,7 @@ sub create {
     <public-listing>1</public-listing>
     <full-name></full-name>
     <email></email>
+    <email-validated>0</email-validated>
     <created>$created</created>
     <address></address>
     <lat></lat>

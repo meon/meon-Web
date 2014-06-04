@@ -252,10 +252,17 @@ sub resolve_xml : Private {
                     my $span = $input->parentNode->addNewChild($input->namespaceURI, 'span');
                     $span->setAttribute('class' => 'help-inline');
                     $span->appendText($form_input_errors->{$input_name});
-                    my $div = $input->parentNode->parentNode;
+                    my $error_class = 'error';
+                    my $div = $input->parentNode;
+                    if ($div->getAttribute('class') // '' eq 'form-group') {
+                        $error_class = 'has-error';
+                    }
+                    else {
+                        $div->parentNode;
+                    }
                     $div->setAttribute(
                         'class'
-                        => ($div->hasAttribute('class') ? $div->getAttribute('class').' error' : 'error')
+                        => ($div->hasAttribute('class') ? $div->getAttribute('class').' '.$error_class : $error_class)
                     );
                 }
             }

@@ -28,6 +28,21 @@ sub username : Chained('base') PathPart('username') {
     });
 }
 
+sub email : Chained('base') PathPart('email') {
+    my ( $self, $c ) = @_;
+
+    my $email = $c->req->param('email');
+    my $members_folder = $c->default_auth_store->folder;
+    my $member = meon::Web::Member->find_by_email(
+        members_folder => $members_folder,
+        email          => $email,
+    );
+
+    $c->json_reply({
+        registered => ($member ? 1 : 0),
+    });
+}
+
 
 __PACKAGE__->meta->make_immutable;
 

@@ -31,7 +31,7 @@ sub username_cleanup {
     $username = unidecode($username);
     $username =~ s/[^A-Za-z0-9]//g;
     while (length($username) < 4) {
-        $username .= '0';
+        $username .= 'x';
     }
 
     my $base_username = $username;
@@ -160,6 +160,5 @@ sub send_email {
         warn $email->as_string;
     }
 }
-
 
 1;

@@ -24,6 +24,14 @@ before 'validate' => sub {
         if $self->c->req->param('yreo');
 };
 
+sub _build_configured_field_list {
+    my $self = shift;
+
+    # check if there are mandatory settings
+    $self->get_config_text('rcpt-to');
+    $self->get_config_text('subject');
+}
+
 sub submitted {
     my ($self) = @_;
 
@@ -34,7 +42,31 @@ sub submitted {
     $c->log->debug(__PACKAGE__.' '.Data::Dumper::Dumper($c->req->params))
         if $c->debug;
 
+    my $email = $c->req->param('email');
+    my $password = $c->req->param('password') // '';
     my $all_required_set = 1;
+    my $members_folder = $c->default_auth_store->folder;
+
+    my $login   = $self->get_config_text('login');
+    if ($login) {
+        my $member = meon::Web::Member->find_by_email(
+            members_folder => $members_folder,
+            email          => $email,
+        );
+        if ($member) {
+            if ($member->user->check_password($password)) {
+                my $username = $member->username;
+                $c->set_authenticated($c->find_user({ username => $member->user->username }));
+                $self->detach($login);
+            }
+            else {
+                $all_required_set = 0;
+                $c->session->{form_input_errors}->{'password'} = 'wrong password';
+            }
+
+        }
+    }
+
     my %inputs = map { $_->getAttribute('name') => $_ } $xpc->findnodes('.//x:input|.//x:select|.//x:textarea',$xml);
     foreach my $key (keys %params) {
         next unless my $input = $inputs{$key};
@@ -70,7 +102,7 @@ sub submitted {
 
     my $members_folder = $c->default_auth_store->folder;
     my $username = meon::Web::Util->username_cleanup(
-        $c->req->param('username'),
+        ($c->req->param('username') // $c->req->param('name') // $c->req->param('email') // ''),
         $members_folder,
     );
     $c->req->params->{username} = $username;
@@ -108,13 +140,20 @@ sub submitted {
         username       => $username,
     );
     $member->create(
-        name    => $c->req->param('name'),
-        email   => $c->req->param('email'),
-        address => $c->req->param('address'),
-        lat     => $c->req->param('lat'),
-        lng     => $c->req->param('lng'),
+        name    => $c->req->param('name') // '',
+        email   => $c->req->param('email') // '',
+        address => $c->req->param('address') // '',
+        lat     => $c->req->param('lat') // '',
+        lng     => $c->req->param('lng') // '',
         registration_form => $email_content,
     );
+    if ($password) {
+        $member->user->set_password($password);
+        if (eval { $self->get_config_text('auto-activate') } // 0 ) {
+            $member->user->set_status('active');
+            $c->set_authenticated($c->find_user({ username => $member->user->username }));
+        }
+    }
 
     meon::Web::Util->send_email(
         from    => $c->req->param('email'),
