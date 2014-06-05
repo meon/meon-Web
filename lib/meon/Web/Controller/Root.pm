@@ -462,6 +462,16 @@ sub resolve_xml : Private {
         my $path = meon::Web::Util->full_path_fixup($href);
         $exist_el->appendText(-e $path ? 1 : 0);
     }
+
+    # handle different templates
+    my ($template_node) = $xpc->findnodes('/w:page/w:meta/w:template', $dom);
+    if ($template_node) {
+        my $template_name = $template_node->textContent;
+        my $template_file = file($hostname_dir, 'template', 'xsl', $template_name.'.xsl')->stringify;
+        $c->detach('/status_not_found', ['no such template '.$template_name])
+            unless -f $template_file;
+        $c->stash->{template} = XML::LibXML->load_xml(location => $template_file);
+    }
 }
 
 sub _older_entries {
