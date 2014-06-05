@@ -53,6 +53,17 @@ sub current_path {
     return $env->{current_path} // confess('unset');
 }
 
+sub hostname_dir_name {
+    my $self = shift;
+    $env->{hostname_dir_name} = shift
+        if @_;
+
+    unless (defined($env->{hostname_dir_name})) {
+        $env->{hostname_dir_name} = meon::Web::Config->hostname_to_folder($self->hostname);
+    }
+    return $env->{hostname_dir_name};
+}
+
 sub hostname_dir {
     my $self = shift;
     $env->{hostname_dir} = shift
@@ -140,6 +151,11 @@ sub all_members {
             if (eval { $member->xml });
     }
     return @members;
+}
+
+sub hostname_config {
+    my $self = shift;
+    return meon::Web::Config->get->{$self->hostname_dir_name}
 }
 
 1;

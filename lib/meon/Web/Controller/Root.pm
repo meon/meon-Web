@@ -38,8 +38,7 @@ sub auto : Private {
     my $uri      = $c->req->uri;
     my $hostname = $uri->host;
     meon::Web::env->hostname($hostname);
-    my $hostname_dir_name = meon::Web::Config->hostname_to_folder($hostname);
-
+    my $hostname_dir_name = meon::Web::env->hostname_dir_name;
     $c->detach('/status_not_found', ['no such domain '.$hostname.' configured'])
         unless $hostname_dir_name;
 
@@ -53,7 +52,7 @@ sub auto : Private {
 
     # set cookie domain
     my $cookie_domain = $hostname;
-    my $config_cookie_domain = meon::Web::Config->get->{$hostname_dir_name}{'main'}{'cookie-domain'};
+    my $config_cookie_domain = meon::Web::env->hostname_config->{'main'}{'cookie-domain'};
 
     if ($config_cookie_domain && (substr($hostname,0-length($config_cookie_domain)) eq $config_cookie_domain)) {
         $cookie_domain = $config_cookie_domain;
@@ -142,8 +141,19 @@ sub resolve_xml : Private {
         $c->detach;
     }
 
-    $c->detach('/status_not_found', [($c->debug ? $path.' '.$xml_file : $path)])
-        unless -e $xml_file;
+    unless (-e $xml_file) {
+        my $not_found_handler = meon::Web::env->hostname_config->{'main'}{'not-found-handler'};
+        if ($not_found_handler) {
+            load_class($not_found_handler);
+            my $content_dir = meon::Web::env->content_dir;
+            my $relative_path = $xml_file;
+            $relative_path =~ s/^$content_dir//;
+            die 'forbidden' if $path eq $relative_path;
+            $not_found_handler->check($content_dir, $relative_path);
+        }
+        $c->detach('/status_not_found', [($c->debug ? $path.' '.$xml_file : $path)])
+            unless -e $xml_file;
+    }
 
     $xml_file = file($xml_file);
     $c->stash->{xml_file} = $xml_file;
