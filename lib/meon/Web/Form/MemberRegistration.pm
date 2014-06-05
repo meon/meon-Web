@@ -47,7 +47,7 @@ sub submitted {
     my $all_required_set = 1;
     my $members_folder = $c->default_auth_store->folder;
 
-    my $login   = $self->get_config_text('login');
+    my $login = eval { $self->get_config_text('login') };
     if ($login) {
         my $member = meon::Web::Member->find_by_email(
             members_folder => $members_folder,
@@ -57,7 +57,7 @@ sub submitted {
             if ($member->user->check_password($password)) {
                 my $username = $member->username;
                 $c->set_authenticated($c->find_user({ username => $member->user->username }));
-                $self->detach($login);
+                return $self->detach;
             }
             else {
                 $all_required_set = 0;
