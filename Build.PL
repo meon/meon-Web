@@ -70,6 +70,7 @@ my $builder = Module::Build::SysPath->new(
         'Email::MIME'                      => 0,
         'Email::Sender::Simple'            => 0,
         'File::MimeInfo'                   => 0,
+        'File::Find::Age'                  => 0,
     },
     script_files => [qw(
         script/meon-web.psgi

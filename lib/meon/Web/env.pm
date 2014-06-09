@@ -14,6 +14,7 @@ use meon::Web::SPc;
 use Path::Class 'dir';
 use URI::Escape 'uri_escape_utf8';
 use meon::Web::Member;
+use File::Find::Age;
 
 my $env = {};
 sub get { return $env; }
@@ -156,6 +157,21 @@ sub all_members {
 sub hostname_config {
     my $self = shift;
     return meon::Web::Config->get->{$self->hostname_dir_name}
+}
+
+sub static_dir_mtime {
+    my $self = shift;
+    $env->{static_dir_mtime} = shift
+        if @_;
+
+    # ignore generated files
+    my $ages = File::Find::Age->in($self->static_dir);
+    while ($ages->[-1]->{file} =~ m{/meon-Web-merged\.(js|css)$}) {
+        pop($ages);
+    }
+
+    $env->{static_dir_mtime} //= $ages->[-1]->{mtime} // '-';
+    return $env->{static_dir_mtime};
 }
 
 1;
