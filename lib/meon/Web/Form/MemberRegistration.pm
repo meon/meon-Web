@@ -122,6 +122,7 @@ sub submitted {
         uniq
         grep { defined $_ }
         map { $_->getAttribute('name') }
+        grep { $_->getAttribute('type') !~ /password/i }
         $xpc->findnodes('//x:form//x:input | //x:form//x:textarea',$xml);
 
     my @args;
