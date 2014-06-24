@@ -6,6 +6,7 @@ use meon::Web::XML2Comment;
 use Path::Class 'dir';
 use Email::Sender::Simple qw(sendmail);
 use Class::Load 'load_class';
+use Run::Env;
 
 use utf8;
 use 5.010;
@@ -285,7 +286,7 @@ sub submitted {
                 inputs              => $self->inputs,
                 results_text        => $email_content,
                 certificate_id      => $cert_id,
-                certificate_version => $vert_ver,
+                certificate_version => $cert_ver,
             );
             $email_content = $new_email_content
                 if $new_email_content;
@@ -313,7 +314,12 @@ sub submitted {
             ],
         );
 
-        sendmail($email->as_string);
+        if (Run::Env->dev) {
+            warn $email->as_string;
+        }
+        else {
+            sendmail($email->as_string);
+        }
     }
 
     $self->store_config;
