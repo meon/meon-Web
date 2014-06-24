@@ -156,7 +156,7 @@ sub all_members {
 
 sub hostname_config {
     my $self = shift;
-    return meon::Web::Config->get->{$self->hostname_dir_name}
+    return meon::Web::Config->get->{$self->hostname_dir_name} // {};
 }
 
 sub static_dir_mtime {

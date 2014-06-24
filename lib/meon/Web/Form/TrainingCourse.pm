@@ -5,6 +5,7 @@ use meon::Web::TimelineEntry;
 use meon::Web::XML2Comment;
 use Path::Class 'dir';
 use Email::Sender::Simple qw(sendmail);
+use Class::Load 'load_class';
 
 use utf8;
 use 5.010;
@@ -12,6 +13,8 @@ use 5.010;
 use HTML::FormHandler::Moose;
 extends 'HTML::FormHandler';
 with 'meon::Web::Role::Form';
+
+has 'inputs' => (is => 'rw', isa => 'HashRef', default => sub {{}}, lazy => 1);
 
 sub _course_form {
     my ($self) = @_;
@@ -64,6 +67,7 @@ before 'process' => sub {
         $summary->appendChild($div_el);
 
         my @inputs = $xpc->findnodes('.//x:input|.//x:select|.//x:textarea',$course_form);
+        my %input_hash;
         foreach my $input (@inputs) {
             my $input_name  = $input->getAttribute('name');
             my $input_value = eval { $self->get_config_text('user_'.$input_name) } // '';
@@ -86,7 +90,9 @@ before 'process' => sub {
 
             $label_div_el->appendText($input_name);
             $text_pre_el->appendText($input_value);
+            $input_hash{$input_name} = $input_value;
         }
+        $self->inputs(\%input_hash);
     }
 
     # build-up the content tree
@@ -225,8 +231,10 @@ sub submitted {
     my $course_form = $self->_course_form;
     return unless $course_form;
 
-    my $rcpt_to = $self->get_config_text('rcpt-to');
-    my $cert_id = $self->get_config_text('certificate-id');
+    my $rcpt_to      = $self->get_config_text('rcpt-to');
+    my $cert_id      = eval { $self->get_config_text('certificate-id') };
+    my $cert_ver     = eval { $self->get_config_text('certificate-version') };
+    my $post_process = eval { $self->get_config_text('post-process') };
 
     # store/check inputs
     my $all_required_set = 1;
@@ -261,11 +269,32 @@ sub submitted {
         && $all_required_set
         && eval { $xpc->findnodes('.//w:navigate-finish',$course_form)->size }
     ) {
-        $self->set_config_text('certificate-status' => 'submitted');
-
         my ($email_content) = map { $_->textContent } $xpc->findnodes('//x:*[@class="training-course-summary"]',$dom);
+        $email_content =
+            'certificate-id: '.$cert_id."\n"
+            .'certificate-version: '.$cert_ver."\n"
+            .$email_content;
         die 'failed to extract training course summary'
             unless defined $email_content;
+        my $cert_status = 'submitted';
+
+        if ($post_process) {
+            load_class($post_process);
+            my ($new_cert_status, $new_email_content) = $post_process->post_process(
+                dom                 => $dom,
+                inputs              => $self->inputs,
+                results_text        => $email_content,
+                certificate_id      => $cert_id,
+                certificate_version => $vert_ver,
+            );
+            $email_content = $new_email_content
+                if $new_email_content;
+            $cert_status = $new_cert_status
+                if $new_cert_status;
+        }
+
+        $self->set_config_text('certificate-status' => $cert_status);
+
         my $email = Email::MIME->create(
             header_str => [
                 From    => $c->member->email,
