@@ -47,7 +47,7 @@ foreach my $hostname_dir_name (keys %{$config->{domains} || {}}) {
                 $css_dir = dir($hostname_dir, $css_dir);
                 my $merged_css = '';
                 foreach my $css_file (sort $css_dir->children(no_hidden => 1)) {
-                    $merged_css .= '/* '.$css_file." */\n\n".$css_file->slurp.";\n\n";
+                    $merged_css .= '/* '.$css_file." */\n\n".$css_file->slurp."\n\n";
                 }
                 my $css_merged_file = file($hostname_dir, 'www','static','meon-Web-merged.css');
                 $css_merged_file->spew($merged_css);
