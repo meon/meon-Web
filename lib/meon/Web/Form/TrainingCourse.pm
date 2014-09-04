@@ -3,10 +3,11 @@ package meon::Web::Form::TrainingCourse;
 use meon::Web::Util;
 use meon::Web::TimelineEntry;
 use meon::Web::XML2Comment;
-use Path::Class 'dir';
+use Path::Class 'dir', 'file';
 use Email::Sender::Simple qw(sendmail);
 use Class::Load 'load_class';
 use Run::Env;
+use File::MimeInfo 'mimetype';
 
 use utf8;
 use 5.010;
@@ -236,6 +237,7 @@ sub submitted {
     my $cert_id      = eval { $self->get_config_text('certificate-id') };
     my $cert_ver     = eval { $self->get_config_text('certificate-version') };
     my $post_process = eval { $self->get_config_text('post-process') };
+    my $now          = DateTime->now(time_zone => 'UTC');
 
     # store/check inputs
     my $all_required_set = 1;
@@ -272,47 +274,101 @@ sub submitted {
     ) {
         my ($email_content) = map { $_->textContent } $xpc->findnodes('//x:*[@class="training-course-summary"]',$dom);
         $email_content =
-            'certificate-id: '.$cert_id."\n"
+            'from: '.$c->member->email."\n"
+            .'certificate: '.meon::Web::env->xml_file->dir."\n"
+            .'certificate-id: '.$cert_id."\n"
             .'certificate-version: '.$cert_ver."\n"
             .$email_content;
         die 'failed to extract training course summary'
             unless defined $email_content;
         my $cert_status = 'submitted';
 
+        my @attachments;
         if ($post_process) {
             load_class($post_process);
-            my ($new_cert_status, $new_email_content) = $post_process->post_process(
+            my ($new_cert_status, $new_email_content, $extras) = $post_process->post_process(
+                member              => $c->member,
                 dom                 => $dom,
                 inputs              => $self->inputs,
                 results_text        => $email_content,
                 certificate_id      => $cert_id,
                 certificate_version => $cert_ver,
+                now                 => $now,
             );
+            $extras //= {};
             $email_content = $new_email_content
                 if $new_email_content;
             $cert_status = $new_cert_status
                 if $new_cert_status;
+
+            if (my $attachment = delete $extras->{attachment}) {
+                push(@attachments, (ref $attachment eq 'ARRAY' ? @{$attachment} : $attachment ));
+            };
         }
 
-        $self->set_config_text('certificate-status' => $cert_status);
-
-        my $email = Email::MIME->create(
+        my @email_headers = (
             header_str => [
-                From    => $c->member->email,
+                From    => (
+                    meon::Web::env->hostname_config->{'main'}{'support-email'}
+                    || meon::Web::Config->get->{main}->{'no-reply-email'}
+                ),
                 To      => $rcpt_to,
                 Subject => $cert_id.' finished',
             ],
-            parts => [
-                Email::MIME->create(
-                    attributes => {
-                    content_type => "text/plain",
-                    charset      => "UTF-8",
-                    encoding     => "8bit",
-                },
-                    body_str => $email_content,
-                ),
-            ],
         );
+        my @email_text = (
+            attributes => {
+                content_type => "text/plain",
+                charset      => "UTF-8",
+                encoding     => "8bit",
+            },
+            body_str => $email_content,
+        );
+        my $email;
+        if (@attachments) {
+            $email = Email::MIME->create(
+                @email_headers,
+                parts => [
+                    Email::MIME->create(@email_text),
+                    (
+                        map {
+                            my $filename = file(
+                                ref($_) eq 'HASH'
+                                ? $_->{filename}
+                                : $_
+                            );
+                            my $basename = $filename->basename;
+                            my $content_type = (
+                                ref($_) eq 'HASH'
+                                ? $_->{content_type}
+                                : undef
+                            ) // mimetype($basename) // 'application/octet-stream';
+                            Email::MIME->create(
+                                attributes => {
+                                    filename     => $basename,
+                                    content_type => $content_type,
+                                    encoding     => "base64",
+                                    name         => $basename,
+                                },
+                                body => IO::Any->slurp($filename),
+                            );
+                        } @attachments
+                    ),
+                ],
+            );
+        }
+        else {
+            $email = Email::MIME->create(
+                @email_headers,
+                @email_text,
+            );
+        }
+
+        $self->set_config_text('certificate-status' => $cert_status);
+        $self->set_config_text('certificate-finish-datetime' => $now->strftime('%Y%m%d-%H%M%S'));
+        if (my ($report_pdf) = @attachments) {
+            $self->set_config_text('certificate-report' => $report_pdf->basename);
+        }
 
         if (Run::Env->dev) {
             warn $email->as_string;
