@@ -1,5 +1,5 @@
 NAME
-    meon::Web - XML+XSLT file based CMS
+    meon::Web - XML+XSLT file based "CMS"
 
 SYNOPSIS
         script/run_meon-web_devel
@@ -62,4 +62,8 @@ LICENSE AND COPYRIGHT
     by the Free Software Foundation; or the Artistic License.
 
     See http://dev.perl.org/licenses/ for more information.
+
+srv/www/meon-web/bootstrap/
+    Are examples from https://github.com/twbs/bootstrap, check there for
+    license and copyright.
 
