@@ -19,7 +19,6 @@ lib/meon/Web/Form/MemberRegistration.pm
 lib/meon/Web/Form/MemberUpdate.pm
 lib/meon/Web/Form/PasswordChange.pm
 lib/meon/Web/Form/PasswordReset.pm
-lib/meon/Web/Form/Process/SendEmail.pm
 lib/meon/Web/Form/SendEmail.pm
 lib/meon/Web/Form/TimelineUpdate.pm
 lib/meon/Web/Form/TrainingCourse.pm
