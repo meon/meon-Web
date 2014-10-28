@@ -23,7 +23,7 @@ use Catalyst qw(
 extends 'Catalyst';
 use Catalyst::View::XSLT 0.10;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 __PACKAGE__->config(
     name => 'meon_web',
@@ -138,7 +138,7 @@ __END__
 
 =head1 NAME
 
-meon::Web - XML+XSLT file based CMS
+meon::Web - XML+XSLT file based "CMS"
 
 =head1 SYNOPSIS
 
