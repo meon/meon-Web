@@ -8,6 +8,7 @@ use Config::INI::Reader;
 use File::Basename 'basename';
 use Log::Log4perl;
 use Path::Class 'file', 'dir';
+use Run::Env;
 
 Log::Log4perl::init(
     File::Spec->catfile(

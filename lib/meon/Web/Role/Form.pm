@@ -3,6 +3,7 @@ package meon::Web::Role::Form;
 use Moose::Role;
 use Carp 'croak';
 use meon::Web::Util;
+use meon::Web::env;
 
 has 'c'      => ( is => 'ro', isa => 'Object', required => 1 );
 has 'config' => ( is => 'ro', isa => 'Object', lazy_build => 1 );
@@ -11,7 +12,7 @@ sub _build_config {
     my ($self) = @_;
 
     my $c = $self->c;
-    my $dom = $c->model('ResponseXML')->dom;
+    my $dom = meon::Web::env->xml;
     my $xpc = meon::Web::Util->xpc;
     my ($form_config) = $xpc->findnodes('/w:page/w:meta/w:form',$dom);
     return $form_config;
