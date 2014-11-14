@@ -42,6 +42,11 @@ sub _build_member_meta {
     return $member_meta;
 }
 
+sub exists {
+    my ($self) = @_;
+    return -r $self->member_index_filename;
+}
+
 sub set_member_meta {
     my ($self, $name, $value) = @_;
 
@@ -210,7 +215,7 @@ sub _find_by_callback {
             members_folder => $members_folder,
             username       => $username,
         );
-        next unless -r $member->member_index_filename;
+        next unless $member->exists;
         return $member
             if $callback->($member);
     }

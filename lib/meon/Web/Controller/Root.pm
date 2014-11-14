@@ -18,6 +18,7 @@ use DateTime::Format::HTTP;
 use Imager;
 use URI::Escape 'uri_escape';
 use List::MoreUtils 'none';
+use WWW::Mechanize;
 
 use meon::Web::Form::Login;
 use meon::Web::Form::Delete;
@@ -597,6 +598,34 @@ sub logout : Local {
 sub login : Local {
     my ( $self, $c ) = @_;
 
+    return $c->res->redirect($c->uri_for('/'))
+        if $c->user_exists;
+
+    my $members_folder = $c->default_auth_store->folder;
+
+    my $ext_auth_username = $c->session->{external_auth_username};
+    if (
+        meon::Web::env->hostname_config->{'auth'}{'external'}
+        && $ext_auth_username
+    ) {
+        my $member = meon::Web::Member->new(
+            members_folder => $members_folder,
+            username       => $ext_auth_username,
+        );
+
+        if ($member->exists) {
+            $c->set_authenticated($c->find_user({ username => $ext_auth_username }));
+            $c->log->info('user '.$ext_auth_username.' authenticated via external authentication');
+            $c->change_session_id;
+            delete $c->session->{external_auth_username};
+            return $c->res->redirect($c->req->uri);
+        }
+
+        my $registration_link = meon::Web::env->hostname_config->{'auth'}{'registration'};
+        $c->stash->{path} = $c->traverse_uri($registration_link);
+        $c->detach('resolve_xml', []);
+    }
+
     my $token    = $c->req->param('auth-token');
     my $username = $c->req->param('username');
     my $password = $c->req->param('password');
@@ -617,7 +646,6 @@ sub login : Local {
 
     # token authentication
     if ($token) {
-        my $members_folder = $c->default_auth_store->folder;
         my $member;
         if (($token eq 'admin') && $c->user_exists) {
             my @roles = $c->user->roles;
@@ -658,29 +686,69 @@ sub login : Local {
     }
     else {
         $login_form->process(params=>$c->req->params);
-        if ($username =~ m/\@/) {
-            my $members_folder = $c->default_auth_store->folder;
-            my $member = meon::Web::Member->find_by_email(
-                members_folder => $members_folder,
-                email          => $username,
-            );
-            $username = $member->user->username
-                if $member;
-        }
-        if ($username && $password && $login_form->is_valid) {
-            if (
-                $c->authenticate({
-                    username => $username,
-                    password => $password,
-                })
-            ) {
-                $c->log->info('user '.$username.' authenticated');
-                $c->change_session_id;
-                return $c->res->redirect($c->req->uri);
+
+        if (meon::Web::env->hostname_config->{'auth'}{'external'}) {
+            if ($username && $password && $login_form->is_valid) {
+                my $auth_url       = meon::Web::env->hostname_config->{'auth'}{'url'};
+                my $username_field = meon::Web::env->hostname_config->{'auth'}{'username'};
+                my $password_field = meon::Web::env->hostname_config->{'auth'}{'password'};
+                my $content_match  = meon::Web::env->hostname_config->{'auth'}{'content-match'};
+
+                my $mech = WWW::Mechanize->new();
+                eval {
+                    $mech->get( $auth_url );
+                    $mech->submit_form(
+                        with_fields      => {
+                            $username_field => $username,
+                            $password_field => $password,
+                        }
+                    );
+                    die 'external auth failed - status '.$mech->status
+                        unless $mech->status == 200;
+                    $mech->get( $auth_url );
+                    if ($content_match) {
+                        die 'external auth failed - content does not match m/'.$content_match.'/xms ('.$mech->uri.')'
+                            unless $mech->content =~ m/$content_match/xms;
+                    }
+                };
+                if ($@) {
+                    $login_form->field('password')->add_error('authentication failed, please check your password or try again later');
+                    $c->log->error($@);
+                    $c->res->status(403);
+                }
+                else {
+                    $c->session->{external_auth_username} = $username;
+                    return $c->res->redirect(
+                        $c->req->uri->absolute
+                    );
+                }
             }
-            else {
-                $c->log->info('login of user '.$username.' fail');
-                $login_form->field('password')->add_error('authentication failed');
+        }
+        else {
+            if ($username =~ m/\@/) {
+                my $member = meon::Web::Member->find_by_email(
+                    members_folder => $members_folder,
+                    email          => $username,
+                );
+                $username = $member->user->username
+                    if $member;
+            }
+            if ($username && $password && $login_form->is_valid) {
+                if (
+                    $c->authenticate({
+                        username => $username,
+                        password => $password,
+                    })
+                ) {
+                    $c->log->info('user '.$username.' authenticated');
+                    $c->change_session_id;
+                    return $c->res->redirect($c->req->uri);
+                }
+                else {
+                    $c->log->info('login of user '.$username.' fail');
+                    $login_form->field('password')->add_error('authentication failed');
+                    $c->res->status(403);
+                }
             }
         }
     }
