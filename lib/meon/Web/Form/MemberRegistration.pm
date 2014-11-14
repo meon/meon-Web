@@ -101,9 +101,17 @@ sub submitted {
     return unless $all_required_set;
 
     my $members_folder = $c->default_auth_store->folder;
-    my $username = meon::Web::Util->username_cleanup(
-        ($c->req->param('username') // $c->req->param('name') // $c->req->param('email') // ''),
-        $members_folder,
+    my $username = (
+        meon::Web::env->hostname_config->{'auth'}{'external'}
+        ? $c->session->{external_auth_username}
+        : meon::Web::Util->username_cleanup((
+                $c->req->param('username')
+                // $c->req->param('name')
+                // $c->req->param('email')
+                // ''
+            ),
+            $members_folder,
+        )
     );
     $c->req->params->{username} = $username;
 
