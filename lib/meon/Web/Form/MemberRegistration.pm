@@ -131,7 +131,7 @@ sub submitted {
         grep { defined $_ }
         map { $_->getAttribute('name') }
         grep { $_->getAttribute('type') !~ /password/i }
-        $xpc->findnodes('//x:form//x:input | //x:form//x:textarea',$xml);
+        $xpc->findnodes('//x:form//x:input | //x:form//x:select | //x:form//x:textarea',$xml);
 
     my @args;
     my $dhf = Data::Header::Fields->new;
@@ -151,6 +151,7 @@ sub submitted {
     $member->create(
         name    => $c->req->param('name') // '',
         email   => $c->req->param('email') // '',
+        sex     => $c->req->param('sex') // '',
         address => $c->req->param('address') // '',
         lat     => $c->req->param('lat') // '',
         lng     => $c->req->param('lng') // '',

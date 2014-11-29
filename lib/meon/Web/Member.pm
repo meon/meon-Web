@@ -127,6 +127,7 @@ sub create {
     my $username = $self->username;
     my $name     = $args{name};
     my $email    = $args{email};
+    my $sex      = $args{sex};
     my $address  = $args{address};
     my $lat      = $args{lat};
     my $lng      = $args{lng};
@@ -156,6 +157,7 @@ sub create {
     <public-listing>1</public-listing>
     <full-name></full-name>
     <email></email>
+    <sex></sex>
     <email-validated>0</email-validated>
     <created>$created</created>
     <address></address>
@@ -171,6 +173,7 @@ sub create {
     $self->set_member_meta('title',$name);
     $self->set_member_meta('full-name',$name);
     $self->set_member_meta('email',$email);
+    $self->set_member_meta('sex',$sex);
     $self->set_member_meta('address',$address);
     $self->set_member_meta('lat',$lat);
     $self->set_member_meta('lng',$lng);
