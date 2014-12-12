@@ -42,6 +42,14 @@ sub _build_member_meta {
     return $member_meta;
 }
 
+sub _xc {
+    my ($self) = @_;
+    my $meta = $self->member_meta;
+    my $xc = XML::LibXML::XPathContext->new($meta);
+    $xc->registerNs('w', 'http://web.meon.eu/');
+    return $xc;
+}
+
 sub exists {
     my ($self) = @_;
     return -r $self->member_index_filename;
@@ -50,10 +58,7 @@ sub exists {
 sub set_member_meta {
     my ($self, $name, $value) = @_;
 
-    my $meta = $self->member_meta;
-    my $xc = XML::LibXML::XPathContext->new($meta);
-    $xc->registerNs('w', 'http://web.meon.eu/');
-    my ($element) = $xc->findnodes('//w:'.$name);
+    my ($element) = $self->_xc->findnodes('//w:'.$name);
 
     my $encoded = 0;
     if (ref($value) && !blessed($value)) {
@@ -85,14 +90,11 @@ sub set_member_meta {
 sub get_member_meta {
     my ($self, $name) = @_;
 
-    my $meta = $self->member_meta;
-    my $xc = XML::LibXML::XPathContext->new($meta);
-    $xc->registerNs('w', 'http://web.meon.eu/');
-    my ($element) = $xc->findnodes('//w:'.$name);
+    my $element = $self->get_member_meta_element($name);
     return undef unless $element;
 
     if ($element->getAttribute('encoded')) {
-        ($element) = $xc->findnodes('w:*',$element);
+        ($element) = $self->_xc->findnodes('w:*',$element);
         return $dxml->decode($element)
     }
     else {
@@ -100,15 +102,18 @@ sub get_member_meta {
     }
 }
 
+sub get_member_meta_element {
+    my ($self, $name) = @_;
+    my ($element) = $self->_xc->findnodes('//w:'.$name);
+    return $element;
+}
+
 sub delete_member_meta {
     my ($self, $name) = @_;
-
-    my $meta = $self->member_meta;
-    my $xc = XML::LibXML::XPathContext->new($meta);
-    $xc->registerNs('w', 'http://web.meon.eu/');
-    my ($element) = $xc->findnodes('//w:'.$name);
+    my ($element) = $self->get_member_meta_element($name);
     return unless $element;
 
+    my $meta = $self->member_meta;
     map { $meta->removeChild($_) }
     grep { $_->nodeType == XML_TEXT_NODE }
     grep { $_ }

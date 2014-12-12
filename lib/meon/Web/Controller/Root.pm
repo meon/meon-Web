@@ -190,6 +190,11 @@ sub resolve_xml : Private {
         my $full_name_el = $c->model('ResponseXML')->create_element('full-name');
         $full_name_el->appendText($member->get_member_meta('full-name'));
         $user_el->appendChild($full_name_el);
+        my $profile_el = $c->model('ResponseXML')->create_element('profile');
+        if (my $member_profile = $member->get_member_meta_element('member-profile')) {
+            $profile_el->appendChild($member_profile);
+            $user_el->appendChild($profile_el);
+        }
 
         $c->model('ResponseXML')->append_xml($user_el);
 
