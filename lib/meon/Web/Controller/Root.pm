@@ -87,6 +87,7 @@ sub resolve_xml : Private {
     my ( $self, $c ) = @_;
 
     my $hostname_dir = $c->stash->{hostname_dir};
+    my $include_dir  = meon::Web::env->include_dir;
     my $path            =
         delete($c->session->{post_redirect_path})
         || $c->stash->{path}
@@ -285,6 +286,30 @@ sub resolve_xml : Private {
                 }
             }
 
+        }
+    }
+
+    # includes
+    my (@include_elements) =
+        $xpc->findnodes('/w:page//w:include',$dom);
+    foreach my $include_el (@include_elements) {
+        my $include_path = $include_el->getAttribute('path');
+        unless ($include_path) {
+            $include_el->appendText('path attribute missing');
+            next;
+        }
+        my $include_rel = dir(meon::Web::Util->path_fixup($include_path));
+        my $file = file($include_dir, $include_rel)->absolute;
+        next unless -f $file;
+        $file = $file->resolve;
+        $c->detach('/status_forbidden', [])
+            unless $include_dir->contains($file);
+        my $include_xml = eval { XML::LibXML->load_xml(location => $file) };
+        if ($include_xml) {
+            $include_el->replaceNode($include_xml->documentElement());
+        }
+        else {
+            $include_el->appendText('failed to load include '.$@);
         }
     }
 

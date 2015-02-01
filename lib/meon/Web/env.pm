@@ -86,6 +86,15 @@ sub content_dir {
     return $env->{content_dir};
 }
 
+sub include_dir {
+    my $self = shift;
+    $env->{include_dir} = shift
+        if @_;
+
+    $env->{include_dir} //= dir($self->hostname_dir,'include');
+    return $env->{include_dir};
+}
+
 sub static_dir {
     my $self = shift;
     $env->{static_dir} = shift
