@@ -6,7 +6,7 @@ use Path::Class 'file', 'dir';
 use meon::Web::SPc;
 use meon::Web::Util;
 
-use Catalyst::Plugin::Authentication::Store::UserXML 0.02;
+use Catalyst::Plugin::Authentication::Store::UserXML 0.03;
 
 use Catalyst::Runtime 5.80;
 use Catalyst::Plugin::Session 0.37;
@@ -32,8 +32,9 @@ __PACKAGE__->config(
     'root' => dir(meon::Web::SPc->datadir, 'meon', 'web', 'www'),
     'authentication' => {
         'userxml' => {
-            'folder'           => dir(meon::Web::SPc->sharedstatedir, 'meon-web', 'global-members'),
-            'user_folder_file' => 'index.xml',
+            'folder'             => dir(meon::Web::SPc->sharedstatedir, 'meon-web', 'global-members'),
+            'user_folder_file'   => 'index.xml',
+            'find_user_fallback' => 'find_user_fallback',
         }
     },
     'Plugin::Authentication' => {
@@ -92,6 +93,7 @@ sub member {
     return meon::Web::Member->new(
         members_folder => $members_folder,
         username       => $c->user->username,
+        xml            => $c->user->xml,
     );
 }
 
@@ -130,6 +132,33 @@ sub format_dt {
     # FIXME $c->user preferred timezone + format
     $dt->set_time_zone('Europe/Vienna');
     return $dt->strftime('%d.%m.%Y %H:%M:%S');
+}
+
+sub find_user_fallback {
+    my ($c, $authinfo) = @_;
+
+    my $username = $authinfo->{username};
+    my $storage = meon::Web::env->hostname_config->{'auth'}{'storage'} // '';
+    if ($storage eq 'session') {
+        my $user_xml = $c->session->{meon_Web_user_xml};
+        unless ($user_xml) {
+            $user_xml =
+                '<page xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns="http://web.meon.eu/" xmlns:w="http://web.meon.eu/">'
+                .'<meta><user xmlns="http://search.cpan.org/perldoc?Catalyst%3A%3APlugin%3A%3AAuthentication%3A%3AStore%3A%3AUserXML">'
+                .'<username>'.$username.'</username>'
+                .'</user></meta>'
+                .'<w:member-profile/>'
+                .'</page>';
+
+            $c->session->{meon_Web_user_xml} = $user_xml;
+        }
+        my $user = Catalyst::Plugin::Authentication::Store::UserXML::User->new({
+            xml_filename => file('/'),
+            xml          => XML::LibXML->load_xml(string => $user_xml),
+        });
+        return $user;
+    }
+    return undef;
 }
 
 1;

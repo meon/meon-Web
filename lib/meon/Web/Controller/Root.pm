@@ -623,7 +623,7 @@ sub login : Local {
             $c->log->info('user '.$ext_auth_username.' authenticated via external authentication');
             $c->change_session_id;
             delete $c->session->{external_auth_username};
-            return $c->res->redirect($c->req->uri);
+            return $c->res->redirect($c->req->uri->absolute);
         }
 
         my $registration_link = meon::Web::env->hostname_config->{'auth'}{'registration'};
@@ -700,22 +700,34 @@ sub login : Local {
                 my $content_match  = meon::Web::env->hostname_config->{'auth'}{'content-match'};
 
                 my $mech = WWW::Mechanize->new();
-                eval {
-                    $mech->get( $auth_url );
-                    $mech->submit_form(
-                        with_fields      => {
+                if ($content_match) {
+                    eval {
+                        $mech->get( $auth_url );
+                        $mech->submit_form(
+                            with_fields      => {
+                                $username_field => $username,
+                                $password_field => $password,
+                            }
+                        );
+                        die 'external auth failed - status '.$mech->status
+                            unless $mech->status == 200;
+                        $mech->get( $auth_url );
+                        if ($content_match) {
+                            die 'external auth failed - content does not match m/'.$content_match.'/xms ('.$mech->uri.')'
+                                unless $mech->content =~ m/$content_match/xms;
+                        }
+                    };
+                }
+                else {
+                    eval {
+                        $mech->post( $auth_url, {
                             $username_field => $username,
                             $password_field => $password,
-                        }
-                    );
-                    die 'external auth failed - status '.$mech->status
-                        unless $mech->status == 200;
-                    $mech->get( $auth_url );
-                    if ($content_match) {
-                        die 'external auth failed - content does not match m/'.$content_match.'/xms ('.$mech->uri.')'
-                            unless $mech->content =~ m/$content_match/xms;
-                    }
-                };
+                        });
+                        die 'external auth failed - status '.$mech->status
+                            unless $mech->status == 200;
+                    };
+                }
                 if ($@) {
                     $login_form->field('password')->add_error('authentication failed, please check your password or try again later');
                     $c->log->error($@);
@@ -723,6 +735,12 @@ sub login : Local {
                 }
                 else {
                     $c->session->{external_auth_username} = $username;
+                    if (my $user = $c->find_user({ username => $username })) {
+                        $c->set_authenticated($user);
+                        delete $c->session->{external_auth_username};
+                    }
+                    $c->log->info('user '.$ext_auth_username.' authenticated via external authentication');
+                    $c->change_session_id;
                     return $c->res->redirect(
                         $c->req->uri->absolute
                     );

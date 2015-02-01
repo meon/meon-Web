@@ -1,7 +1,7 @@
 package meon::Web::Role::Form;
 
 use Moose::Role;
-use Carp 'croak';
+use Carp 'croak', 'confess';
 use meon::Web::Util;
 use meon::Web::env;
 
@@ -32,7 +32,7 @@ sub get_config_text {
     my $xpc = meon::Web::Util->xpc;
     my $form_config = $self->config;
     my ($text) = map { $_->textContent } $xpc->findnodes('w:'.$el_name,$form_config);
-    die 'config element '.$el_name.' not found'
+    confess 'config element '.$el_name.' not found'
         unless defined $text;
 
     return $text;
