@@ -534,7 +534,7 @@ sub _older_entries {
                     $dir->children(no_hidden => 1)
                 ;
             }
-            return $dir->relative($c->stash->{xml_file}->dir).'/';
+            return '/'.$dir->relative(meon::Web::env->content_dir).'/';
         }
 
         $cur_dir = $dir->basename;
@@ -569,7 +569,7 @@ sub _newer_entries {
                     $dir->children(no_hidden => 1)
                 ;
             }
-            return $dir->relative($c->stash->{xml_file}->dir).'/';
+            return '/'.$dir->relative(meon::Web::env->content_dir).'/';
         }
 
         $cur_dir = $dir->basename;
