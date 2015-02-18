@@ -309,7 +309,7 @@ sub resolve_xml : Private {
             $include_el->replaceNode($include_xml->documentElement());
         }
         else {
-            $include_el->appendText('failed to load include '.$@);
+            die 'failed to load include '.$@;
         }
     }
 
