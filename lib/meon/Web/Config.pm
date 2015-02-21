@@ -28,6 +28,14 @@ foreach my $hostname_dir_name (keys %{$config->{domains} || {}}) {
     my $hostname_dir_config = File::Spec->catfile(
         $hostname_dir, 'config.ini'
     );
+    if (Run::Env->dev) {
+        my $hostname_dir_config_dev = File::Spec->catfile(
+            $hostname_dir, 'config_dev.ini'
+        );
+        $hostname_dir_config = $hostname_dir_config_dev
+            if -e $hostname_dir_config_dev;
+    }
+
     if (-e $hostname_dir_config) {
         $config->{$hostname_dir_name} = Config::INI::Reader->read_file(
             $hostname_dir_config
