@@ -671,9 +671,7 @@ sub login : Local {
         return $c->res->redirect($c->uri_for($back_to));
     }
 
-    my $login_form = meon::Web::Form::Login->new(
-        action => $c->req->uri,
-    );
+    my $login_form = meon::Web::Form::Login->new();
 
     # token authentication
     if ($token) {
