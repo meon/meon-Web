@@ -167,6 +167,7 @@ sub resolve_xml : Private {
     $c->model('ResponseXML')->dom($dom);
 
     $c->model('ResponseXML')->push_new_element('current-path')->appendText($c->req->uri->path);
+    $c->model('ResponseXML')->push_new_element('current-uri')->appendText($c->req->uri->absolute);
     $c->model('ResponseXML')->push_new_element('static-mtime')->appendText(meon::Web::env->static_dir_mtime);
     $c->model('ResponseXML')->push_new_element('run-env')->appendText(Run::Env->current);
 

@@ -27,6 +27,7 @@ our $VERSION = '0.02';
 
 __PACKAGE__->config(
     name => 'meon_web',
+    using_frontend_proxy => 1,
     'Plugin::ConfigLoader' => { file => dir(meon::Web::SPc->sysconfdir, 'meon', 'web-config.pl') },
     'Plugin::SmartURI' => { disposition => 'relative', },
     'root' => dir(meon::Web::SPc->datadir, 'meon', 'web', 'www'),
