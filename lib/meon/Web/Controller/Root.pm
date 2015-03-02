@@ -143,6 +143,8 @@ sub resolve_xml : Private {
         $c->detach;
     }
 
+    meon::Web::env->xml_file($xml_file);
+
     unless (-e $xml_file) {
         my $not_found_handler = meon::Web::env->hostname_config->{'main'}{'not-found-handler'};
         if ($not_found_handler) {
@@ -154,12 +156,11 @@ sub resolve_xml : Private {
             $not_found_handler->check($content_dir, $relative_path);
         }
         $c->detach('/status_not_found', [($c->debug ? $path.' '.$xml_file : $path)])
-            unless -e $xml_file;
+            if (!eval { meon::Web::env->xml });
     }
 
     $xml_file = file($xml_file);
     $c->stash->{xml_file} = $xml_file;
-    meon::Web::env->xml_file($xml_file);
 
     my $dom = meon::Web::env->xml;
     my $xpc = meon::Web::Util->xpc;
@@ -306,6 +307,30 @@ sub resolve_xml : Private {
         $c->detach('/status_forbidden', [])
             unless $include_dir->contains($file);
         my $include_xml = eval { XML::LibXML->load_xml(location => $file) };
+
+        my (@include_filter_elements) =
+            $xpc->findnodes('//w:apply-filter',$include_xml);
+        foreach my $include_filter_el (@include_filter_elements) {
+            my $filter_ident = $include_filter_el->getAttribute('ident');
+            die 'no filter name specified'
+                unless $filter_ident;
+            my $filter_class = 'meon::Web::Filter::'.$filter_ident;
+            load_class($filter_class);
+            my $status = $filter_class->new(
+                dom          => $include_xml,
+                include_node => $include_el,
+            )->apply;
+            if (my $err_msg = $status->{error}) {
+                if (($status->{status} // 0) == 404) {
+                    $c->detach('/status_not_found', [$err_msg]);
+                }
+                else {
+                    die $err_msg;
+                }
+            }
+            $include_filter_el->parentNode->removeChild($include_filter_el);
+        }
+
         if ($include_xml) {
             $include_el->replaceNode($include_xml->documentElement());
         }

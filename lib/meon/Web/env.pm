@@ -119,6 +119,7 @@ sub xml_file {
 
 sub xml {
     my $self = shift;
+    $env->{xml} = shift(@_) if @_;
     $env->{xml} //= XML::LibXML->load_xml(location => $self->xml_file);
     return $env->{xml};
 }
