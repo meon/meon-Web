@@ -46,9 +46,10 @@ sub apply {
     die 'no home category' unless $all_items->{'home'};
     $all_items->{'home'}->setAttribute('href' => $HREF_BASE);
 
-    while (@breadcrumb_idents) {
-        my $current_category_ident = shift(@breadcrumb_idents);
-        my $next_category_ident    = $breadcrumb_idents[0];
+    my @breadcrumb_idents_to_check = @breadcrumb_idents;
+    while (@breadcrumb_idents_to_check) {
+        my $current_category_ident = shift(@breadcrumb_idents_to_check);
+        my $next_category_ident    = $breadcrumb_idents_to_check[0];
 
         my $current_category = $all_items->{$current_category_ident};
         if (
@@ -70,7 +71,23 @@ sub apply {
         $breadcrumb_el->appendChild($breadcrumb_item_el);
     }
 
-    # TODO make $self->_set_href() that honors @breadcrumb_idents;
+    my @breadcrumb_idents_to_href = @breadcrumb_idents;
+    shift(@breadcrumb_idents_to_href); # skip home
+    while (@breadcrumb_idents_to_href) {
+        my $current_category_ident = $breadcrumb_idents_to_href[-1];
+        my $current_category       = $all_items->{$current_category_ident};
+        $current_category->setAttribute(href => join('/',$HREF_BASE,@breadcrumb_idents_to_href));
+        pop(@breadcrumb_idents_to_href);
+    }
+
+    my @breadcrumb_idents_to_href2 = @breadcrumb_idents;
+    shift(@breadcrumb_idents_to_href2); # skip home
+    while (@breadcrumb_idents_to_href2) {
+        my $current_category_ident = $breadcrumb_idents_to_href2[-1];
+        my $current_category       = $all_items->{$current_category_ident};
+        $self->_set_href($current_category);
+        pop(@breadcrumb_idents_to_href2);
+    }
 
     $self->_set_href($all_items->{'home'});
     $all_items->{'home'}->setAttribute('href' => '/');
