@@ -19,6 +19,8 @@ use Imager;
 use URI::Escape 'uri_escape';
 use List::MoreUtils 'none';
 use WWW::Mechanize;
+use JSON::XS 'decode_json';
+use Data::asXML 0.07;
 
 use meon::Web::Form::Login;
 use meon::Web::Form::Delete;
@@ -204,6 +206,18 @@ sub resolve_xml : Private {
         my @access_roles = map { $_->textContent } $xpc->findnodes('/w:page/w:meta/w:access/w:role',$dom);
         if (@access_roles && (none { $_ ~~ \@user_roles } @access_roles)) {
             $c->detach('/status_forbidden', []);
+        }
+
+        if (my $backend_user_data = $c->session->{backend_user_data}) {
+            my $bu_data_el = $c->model('ResponseXML')->create_element('backend-user-data');
+            $c->model('ResponseXML')->append_xml($bu_data_el);
+            my $dxml = Data::asXML->new(
+                pretty    => Run::Env->dev,
+                namespace => 1,
+            );
+            $bu_data_el->appendChild(
+                $dxml->encode($backend_user_data)
+            );
         }
     }
     else {
@@ -769,12 +783,18 @@ sub login : Local {
                 }
                 else {
                     eval {
-                        $mech->post( $auth_url, {
+                        my $res = $mech->post( $auth_url, {
                             $username_field => $username,
                             $password_field => $password,
                         });
                         die 'external auth failed - status '.$mech->status
                             unless $mech->status == 200;
+                        if ($res->header('Content-Type') =~ m{application/json}) {
+                            my $data = eval { decode_json($res->content) };
+                            if ($data && $data->{user_data}) {
+                                $c->session->{backend_user_data} = $data->{user_data};
+                            }
+                        }
                     };
                 }
                 if ($@) {

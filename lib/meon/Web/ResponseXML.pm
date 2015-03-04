@@ -35,6 +35,7 @@ sub _build_dom {
     $rxml->setNamespace('http://www.w3.org/1999/xhtml','xhtml',0);
     $rxml->setNamespace('http://web.meon.eu/','');
     $rxml->setNamespace('http://web.meon.eu/','w');
+    $rxml->setNamespace('http://search.cpan.org/perldoc?Data::asXML','d');
     $dom->setDocumentElement($rxml);
     return $dom;
 }
