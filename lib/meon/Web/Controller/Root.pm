@@ -182,15 +182,6 @@ sub resolve_xml : Private {
         $user_el_username->appendText($c->user->username);
         $user_el->appendChild($user_el_username);
 
-        my @user_roles = $c->user->roles;
-        my $roles_el = $c->model('ResponseXML')->create_element('roles');
-        foreach my $role (@user_roles) {
-            $roles_el->appendChild(
-                $c->model('ResponseXML')->create_element($role)
-            );
-        }
-        $user_el->appendChild($roles_el);
-
         my $member = $c->member;
         my $full_name_el = $c->model('ResponseXML')->create_element('full-name');
         $full_name_el->appendText($member->get_member_meta('full-name'));
@@ -203,11 +194,7 @@ sub resolve_xml : Private {
 
         $c->model('ResponseXML')->append_xml($user_el);
 
-        my @access_roles = map { $_->textContent } $xpc->findnodes('/w:page/w:meta/w:access/w:role',$dom);
-        if (@access_roles && (none { $_ ~~ \@user_roles } @access_roles)) {
-            $c->detach('/status_forbidden', []);
-        }
-
+        my @user_roles = $c->user->roles;
         if (my $backend_user_data = $c->session->{backend_user_data}) {
             my $bu_data_el = $c->model('ResponseXML')->create_element('backend-user-data');
             $c->model('ResponseXML')->append_xml($bu_data_el);
@@ -218,7 +205,28 @@ sub resolve_xml : Private {
             $bu_data_el->appendChild(
                 $dxml->encode($backend_user_data)
             );
+
+            if ($backend_user_data->{web_roles}) {
+                my @backed_roles = map {
+                    'backend-'.$_
+                } eval {@{$backend_user_data->{web_roles}}};
+                push(@user_roles, @backed_roles);
+            }
         }
+
+        my $roles_el = $c->model('ResponseXML')->create_element('roles');
+        foreach my $role (@user_roles) {
+            $roles_el->appendChild(
+                $c->model('ResponseXML')->create_element($role)
+            );
+        }
+        $user_el->appendChild($roles_el);
+
+        my @access_roles = map { $_->textContent } $xpc->findnodes('/w:page/w:meta/w:access/w:role',$dom);
+        if (@access_roles && (none { $_ ~~ \@user_roles } @access_roles)) {
+            $c->detach('/status_forbidden', []);
+        }
+
     }
     else {
         if ($xpc->findnodes('/w:page/w:meta/w:members-only',$dom)) {
@@ -235,6 +243,54 @@ sub resolve_xml : Private {
             if $redirect_uri->can('absolute');
         $c->res->redirect($redirect_uri);
         $c->detach;
+    }
+
+    # includes
+    my (@include_elements) =
+        $xpc->findnodes('/w:page//w:include',$dom);
+    foreach my $include_el (@include_elements) {
+        my $include_path = $include_el->getAttribute('path');
+        unless ($include_path) {
+            $include_el->appendText('path attribute missing');
+            next;
+        }
+        my $include_rel = dir(meon::Web::Util->path_fixup($include_path));
+        my $file = file($include_dir, $include_rel)->absolute;
+        next unless -f $file;
+        $file = $file->resolve;
+        $c->detach('/status_forbidden', [])
+            unless $include_dir->contains($file);
+        my $include_xml = eval { XML::LibXML->load_xml(location => $file) };
+
+        my (@include_filter_elements) =
+            $xpc->findnodes('//w:apply-filter',$include_xml);
+        foreach my $include_filter_el (@include_filter_elements) {
+            my $filter_ident = $include_filter_el->getAttribute('ident');
+            die 'no filter name specified'
+                unless $filter_ident;
+            my $filter_class = 'meon::Web::Filter::'.$filter_ident;
+            load_class($filter_class);
+            my $status = $filter_class->new(
+                dom          => $include_xml,
+                include_node => $include_el,
+            )->apply;
+            if (my $err_msg = $status->{error}) {
+                if (($status->{status} // 0) == 404) {
+                    $c->detach('/status_not_found', [$err_msg]);
+                }
+                else {
+                    die $err_msg;
+                }
+            }
+            $include_filter_el->parentNode->removeChild($include_filter_el);
+        }
+
+        if ($include_xml) {
+            $include_el->replaceNode($include_xml->documentElement());
+        }
+        else {
+            die 'failed to load include '.$@;
+        }
     }
 
     # forms
@@ -302,54 +358,6 @@ sub resolve_xml : Private {
                 }
             }
 
-        }
-    }
-
-    # includes
-    my (@include_elements) =
-        $xpc->findnodes('/w:page//w:include',$dom);
-    foreach my $include_el (@include_elements) {
-        my $include_path = $include_el->getAttribute('path');
-        unless ($include_path) {
-            $include_el->appendText('path attribute missing');
-            next;
-        }
-        my $include_rel = dir(meon::Web::Util->path_fixup($include_path));
-        my $file = file($include_dir, $include_rel)->absolute;
-        next unless -f $file;
-        $file = $file->resolve;
-        $c->detach('/status_forbidden', [])
-            unless $include_dir->contains($file);
-        my $include_xml = eval { XML::LibXML->load_xml(location => $file) };
-
-        my (@include_filter_elements) =
-            $xpc->findnodes('//w:apply-filter',$include_xml);
-        foreach my $include_filter_el (@include_filter_elements) {
-            my $filter_ident = $include_filter_el->getAttribute('ident');
-            die 'no filter name specified'
-                unless $filter_ident;
-            my $filter_class = 'meon::Web::Filter::'.$filter_ident;
-            load_class($filter_class);
-            my $status = $filter_class->new(
-                dom          => $include_xml,
-                include_node => $include_el,
-            )->apply;
-            if (my $err_msg = $status->{error}) {
-                if (($status->{status} // 0) == 404) {
-                    $c->detach('/status_not_found', [$err_msg]);
-                }
-                else {
-                    die $err_msg;
-                }
-            }
-            $include_filter_el->parentNode->removeChild($include_filter_el);
-        }
-
-        if ($include_xml) {
-            $include_el->replaceNode($include_xml->documentElement());
-        }
-        else {
-            die 'failed to load include '.$@;
         }
     }
 
