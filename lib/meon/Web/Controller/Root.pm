@@ -37,6 +37,7 @@ sub auto : Private {
 
     meon::Web::env->clear;
     meon::Web::env->stash($c->stash);
+    meon::Web::env->session($c->session);
 
     my $uri      = $c->req->uri;
     my $hostname = $uri->host;

@@ -184,4 +184,12 @@ sub static_dir_mtime {
     return $env->{static_dir_mtime};
 }
 
+sub session {
+    my $self = shift;
+    $env->{session} = shift
+        if @_;
+
+    return $env->{session};
+}
+
 1;
