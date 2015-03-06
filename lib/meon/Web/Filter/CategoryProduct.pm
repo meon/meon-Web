@@ -100,9 +100,19 @@ sub apply {
 sub _has_subcategory {
     my ($self, $item, $sub_ident) = @_;
     my $xpc = meon::Web::Util->xpc;
-    my @nodes = $xpc->findnodes(
-        'w:subcategory-products/w:category-product[@ident="'.$sub_ident.'"]',
-        $item
+    my @nodes = (
+        $xpc->findnodes(
+            'w:subcategory-products/w:category-product[@ident="'.$sub_ident.'"]',
+            $item
+        ),
+        $xpc->findnodes(
+            'w:more-views/w:category-product[@ident="'.$sub_ident.'"]',
+            $item
+        ),
+        $xpc->findnodes(
+            'w:alternatives/w:category-product[@ident="'.$sub_ident.'"]',
+            $item
+        ),
     );
     return scalar(@nodes);
 }
@@ -116,8 +126,11 @@ sub _set_href {
 
     my $xpc = meon::Web::Util->xpc;
 
-    my (@category_products) =
-        $xpc->findnodes('w:subcategory-products/w:category-product',$item);
+    my (@category_products) = (
+        $xpc->findnodes('w:subcategory-products/w:category-product',$item),
+        $xpc->findnodes('w:more-views/w:category-product',$item),
+        $xpc->findnodes('w:alternatives/w:category-product',$item),
+    );
 
     my @to_recurse;
     foreach my $category_product_el (@category_products) {
