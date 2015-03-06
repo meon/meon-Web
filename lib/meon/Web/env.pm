@@ -77,6 +77,16 @@ sub hostname_dir {
     return $env->{hostname_dir};
 }
 
+sub hostname_subdir {
+    my $self = shift;
+    my $sub  = shift;
+
+    my $subdir = $self->hostname_dir->subdir($sub)->absolute;
+    die 'forbidden'.(Run::Env->dev ? ' '.$self->hostname_dir.' vs '.$subdir : ())
+        unless $self->hostname_dir->subsumes($subdir);
+    return $subdir;
+}
+
 sub content_dir {
     my $self = shift;
     $env->{content_dir} = shift
@@ -95,12 +105,21 @@ sub include_dir {
     return $env->{include_dir};
 }
 
+sub www_dir {
+    my $self = shift;
+    $env->{www_dir} = shift
+        if @_;
+
+    $env->{www_dir} //= dir($self->hostname_dir,'www');
+    return $env->{www_dir};
+}
+
 sub static_dir {
     my $self = shift;
     $env->{static_dir} = shift
         if @_;
 
-    $env->{static_dir} //= dir($self->hostname_dir,'www','static');
+    $env->{static_dir} //= $self->www_dir->subdir('static');
     return $env->{static_dir};
 }
 

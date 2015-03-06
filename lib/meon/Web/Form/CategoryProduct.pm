@@ -3,6 +3,8 @@ package meon::Web::Form::CategoryProduct;
 use meon::Web::Util;
 use meon::Web::env;
 use meon::Web::Data::CategoryProduct;
+use Path::Class 'file';
+use File::Copy 'copy';
 
 use HTML::FormHandler::Moose;
 extends 'HTML::FormHandler';
@@ -136,30 +138,78 @@ sub submitted {
 
     if ($action eq 'edit') {
         meon::Web::env->session->{'form-category-product'} //= {};
-        meon::Web::env->session->{'form-category-product'}->{'values'}->{'action'} = 'edit';
+        meon::Web::env->session->{'form-category-product'}->{'values'}->{'action'} = 'save';
         meon::Web::env->session->{'form-category-product'}->{'values'}->{'ident'}  = $ident;
+        $self->redirect($redirect);
     }
-    else {
-        die 'unknown action '.$action;
+    elsif ($action eq 'save') {
+        meon::Web::env->session->{'form-category-product'} //= {};
+        meon::Web::env->session->{'form-category-product'}->{'values'}->{'action'} = 'edit';
+
+        my @field_names;
+        my @field_list = @{$self->configured_field_list};
+        while (@field_list) {
+            push(@field_names,shift(@field_list));
+            shift(@field_list);
+        }
+
+        my $data_xml = meon::Web::Data::CategoryProduct->new(ident => $ident);
+        foreach my $field_name (@field_names) {
+            my $field = $self->field($field_name);
+            next if $field->disabled;
+
+            if ($field->type eq 'Upload') {
+                my $src_field_name = $field_name;
+                $src_field_name =~ s/-upload$//;
+                my $upload = $field->value;
+                next unless $upload;
+                my $filename = join(
+                    '-',
+                    $ident,
+                    $src_field_name,
+                    file($upload->filename)->basename
+                );
+                my $upload_to = eval { $self->get_config_folder('upload-folder-'.$field->element_attr->{'data-type'}) };
+                die 'can not find folder for '.$field->element_attr->{'data-type'}.(Run::Env->dev ? ' '.$@ : ())
+                    unless $upload_to;
+                die 'no such upload folder '.$upload_to
+                    unless -d $upload_to;
+
+                my $upload_file = $upload_to->file($filename);
+                copy($upload->tempname, $upload_file) or die $!;
+                my $href = $upload_file->basename;
+                if (meon::Web::env->www_dir->contains($upload_file)) {
+                    $href = substr($upload_file,length(meon::Web::env->www_dir));
+                }
+                if (meon::Web::env->content_dir->contains($upload_file)) {
+                    $href = substr($upload_file,length(meon::Web::env->content_dir));
+                }
+
+                $data_xml->set_element($src_field_name, $href);
+                my $src_field = $self->field($src_field_name);
+                $src_field->disabled(1) if $src_field;
+            }
+            else {
+                my $field_value = $field->value;
+                $data_xml->set_element($field_name, $field_value);
+            }
+        }
+
+        $data_xml->store;
+        $self->redirect($redirect);
     }
 
-    my @field_names;
-    my @field_list = @{$self->configured_field_list};
-    while (@field_list) {
-        push(@field_names,shift(@field_list));
-        shift(@field_list);
-    }
-
-    my $data_xml = meon::Web::Data::CategoryProduct->new(ident => $ident);
-    foreach my $field_name (@field_names) {
-        next if $self->field($field_name)->disabled;
-        my $field_value = $self->field($field_name)->value;
-        $data_xml->set_element($field_name, $field_value);
-    }
-    $data_xml->store;
-
-    $self->redirect($redirect);
+    die 'unknown action '.$action;
 }
+
+before 'render' => sub {
+    my ($self) = @_;
+
+    my $action_fld = $self->field('action');
+    my $action = $action_fld->value // '';
+    $action_fld->value('save')
+        if $action eq 'edit';
+};
 
 no HTML::FormHandler::Moose;
 
