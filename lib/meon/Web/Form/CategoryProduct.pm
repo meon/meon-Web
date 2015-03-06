@@ -128,6 +128,7 @@ sub submitted {
         $self->redirect($redirect);
     }
     elsif ($action eq 'create') {
+        meon::Web::env->session->{'form-category-product'} = {};
         meon::Web::env->session->{'form-category-product'}->{'values'}->{'action'} = 'create';
         $self->redirect($redirect);
     }
@@ -145,6 +146,7 @@ sub submitted {
     elsif ($action eq 'save') {
         meon::Web::env->session->{'form-category-product'} //= {};
         meon::Web::env->session->{'form-category-product'}->{'values'}->{'action'} = 'edit';
+        meon::Web::env->session->{'form-category-product'}->{'values'}->{'ident'}  = $ident;
 
         my @field_names;
         my @field_list = @{$self->configured_field_list};
@@ -208,7 +210,7 @@ before 'render' => sub {
     my $action_fld = $self->field('action');
     my $action = $action_fld->value // '';
     $action_fld->value('save')
-        if $action eq 'edit';
+        if (($action eq 'edit') || ($action eq 'create'));
 };
 
 no HTML::FormHandler::Moose;
