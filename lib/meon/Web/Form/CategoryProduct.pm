@@ -160,7 +160,29 @@ sub submitted {
             my $field = $self->field($field_name);
             next if $field->disabled;
 
-            if ($field->type eq 'Upload') {
+            my $fld_data_type = $field->element_attr->{'data-type'} // $field->type;
+            if ($fld_data_type eq 'subcategory-products') {
+                my $field_value = $field->value;
+                unless ($field_value) {
+                    $data_xml->set_element($field_name, $field_value);
+                    next;
+                }
+                my $el = $data_xml->set_element($field_name, '');
+                my @sub_category_products =
+                    grep { $_ }
+                    map { s/^\s+//;s/\s+$//;$_; }
+                    split("\n",$field_value);
+                my $xml = $data_xml->xml->documentElement;
+                $el->appendText("\n");
+                foreach my $sub (@sub_category_products) {
+                    $el->appendText(q{ }x8);
+                    my $sub_el = $el->addNewChild($data_xml->xml->namespaceURI,'category-product');
+                    $sub_el->setAttribute('ident' => $sub);
+                    $el->appendText("\n");
+                }
+                $el->appendText(q{ }x4);
+            }
+            elsif ($field->type eq 'Upload') {
                 my $src_field_name = $field_name;
                 $src_field_name =~ s/-upload$//;
                 my $upload = $field->value;

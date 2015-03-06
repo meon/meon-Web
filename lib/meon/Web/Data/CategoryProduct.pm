@@ -87,7 +87,9 @@ sub set_element {
         $xml->appendText("\n");
     }
 
-    $element->appendText($value);
+    $element->appendText($value)
+        if length($value);
+    return $element;
 }
 
 sub get_element {
