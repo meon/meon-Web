@@ -817,7 +817,7 @@ sub login : Local {
                         $c->set_authenticated($user);
                         delete $c->session->{external_auth_username};
                     }
-                    $c->log->info('user '.$ext_auth_username.' authenticated via external authentication');
+                    $c->log->info('user '.$username.' authenticated via external authentication [2]');
                     $c->change_session_id;
                     return $c->res->redirect(
                         $c->req->uri->absolute
