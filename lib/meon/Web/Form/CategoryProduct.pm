@@ -2,6 +2,7 @@ package meon::Web::Form::CategoryProduct;
 
 use meon::Web::Util;
 use meon::Web::env;
+use meon::Web::Data::CategoryProduct;
 
 use HTML::FormHandler::Moose;
 extends 'HTML::FormHandler';
@@ -137,7 +138,6 @@ sub submitted {
         meon::Web::env->session->{'form-category-product'} //= {};
         meon::Web::env->session->{'form-category-product'}->{'values'}->{'action'} = 'edit';
         meon::Web::env->session->{'form-category-product'}->{'values'}->{'ident'}  = $ident;
-        $self->redirect($redirect);
     }
     else {
         die 'unknown action '.$action;
@@ -150,12 +150,13 @@ sub submitted {
         shift(@field_list);
     }
 
+    my $data_xml = meon::Web::Data::CategoryProduct->new(ident => $ident);
     foreach my $field_name (@field_names) {
+        next if $self->field($field_name)->disabled;
         my $field_value = $self->field($field_name)->value;
-
-        # TODO
+        $data_xml->set_element($field_name, $field_value);
     }
-    # TODO
+    $data_xml->store;
 
     $self->redirect($redirect);
 }
