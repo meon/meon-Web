@@ -818,9 +818,8 @@ sub login : Local {
                         delete $c->session->{external_auth_username};
                     }
                     $c->log->info('user '.$username.' authenticated via external authentication [2]');
-                    $c->change_session_id;
                     return $c->res->redirect(
-                        $c->req->uri->absolute
+                        $c->req->uri_with({username => undef, password => undef})->absolute
                     );
                 }
             }
