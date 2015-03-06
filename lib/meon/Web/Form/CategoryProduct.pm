@@ -137,7 +137,13 @@ sub submitted {
     $self->redirect($redirect)
         unless $ident;
 
-    if ($action eq 'edit') {
+    if ($action eq 'delete') {
+        meon::Web::env->session->{'form-category-product'} = {};
+        my $data_xml = meon::Web::Data::CategoryProduct->new(ident => $ident);
+        $data_xml->delete;
+        $self->redirect($redirect);
+    }
+    elsif ($action eq 'edit') {
         meon::Web::env->session->{'form-category-product'} //= {};
         meon::Web::env->session->{'form-category-product'}->{'values'}->{'action'} = 'save';
         meon::Web::env->session->{'form-category-product'}->{'values'}->{'ident'}  = $ident;

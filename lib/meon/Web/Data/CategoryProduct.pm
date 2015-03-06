@@ -127,6 +127,33 @@ sub store {
     $fh2->close;
 }
 
+sub delete {
+    my $self = shift;
+
+    my $filename = $self->xml_filename;
+    my $xml = $self->xml;
+    unlink($filename);
+
+    my $element = $xml->documentElement;
+    my $summary_xml = XML::LibXML->load_xml(
+        location => $self->summary_xml_filename,
+    );
+    my $xpc = meon::Web::Util->xpc;
+    my ($old_element) = $xpc->findnodes('/w:category-products/w:category-product[@ident="'.$self->ident.'"]',$summary_xml);
+    if ($old_element) {
+        while (1) {
+            my $prev = $old_element->nextSibling;
+            last unless $prev;
+            last unless $prev->nodeType == XML_TEXT_NODE;
+            $old_element->parentNode->removeChild($prev);
+        }
+        $old_element->parentNode->removeChild($old_element);
+    }
+    my $fh2 = IO::Any->write($self->summary_xml_filename,{atomic => 1});
+    print $fh2 $summary_xml->toString;
+    $fh2->close;
+}
+
 sub _xc {
     my ($self) = @_;
     my $xc = XML::LibXML::XPathContext->new($self->xml->documentElement);
