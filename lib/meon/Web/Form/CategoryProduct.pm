@@ -160,13 +160,25 @@ sub submitted {
             my $field = $self->field($field_name);
             next if $field->disabled;
 
+            my $field_value = $field->value;
+            unless ($field_value) {
+                $data_xml->set_element($field_name, $field_value);
+                next;
+            }
+
             my $fld_data_type = $field->element_attr->{'data-type'} // $field->type;
-            if ($fld_data_type eq 'subcategory-products') {
-                my $field_value = $field->value;
-                unless ($field_value) {
-                    $data_xml->set_element($field_name, $field_value);
-                    next;
-                }
+            if ($fld_data_type eq 'xhtml') {
+                my $el = $data_xml->set_element($field_name, '');
+                $el->appendText("\n".q{ }x8);
+                $field_value =~ s/&(\s)/&amp;$1/;
+                my $xhtml_el = XML::LibXML->new(recover => 1)->parse_string(
+                    '<div xmlns="http://www.w3.org/1999/xhtml">'.$field_value.'</div>'
+                )->getDocumentElement->firstChild;
+                $el->appendChild($xhtml_el);
+                $el->appendText("\n");
+                $el->appendText(q{ }x4);
+            }
+            elsif ($fld_data_type eq 'subcategory-products') {
                 my $el = $data_xml->set_element($field_name, '');
                 my @sub_category_products =
                     grep { $_ }
@@ -176,7 +188,7 @@ sub submitted {
                 $el->appendText("\n");
                 foreach my $sub (@sub_category_products) {
                     $el->appendText(q{ }x8);
-                    my $sub_el = $el->addNewChild($data_xml->xml->namespaceURI,'category-product');
+                    my $sub_el = $el->addNewChild($data_xml->xml->namespaceURI,'w:category-product');
                     $sub_el->setAttribute('ident' => $sub);
                     $el->appendText("\n");
                 }
