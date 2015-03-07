@@ -55,7 +55,7 @@ sub _build_configured_field_list {
                         : $_->toString
                     } @sub_nodes))
                     : $xhtml_node
-                    ? $xhtml_node->toString
+                    ? join('',map { $_->toString } $node->childNodes)
                     : $node->textContent()
                 );
                 $defaults{$name} = $value;
@@ -179,8 +179,14 @@ sub submitted {
                 $field_value =~ s/&(\s)/&amp;$1/;
                 my $xhtml_el = XML::LibXML->new(recover => 1)->parse_string(
                     '<div xmlns="http://www.w3.org/1999/xhtml">'.$field_value.'</div>'
-                )->getDocumentElement->firstChild;
-                $el->appendChild($xhtml_el);
+                );
+                my @child_nodes = $xhtml_el->getDocumentElement->childNodes;
+                if ((@child_nodes == 1) && ($child_nodes[0]->localname eq 'div')) {
+                    $el->appendChild($child_nodes[0]);
+                }
+                else {
+                    $el->appendChild($xhtml_el->getDocumentElement);
+                }
                 $el->appendText("\n");
                 $el->appendText(q{ }x4);
             }
