@@ -62,7 +62,6 @@ sub _build_configured_field_list {
             }
             $defaults{href} = $current_category_product->getAttribute('href');
         }
-        else { die $dom->toString };
     }
 
     my $form_config = $self->config;
