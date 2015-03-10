@@ -161,6 +161,23 @@ sub _xc {
     return $xc;
 }
 
+sub set_sub_category_products_element {
+    my ($self, $name, $sub_category_products) = @_;
+
+    my $el = $self->set_element($name, '');
+    my $xml = $self->xml->documentElement;
+    $el->appendText("\n");
+    foreach my $sub (@$sub_category_products) {
+        $el->appendText(q{ }x8);
+        my $sub_el = $el->addNewChild($self->xml->namespaceURI,'w:category-product');
+        $sub_el->setAttribute('ident' => $sub);
+        $el->appendText("\n");
+    }
+    $el->appendText(q{ }x4);
+
+    return $self;
+}
+
 __PACKAGE__->meta->make_immutable;
 
 1;

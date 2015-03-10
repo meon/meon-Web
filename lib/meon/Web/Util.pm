@@ -8,6 +8,7 @@ use Run::Env;
 use Email::MIME;
 use Email::Sender::Simple qw(sendmail);
 use File::MimeInfo 'mimetype';
+use Encode;
 
 sub xpc {
     my $xpc = XML::LibXML::XPathContext->new;
@@ -25,11 +26,25 @@ sub filename_cleanup {
     return $text;
 }
 
+sub to_ident {
+	my ($self, $text) = $_;
+
+	$text = unidecode($text);
+	$text =~ s/[^-A-Za-z0-9]/-/g;
+	$text =~ s/--+/-/g;
+	$text =~ s/-$//g;
+	$text =~ s/^-//g;
+	$text = substr($text,0,30);
+
+	return $text;
+}
+
 sub username_cleanup {
     my ($self, $username, $folder) = @_;
 
     $username = unidecode($username);
-    $username =~ s/[^A-Za-z0-9]//g;
+    $username =~ s/[,;]/-/g;
+    $username =~ s/[^A-Za-z0-9-.]//g;
     while (length($username) < 4) {
         $username .= 'x';
     }
@@ -159,6 +174,21 @@ sub send_email {
     else {
         warn $email->as_string;
     }
+}
+
+sub fix_cell_value {
+	my ($class, $cell) = @_;
+
+	return undef unless $cell;
+	my $cell_value = $cell->unformatted;
+	if (($cell->encoding == 1) && (!Encode::is_utf8($cell_value))) {
+		$cell_value = Encode::decode('windows-1252',$cell_value);
+	}
+	else {
+		$cell_value = $cell->value;
+	}
+
+	return $cell_value;
 }
 
 1;

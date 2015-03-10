@@ -190,20 +190,11 @@ sub submitted {
                 $el->appendText(q{ }x4);
             }
             elsif ($fld_data_type eq 'subcategory-products') {
-                my $el = $data_xml->set_element($field_name, '');
                 my @sub_category_products =
                     grep { $_ }
                     map { s/^\s+//;s/\s+$//;$_; }
                     split("\n",$field_value);
-                my $xml = $data_xml->xml->documentElement;
-                $el->appendText("\n");
-                foreach my $sub (@sub_category_products) {
-                    $el->appendText(q{ }x8);
-                    my $sub_el = $el->addNewChild($data_xml->xml->namespaceURI,'w:category-product');
-                    $sub_el->setAttribute('ident' => $sub);
-                    $el->appendText("\n");
-                }
-                $el->appendText(q{ }x4);
+                $data_xml->set_sub_category_products_element($field_name, \@sub_category_products)
             }
             elsif ($field->type eq 'Upload') {
                 my $src_field_name = $field_name;
