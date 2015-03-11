@@ -93,7 +93,7 @@ sub main {
             }
             next unless $row_data{ident};
 
-            my $ident            = $row_data{'ident'};
+            my $ident            = meon::Web::Util->to_ident($row_data{'ident'});
             my $ordering_ident   = $row_data{'ordering-ident'};
             my $title            = $row_data{'title'};
             my $category_product = meon::Web::Data::CategoryProduct->new(
@@ -101,7 +101,7 @@ sub main {
             );
             $category_product->set_element('title' => $title);
             if ($ordering_ident) {
-                $category_product->set_element('ordering_ident' => $ordering_ident);
+                $category_product->set_element('ordering-ident' => $ordering_ident);
                 $category_product->set_element('description'    => 'TODO');
                 $category_product->store();
                 push(@sub_category_products,$ident);

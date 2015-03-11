@@ -27,7 +27,7 @@ sub filename_cleanup {
 }
 
 sub to_ident {
-	my ($self, $text) = $_;
+	my ($self, $text) = @_;
 
 	$text = unidecode($text);
 	$text =~ s/[^-A-Za-z0-9]/-/g;
