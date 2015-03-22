@@ -102,7 +102,8 @@ sub main {
             $category_product->set_element('title' => $title);
             if ($ordering_ident) {
                 $category_product->set_element('ordering-ident' => $ordering_ident);
-                $category_product->set_element('description'    => 'TODO');
+                $category_product->set_element('description'    => 'TODO')
+                    unless $category_product->get_element('description');
                 $category_product->store();
                 push(@sub_category_products,$ident);
             }
