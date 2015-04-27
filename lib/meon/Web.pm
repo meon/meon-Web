@@ -62,6 +62,7 @@ __PACKAGE__->config(
         callback_param  => 'cb',
         expose_stash    => 'json',
     },
+    'Plugin::Session' => { expires => 4*60*60 },
 );
 
 __PACKAGE__->setup();
