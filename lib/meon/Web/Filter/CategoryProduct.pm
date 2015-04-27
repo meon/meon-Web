@@ -116,10 +116,6 @@ sub _has_subcategory {
             $item
         ),
         $xpc->findnodes(
-            'w:more-views/w:category-product[@ident="'.$sub_ident.'"]',
-            $item
-        ),
-        $xpc->findnodes(
             'w:alternatives/w:category-product[@ident="'.$sub_ident.'"]',
             $item
         ),
@@ -138,7 +134,6 @@ sub _set_href {
 
     my (@category_products) = (
         $xpc->findnodes('w:subcategory-products/w:category-product',$item),
-        $xpc->findnodes('w:more-views/w:category-product',$item),
         $xpc->findnodes('w:alternatives/w:category-product',$item),
     );
 
