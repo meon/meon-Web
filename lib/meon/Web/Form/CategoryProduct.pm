@@ -166,7 +166,7 @@ sub submitted {
             next if $field->disabled;
 
             my $field_value = $field->value;
-            unless ($field_value) {
+            unless (length($field_value)) {
                 $data_xml->set_element($field_name, $field_value);
                 next;
             }
@@ -226,6 +226,10 @@ sub submitted {
                 $data_xml->set_element($src_field_name, $href);
                 my $src_field = $self->field($src_field_name);
                 $src_field->disabled(1) if $src_field;
+            }
+            elsif ($field->type eq 'Checkbox') {
+                my $field_value = $field->value ? 1 : undef;
+                $data_xml->set_element($field_name, $field_value);
             }
             else {
                 my $field_value = $field->value;

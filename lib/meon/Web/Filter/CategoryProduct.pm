@@ -6,6 +6,7 @@ use 5.010;
 has 'dom' => (is=>'ro',isa=>'XML::LibXML::Document',required=>1);
 has 'include_node' => (is=>'ro',isa=>'XML::LibXML::Node',required=>1);
 has '_all_items' => (is=>'ro',isa=>'HashRef',default=>sub { {} });
+has 'user' => (is=>'ro');
 
 use meon::Web::Util;
 use meon::Web::ResponseXML;
@@ -40,6 +41,15 @@ sub apply {
 
     foreach my $category_product_el (@category_products) {
         my $ident = $category_product_el->getAttribute('ident');
+        my ($auth_only_el) = $xpc->findnodes(
+            'w:auth-only',
+            $category_product_el
+        );
+        if ($auth_only_el && ($auth_only_el->textContent) && !$self->user) {
+            $category_product_el->parentNode->removeChild($category_product_el);
+            next;
+        }
+
         push(@all_idents, $ident);
         $all_items->{$ident} = $category_product_el;
     }

@@ -274,6 +274,7 @@ sub resolve_xml : Private {
             my $status = $filter_class->new(
                 dom          => $include_xml,
                 include_node => $include_el,
+                user         => $c->user,
             )->apply;
             if (my $err_msg = $status->{error}) {
                 if (($status->{status} // 0) == 404) {
