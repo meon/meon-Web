@@ -134,6 +134,7 @@ sub _set_href {
 
     my (@category_products) = (
         $xpc->findnodes('w:subcategory-products/w:category-product',$item),
+        $xpc->findnodes('w:accessories/w:category-product',$item),
         $xpc->findnodes('w:alternatives/w:category-product',$item),
     );
 
