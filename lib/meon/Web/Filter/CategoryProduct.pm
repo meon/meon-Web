@@ -116,7 +116,7 @@ sub _has_subcategory {
             $item
         ),
         $xpc->findnodes(
-            'w:alternatives/w:accessories[@ident="'.$sub_ident.'"]',
+            'w:accessories/w:category-product[@ident="'.$sub_ident.'"]',
             $item
         ),
         $xpc->findnodes(
