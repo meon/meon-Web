@@ -41,7 +41,7 @@ sub main {
 
     is(
         meon::Web::Util->username_cleanup('a', $tmp_dir),
-        'a00002',
+        'axxx',
         'finding username'
     );
 

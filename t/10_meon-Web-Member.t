@@ -155,6 +155,8 @@ sub usr01_content {
     <public-listing>1</public-listing>
     <full-name>somename</full-name>
     <email>name &lt;email\@email.email&gt;</email>
+    <sex/>
+    <email-validated>0</email-validated>
     <created>$created</created>
     <address>street 12
 wien</address>
