@@ -8,7 +8,10 @@ lib/meon/Web/Config.pm
 lib/meon/Web/Controller/API.pm
 lib/meon/Web/Controller/Members.pm
 lib/meon/Web/Controller/Root.pm
+lib/meon/Web/Data/CategoryProduct.pm
 lib/meon/Web/env.pm
+lib/meon/Web/Filter/CategoryProduct.pm
+lib/meon/Web/Form/CategoryProduct.pm
 lib/meon/Web/Form/Delete.pm
 lib/meon/Web/Form/ExtendMembership.pm
 lib/meon/Web/Form/FileDelete.pm
@@ -24,6 +27,7 @@ lib/meon/Web/Form/TimelineUpdate.pm
 lib/meon/Web/Form/TrainingCourse.pm
 lib/meon/Web/Member.pm
 lib/meon/Web/Model/ResponseXML.pm
+lib/meon/Web/NotFound/CategoryProduct.pm
 lib/meon/Web/ResponseXML.pm
 lib/meon/Web/Role/Form.pm
 lib/meon/Web/SPc.pm
@@ -39,6 +43,7 @@ META.yml
 README
 script/meon-web-aggregate-timelines
 script/meon-web-expire-members
+script/meon-web-generate-product-categories
 script/meon-web-sync-members
 script/meon-web.psgi
 script/run_meon-web
