@@ -238,9 +238,16 @@ L<Template::Tools::ttree>
 
 Jozef Kutej, C<< <jkutej at cpan.org> >>
 
-=head1 LICENSE AND COPYRIGHT
+=head1 CONTRIBUTORS
+ 
+The following people have contributed to the meon::Web by committing their
+code, sending patches, reporting bugs, asking questions, suggesting useful
+advice, nitpicking, chatting on IRC or commenting on my blog (in no particular
+order):
 
-Copyright 2012 jkutej@cpan.org
+    Andrea Pavlovic
+
+=head1 LICENSE AND COPYRIGHT
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
