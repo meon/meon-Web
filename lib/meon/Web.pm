@@ -23,7 +23,7 @@ use Catalyst qw(
 extends 'Catalyst';
 use Catalyst::View::XSLT 0.10;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 __PACKAGE__->config(
     name => 'meon_web',
