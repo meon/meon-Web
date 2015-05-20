@@ -224,8 +224,8 @@ sub resolve_xml : Private {
         $user_el->appendChild($roles_el);
 
         my @access_roles = map { $_->textContent } $xpc->findnodes('/w:page/w:meta/w:access/w:role',$dom);
-        if (@access_roles && (none { $_ ~~ \@user_roles } @access_roles)) {
-            $c->detach('/status_forbidden', []);
+        foreach my $role (@access_roles) {
+            $c->detach('/status_forbidden', []) if (none {$_ eq $role} @user_roles);
         }
 
     }
@@ -727,7 +727,7 @@ sub login : Local {
         my $member;
         if (($token eq 'admin') && $c->user_exists) {
             my @roles = $c->user->roles;
-            if ('admin' ~~ \@roles) {
+            if (any {$_ eq 'admin'} @roles) {
                 $member = meon::Web::Member->new(
                     members_folder => $members_folder,
                     username       => $username,

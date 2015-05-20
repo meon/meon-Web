@@ -196,7 +196,7 @@ sub static_dir_mtime {
     # ignore generated files
     my $ages = File::Find::Age->in($self->static_dir);
     while ($ages->[-1]->{file} =~ m{/meon-Web-merged\.(js|css)$}) {
-        pop($ages);
+        pop(@$ages);
     }
 
     $env->{static_dir_mtime} //= $ages->[-1]->{mtime} // '-';

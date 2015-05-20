@@ -198,19 +198,16 @@ before 'process' => sub {
         my $input_name = $input->getAttribute('name');
         my $input_value = eval { $self->get_config_text('user_'.$input_name) } // '';
 
-        given ($input->nodeName) {
-            when ('select')   {
-                my ($option) = $xpc->findnodes('.//x:option[@value="'.$input_value.'"]',$input);
-                $option->setAttribute('selected' => 'selected')
-                    if $option;
-            }
-            when ('textarea') {
-                $input->removeChildNodes();
-                $input->appendText($input_value)
-            }
-            default {
-                $input->setAttribute(value => $input_value);
-            }
+        my $nodeName = $input->nodeName;
+        if ($nodeName eq 'select') {
+            my ($option) = $xpc->findnodes('.//x:option[@value="'.$input_value.'"]',$input);
+            $option->setAttribute('selected' => 'selected')
+                if $option;
+        } elsif ($nodeName eq 'textarea') {
+            $input->removeChildNodes();
+            $input->appendText($input_value)
+        } else {
+            $input->setAttribute(value => $input_value);
         }
 
         unless ($self->input_enabled) {

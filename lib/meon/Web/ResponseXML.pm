@@ -65,17 +65,16 @@ sub append_xml {
 
     my $dom    = $self->dom;
 
-    given (ref $xml) {
-        when ('') {
-            my $parser = $self->_xml_libxml;
-            $dom->getDocumentElement->appendChild(
-                $parser->parse_balanced_chunk($xml)
-            );
-        }
-        when ('XML::LibXML::Element') {
-            $dom->getDocumentElement->appendChild($xml);
-        }
-        default { die 'what to do with '.$xml.'?'; }
+    my $ref = ref $xml;
+    if ($ref eq '') {
+        my $parser = $self->_xml_libxml;
+        $dom->getDocumentElement->appendChild(
+            $parser->parse_balanced_chunk($xml)
+        );
+    } elsif ($ref eq 'XML::LibXML::Element') {
+        $dom->getDocumentElement->appendChild($xml);
+    } else {
+        die 'what to do with '.$xml.'?'; 
     }
 
     return $self;

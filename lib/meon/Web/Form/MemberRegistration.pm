@@ -83,19 +83,16 @@ sub submitted {
         my $input_value = $params{$input_name} // '';
         next if (($input->getAttribute('type') // '') eq 'submit');
 
-        given ($input->nodeName) {
-            when ('select')   {
-                my ($option) = $xpc->findnodes('.//x:option[@value="'.$input_value.'"]',$input);
-                $option->setAttribute('selected' => 'selected')
-                    if $option;
-            }
-            when ('textarea') {
-                $input->removeChildNodes();
-                $input->appendText($input_value)
-            }
-            default {
-                $input->setAttribute(value => $input_value);
-            }
+        my $nodeName = $input->nodeName;
+        if ($nodeName eq 'select') {        
+            my ($option) = $xpc->findnodes('.//x:option[@value="'.$input_value.'"]',$input);
+            $option->setAttribute('selected' => 'selected')
+                if $option;
+        } elsif ($nodeName eq 'textarea') {
+            $input->removeChildNodes();
+            $input->appendText($input_value)
+        } else {
+            $input->setAttribute(value => $input_value);
         }
     }
     return unless $all_required_set;
