@@ -6,7 +6,7 @@ use Path::Class 'file', 'dir';
 use meon::Web::SPc;
 use meon::Web::Util;
 
-use Catalyst::Plugin::Authentication::Store::UserXML 0.03;
+use Catalyst::Authentication::Store::UserXML 0.03;
 
 use Catalyst::Runtime 5.80;
 use Catalyst::Plugin::Session 0.37;
@@ -16,14 +16,13 @@ use Catalyst qw(
     Session
     Session::Store::File
     Session::State::Cookie
-    Authentication::Store::UserXML
     SmartURI
     Unicode::Encoding
 );
 extends 'Catalyst';
 use Catalyst::View::XSLT 0.10;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 __PACKAGE__->config(
     name => 'meon_web',
@@ -146,7 +145,7 @@ sub find_user_fallback {
         unless ($user_xml) {
             $user_xml =
                 '<page xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns="http://web.meon.eu/" xmlns:w="http://web.meon.eu/">'
-                .'<meta><user xmlns="http://search.cpan.org/perldoc?Catalyst%3A%3APlugin%3A%3AAuthentication%3A%3AStore%3A%3AUserXML">'
+                .'<meta><user xmlns="http://search.cpan.org/perldoc?Catalyst%3A%3AAuthentication%3A%3AStore%3A%3AUserXML">'
                 .'<username>'.$username.'</username>'
                 .'</user></meta>'
                 .'<w:member-profile/>'
@@ -154,7 +153,7 @@ sub find_user_fallback {
 
             $c->session->{meon_Web_user_xml} = $user_xml;
         }
-        my $user = Catalyst::Plugin::Authentication::Store::UserXML::User->new({
+        my $user = Catalyst::Authentication::Store::UserXML::User->new({
             xml_filename => file('/'),
             xml          => XML::LibXML->load_xml(string => $user_xml),
         });

@@ -31,7 +31,7 @@ sub xpc {
     my $xpc = XML::LibXML::XPathContext->new($env->{xml});
     $xpc->registerNs('x', 'http://www.w3.org/1999/xhtml');
     $xpc->registerNs('w', 'http://web.meon.eu/');
-    $xpc->registerNs('u', 'http://search.cpan.org/perldoc?Catalyst%3A%3APlugin%3A%3AAuthentication%3A%3AStore%3A%3AUserXML');
+    $xpc->registerNs('u', 'http://search.cpan.org/perldoc?Catalyst%3A%3AAuthentication%3A%3AStore%3A%3AUserXML');
     return $xpc;
 }
 

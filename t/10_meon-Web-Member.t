@@ -142,7 +142,7 @@ sub usr01_content {
 
 <meta>
     <title>somename</title>
-    <user xmlns="http://search.cpan.org/perldoc?Catalyst%3A%3APlugin%3A%3AAuthentication%3A%3AStore%3A%3AUserXML">
+    <user xmlns="http://search.cpan.org/perldoc?Catalyst%3A%3AAuthentication%3A%3AStore%3A%3AUserXML">
         <status>registration-pending</status>
         <username>usr01</username>
         <password>***DISABLED***</password>

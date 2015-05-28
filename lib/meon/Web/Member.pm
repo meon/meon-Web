@@ -16,7 +16,7 @@ use Email::MIME;
 use Email::Sender::Simple qw(sendmail);
 use Data::asXML;
 use Scalar::Util;
-use Catalyst::Plugin::Authentication::Store::UserXML::User;
+use Catalyst::Authentication::Store::UserXML::User;
 
 has 'members_folder' => (is=>'rw',isa=>'Any',required=>1);
 has 'username'       => (is=>'rw',isa=>'Str',required=>1);
@@ -149,7 +149,7 @@ sub create {
 
 <meta>
     <title></title>
-    <user xmlns="http://search.cpan.org/perldoc?Catalyst%3A%3APlugin%3A%3AAuthentication%3A%3AStore%3A%3AUserXML">
+    <user xmlns="http://search.cpan.org/perldoc?Catalyst%3A%3AAuthentication%3A%3AStore%3A%3AUserXML">
         <status>registration-pending</status>
         <username>$username</username>
         <password>***DISABLED***</password>
@@ -363,7 +363,7 @@ sub last_name {
 
 sub user {
     my ($self) = @_;
-    return Catalyst::Plugin::Authentication::Store::UserXML::User->new({
+    return Catalyst::Authentication::Store::UserXML::User->new({
         xml_filename => $self->member_index_filename,
         xml          => $self->xml,
     });
