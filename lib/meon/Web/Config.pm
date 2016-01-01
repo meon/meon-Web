@@ -9,6 +9,8 @@ use File::Basename 'basename';
 use Log::Log4perl;
 use Path::Class 'file', 'dir';
 use Run::Env;
+use File::is;
+use File::Temp qw(tempfile);
 
 Log::Log4perl::init(
     File::Spec->catfile(
@@ -44,24 +46,38 @@ foreach my $hostname_dir_name (keys %{$config->{domains} || {}}) {
             if (my $js_dir = $config->{$hostname_dir_name}->{main}->{'js-dir'}) {
                 $js_dir = dir($hostname_dir, $js_dir);
                 my $merged_js = '';
+                my @merge_js_files;
                 foreach my $js_file (sort $js_dir->children(no_hidden => 1)) {
+                    push(@merge_js_files, $js_file.'');
                     $merged_js .= '/* '.$js_file." */\n\n".$js_file->slurp.";\n\n";
                 }
                 my $js_merged_file = file($hostname_dir, 'www','static','meon-Web-merged.js');
-                $js_merged_file->spew($merged_js);
-                system("cat $js_merged_file | yui-compressor --type js --charset UTF-8 -o $js_merged_file.tmp && mv $js_merged_file.tmp $js_merged_file")
-                    and die 'failed to minify js '.$!;
+
+                if (@merge_js_files && ((! -f $js_merged_file) || !File::is->newest($js_merged_file, @merge_js_files))) {
+                    my ($tmp_fh, $tmp_filename) = tempfile(undef, UNLINK => 1);
+                    print $tmp_fh $merged_js;
+                    close($tmp_fh);
+                    system("cat $tmp_filename | yui-compressor --type js --charset UTF-8 -o $js_merged_file.tmp && mv $js_merged_file.tmp $js_merged_file")
+                        and die 'failed to minify js '.$!;
+                }
             }
             if (my $css_dir = $config->{$hostname_dir_name}->{main}->{'css-dir'}) {
                 $css_dir = dir($hostname_dir, $css_dir);
                 my $merged_css = '';
+                my @merge_css_files;
                 foreach my $css_file (sort $css_dir->children(no_hidden => 1)) {
+                    push(@merge_css_files, $css_file);
                     $merged_css .= '/* '.$css_file." */\n\n".$css_file->slurp."\n\n";
                 }
                 my $css_merged_file = file($hostname_dir, 'www','static','meon-Web-merged.css');
-                $css_merged_file->spew($merged_css);
-                system("cat $css_merged_file | yui-compressor --type css --charset UTF-8 -o $css_merged_file.tmp && mv $css_merged_file.tmp $css_merged_file")
-                    and die 'failed to minify css '.$!;
+
+                if (@merge_css_files && ((! -f $css_merged_file) || !File::is->newest($css_merged_file, @merge_css_files))) {
+                    my ($tmp_fh, $tmp_filename) = tempfile(undef, UNLINK => 1);
+                    print $tmp_fh $merged_css;
+                    close($tmp_fh);
+                    system("cat $tmp_filename | yui-compressor --type css --charset UTF-8 -o $css_merged_file.tmp && mv $css_merged_file.tmp $css_merged_file")
+                        and die 'failed to minify css '.$!;
+                }
             }
         }
     }

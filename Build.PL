@@ -72,6 +72,8 @@ my $builder = Module::Build::SysPath->new(
         'File::MimeInfo'                   => 0,
         'File::Find::Age'                  => 0,
         'WWW::Mechanize'                   => 0,
+        'File::is'                         => 0,
+        'File::Temp'                       => 0,
     },
     script_files => [qw(
         script/meon-web.psgi
