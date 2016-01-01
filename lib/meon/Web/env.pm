@@ -193,14 +193,8 @@ sub static_dir_mtime {
     $env->{static_dir_mtime} = shift
         if @_;
 
-    # ignore generated files
-    my $ages = File::Find::Age->in($self->static_dir);
-    while ($ages->[-1]->{file} =~ m{/meon-Web-merged\.(js|css)$}) {
-        pop(@$ages);
-    }
-
-    $env->{static_dir_mtime} //= $ages->[-1]->{mtime} // '-';
-    return $env->{static_dir_mtime};
+    my (@static_files) = @{File::Find::Age->in($self->static_dir) // []};
+    return $env->{static_dir_mtime} = (@static_files ? $static_files[-1]->{mtime} : -1);
 }
 
 sub session {
