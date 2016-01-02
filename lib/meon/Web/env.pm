@@ -11,7 +11,7 @@ use XML::LibXSLT;
 use Scalar::Util 'weaken';
 use meon::Web::Config;
 use meon::Web::SPc;
-use Path::Class 'dir';
+use Path::Class 'dir', 'file';
 use URI::Escape 'uri_escape_utf8';
 use meon::Web::Member;
 use File::Find::Age;
@@ -44,7 +44,7 @@ sub hostname {
 
 sub current_dir {
     my $self = shift;
-    return $self->xml_file->dir;
+    return file($self->xml_file)->dir;
 }
 
 sub current_path {
