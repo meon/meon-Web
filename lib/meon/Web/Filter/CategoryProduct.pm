@@ -102,6 +102,10 @@ sub apply {
     $self->_set_href($all_items->{'home'});
     $all_items->{'home'}->setAttribute('href' => '/');
 
+    $all_items->{'home'}->setAttribute('href-canonical' => $HREF_BASE);
+    $self->_set_href($all_items->{'home'},'canonical');
+    $all_items->{'home'}->setAttribute('href-canonical' => '/');
+
     return {
         dom => $dom,
     };
@@ -128,33 +132,40 @@ sub _has_subcategory {
 }
 
 sub _set_href {
-    my ($self, $item) = @_;
+    my ($self, $item, $type) = @_;
+
+    # "href" or "href-$type" attribute
+    my $href_attr_name = join('-', 'href', ($type // ()));
+
     my $dom = $self->dom;
     my $all_items = $self->_all_items;
-    my $href = $item->getAttribute('href');
-    die 'has no href' unless $href;
+    my $href = $item->getAttribute($href_attr_name) // '';
 
     my $xpc = meon::Web::Util->xpc;
 
-    my (@category_products) = (
-        $xpc->findnodes('w:subcategory-products/w:category-product',$item),
-        $xpc->findnodes('w:accessories/w:category-product',$item),
-        $xpc->findnodes('w:alternatives/w:category-product',$item),
-    );
+    my @category_products = $xpc->findnodes('w:subcategory-products/w:category-product',$item);
+
+    if ($type ne 'canonical') {
+        push(
+            @category_products,
+            $xpc->findnodes('w:accessories/w:category-product',  $item),
+            $xpc->findnodes('w:alternatives/w:category-product', $item)
+        );
+    }
 
     my @to_recurse;
     foreach my $category_product_el (@category_products) {
         my $ident = $category_product_el->getAttribute('ident');
         my $sub_item = $all_items->{$ident};
         next unless $sub_item;                      # missing/extra items
-        next if $sub_item->getAttribute('href');    # already set
+        next if $sub_item->getAttribute($href_attr_name);    # already set
         my $sub_href = join('/', $href, $ident);
-        $sub_item->setAttribute('href' => $sub_href);
+        $sub_item->setAttribute($href_attr_name => $sub_href);
         push(@to_recurse, $sub_item);
     }
 
     foreach my $sub_item (@to_recurse) {
-        $self->_set_href($sub_item);
+        $self->_set_href($sub_item, $type);
     }
 }
 
