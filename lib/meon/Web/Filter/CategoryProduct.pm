@@ -145,7 +145,10 @@ sub _set_href {
 
     my @category_products = $xpc->findnodes('w:subcategory-products/w:category-product',$item);
 
-    if ($type ne 'canonical') {
+    if ($type && ($type eq 'canonical')) {
+        # skip linking via accessories and alternatives when building canonical links
+    }
+    else {
         push(
             @category_products,
             $xpc->findnodes('w:accessories/w:category-product',  $item),
