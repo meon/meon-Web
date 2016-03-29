@@ -60,7 +60,9 @@ sub _build_configured_field_list {
                 );
                 $defaults{$name} = $value;
             }
-            $defaults{href} = $current_category_product->getAttribute('href');
+            $defaults{href} =
+                $current_category_product->getAttribute('href-canonical')
+                // $current_category_product->getAttribute('href');
         }
     }
 
