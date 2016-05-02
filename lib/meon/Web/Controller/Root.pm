@@ -826,7 +826,7 @@ sub login : Local {
             }
         }
         else {
-            if ($username && $username =~ m/\@/) {
+            if (defined $username && $username =~ m/\@/) {
                 my $member = meon::Web::Member->find_by_email(
                     members_folder => $members_folder,
                     email          => $username,
