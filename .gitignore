@@ -15,3 +15,4 @@
 /meon-Web-*
 /var/lib/*
 /srv/www/meon-web/*
+.tracker.json

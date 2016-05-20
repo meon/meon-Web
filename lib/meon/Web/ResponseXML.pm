@@ -74,7 +74,7 @@ sub append_xml {
     } elsif ($ref eq 'XML::LibXML::Element') {
         $dom->getDocumentElement->appendChild($xml);
     } else {
-        die 'what to do with '.$xml.'?'; 
+        die 'what to do with '.$xml.'?';
     }
 
     return $self;
@@ -134,7 +134,7 @@ sub add_xhtml_form {
     my (@inputs) = $xpc->findnodes(q{//x:input[@id!='']|//x:select[@id!='']|//x:textarea[@id!='']},$form);
     foreach my $input (@inputs) {
         my $control_group = $input->parentNode->parentNode;
-        next if $control_group->getAttribute('class') ne 'control-group';
+        next if (($control_group->getAttribute('class') // '') ne 'control-group');
         my $control_id = 'control-group-'.$input->getAttribute('id');
         $control_group->setAttribute(id => $control_id);
     }
