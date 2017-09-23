@@ -74,12 +74,19 @@ my $builder = Module::Build::SysPath->new(
         'WWW::Mechanize'                   => 0,
         'File::is'                         => 0,
         'File::Temp'                       => 0,
+        'XML::Chain'                       => 0,
+        'DateTime'                         => 0,
+        'String::Ident'                    => 0,
+        'List::Util'                       => 0,
+        'File::Basename'                   => 0,
+        'DateTime::Format::Mail'           => 0,
     },
     script_files => [qw(
         script/meon-web.psgi
         script/meon-web-aggregate-timelines
         script/meon-web-expire-members
         script/meon-web-sync-members
+        script/meon-web-mail2timeline-entry
     )],
     conffiles => [qw(
         etc/meon/web-config.ini

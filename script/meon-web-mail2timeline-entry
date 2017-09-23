@@ -1,0 +1,279 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Getopt::Long;
+use Pod::Usage;
+use Path::Class qw(dir file);
+use meon::Web::Config;
+use meon::Web::env;
+use Email::MIME;
+use Email::Sender::Simple qw(sendmail);
+use XML::Chain qw(xc);
+use DateTime;
+use String::Ident;
+use URI::Escape qw(uri_escape);
+use Imager;
+use List::Util qw(min);
+use File::Basename qw(basename);
+use DateTime::Format::Mail;
+use Run::Env;
+use 5.010;
+
+exit main();
+
+sub main {
+    my $help;
+    my $dst_domain;
+    my $notify_email;
+    GetOptions(
+        'help|h'     => \$help,
+        'hostname=s' => \$dst_domain,
+        'notify=s'   => \$notify_email,
+    ) or pod2usage;
+    pod2usage if $help;
+    pod2usage unless defined $dst_domain;
+
+    my $email_txt = do {local $/; <>;};
+    my $email     = Email::MIME->new($email_txt);
+    my ($from)    = Email::Address->parse($email->header_obj->header('From'));
+    die 'no sender' unless $from;
+    my $subject = $email->header_obj->header('Subject');
+    die 'no subject' unless $subject;
+
+    my $date_str = $email->header_obj->header('Date');
+    my $sent_dt;
+    if ($date_str) {
+        $sent_dt = eval {DateTime::Format::Mail->parse_datetime($date_str)};
+    }
+    $sent_dt //= DateTime->now();
+    $sent_dt->set_time_zone('UTC');
+
+    my $ident = String::Ident->cleanup($subject);
+
+    my $hostname_folder = meon::Web::Config->hostname_to_folder($dst_domain);
+    my $dst_hostname_dir =
+        dir(meon::Web::SPc->srvdir, 'www', 'meon-web', $hostname_folder, 'content',);
+    die 'no such hostname ' . $dst_domain unless $hostname_folder;
+
+    my ($year, $month) = ($sent_dt->year, $sent_dt->strftime('%m'));
+    my $dst_dir = $dst_hostname_dir->subdir($year, $month);
+    $dst_dir->mkpath()
+        unless (-d $dst_dir);
+    my $year_idx  = $dst_dir->parent->file('index.xml');
+    my $month_idx = $dst_dir->file('index.xml');
+    $year_idx->spew(year_index())
+        unless (-f $year_idx);
+    $month_idx->spew(month_index())
+        unless (-f $month_idx);
+    my $assets_dir = $dst_dir->subdir($ident);
+
+    my $dst_file = $dst_dir->file($ident . '.xml');
+
+    my $entry = xc(xml_template())->set_io_any($dst_file);
+    $entry->find('//w:title')->empty->t($subject);
+    $entry->find('//w:created')->empty->t($sent_dt);
+    $entry->find('//w:author')->empty->t($from->name // 'anonymous');
+    my $content_el   = $entry->find('//xhtml:div[@id="main-content"]')->empty;
+    my $main_img_el  = $entry->find('//xhtml:img[@id="main-image"]');
+    my $img_thumb_el = $entry->find('//w:img-thumb')->empty;
+    my @images;
+    my $attach_ul_el    = $entry->find('//xhtml:div[@id="attachments"]/xhtml:ul');
+    my $has_attachments = 0;
+    my $img_div         = $content_el->find('//xhtml:div[@id="images-list"]');
+
+    foreach my $part ($email->parts) {
+        my $mime_type = $part->content_type;
+        my $body      = $part->body;
+        my $filename  = $part->filename;
+
+        if ($mime_type =~ m{^text/plain}i) {
+            $body =~ s/^\s+//;
+            $body =~ s/\s+$//;
+            $content_el->a(xc('p')->t($body))->t("\n")
+                if (length($body));
+        }
+        elsif ($mime_type =~ m{^text/html}i) {
+            # skip for now
+        }
+
+        if ($filename) {
+            $has_attachments = 1;
+            $assets_dir->mkpath
+                unless -d $assets_dir;
+
+            my $file = $assets_dir->file($filename);
+            $file->spew($body);
+            my $href = $ident . '/' . uri_escape($filename);
+
+            if ($mime_type =~ m{^image/}) {
+                push(
+                    @images,
+                    {   src  => $href,
+                        file => $file,
+                    }
+                );
+            }
+            else {
+                $attach_ul_el->c('li')->c('a', 'href' => $href)->t($mime_type);
+                $attach_ul_el->t("\n");
+            }
+        }
+    }
+
+    if (@images) {
+        my $first_image_file = $images[0]->{file};
+        if (my $img = Imager->new(file => $first_image_file)) {
+            my $thumb_file = $first_image_file;
+            if ($first_image_file->basename =~ m/.([.][^\s]+)$/) {
+                $thumb_file =
+                    substr($thumb_file, 0, length($thumb_file) - length($1)) . '-thumb' . $1;
+            }
+            else {
+                $thumb_file = $thumb_file . '-t';
+            }
+            my $min_size = min($img->getwidth, $img->getheight);
+            $img = $img->crop(left => 0, top => 0, right => $min_size, bottom => $min_size)
+                ->scale(xpixels => 250, qtype => 'mixing');
+            $img->write(file => $thumb_file);
+            $img_thumb_el->t(uri_escape(basename($thumb_file)));
+        }
+        else {
+            $img_thumb_el->rm;
+        }
+
+        if ($content_el->children->count) {
+            my $img = shift(@images);
+            $main_img_el->attr(src => $img->{src});
+        }
+        else {
+            $main_img_el->rm;
+        }
+
+        foreach my $img (@images) {
+            $img_div->a('img', src => $img->{src})->t("\n");
+        }
+    }
+    else {
+        $img_thumb_el->rm;
+        $main_img_el->rm;
+        $img_div->rm;
+    }
+
+    unless ($has_attachments) {
+        $attach_ul_el->parent->rm;
+    }
+
+    $entry->store;
+
+    if ($notify_email) {
+        my @attachments;
+        my $noreply_email = meon::Web::Config->get->{main}->{'no-reply-email'};
+        my @email_headers = (
+            header_str => [
+                From    => $noreply_email,
+                To      => $notify_email,
+                Subject => 'new post on '.$dst_domain,
+            ],
+        );
+        my @email_text = (
+            attributes => {
+                content_type => "text/plain",
+                charset      => "UTF-8",
+                encoding     => "8bit",
+            },
+            body_str => 'new post processed and available under '.file($year, $month, $ident)."\n",
+        );
+        my $email = Email::MIME->create(
+            @email_headers,
+            @email_text,
+        );
+        if (Run::Env->prod) {
+            sendmail($email, {to => $notify_email, from => $noreply_email});
+        }
+        else {
+            my $email_string = $email->as_string;
+            my $i = 0;
+            for (@attachments) {
+                $i++;
+                $email_string .= "\nAttachment $i: ". $_;
+            }
+            warn $email_string;
+        }
+    }
+
+    return 0;
+}
+
+sub xml_template {
+    return XML::LibXML->load_xml(string => <<'__XML_TEMPLATE__');
+<?xml version="1.0" encoding="UTF-8"?>
+<page xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns="http://web.meon.eu/" xmlns:w="http://web.meon.eu/">
+
+<meta>
+    <title>__FIXME__</title>
+</meta>
+
+<content><div xmlns="http://www.w3.org/1999/xhtml">
+
+<w:timeline-entry category="news">
+    <w:created>__FIXME__</w:created>
+    <w:author>__FIXME__</w:author>
+    <w:title>__FIXME__</w:title>
+    <w:img-thumb>__FIXME__</w:img-thumb>
+    <w:text>
+        <img id="main-image" src="__FIXME__/__FIXME__.jpg" style="float:right; margin: 0 0 1em 1em; max-width: 33%;"/>
+        <div id="main-content" xmlns="http://www.w3.org/1999/xhtml" style="white-space: pre-wrap">
+            __FIXME__
+        </div>
+        <div id="attachments">
+            <ul>
+            </ul>
+        </div>
+        <div id="images-list">
+        </div>
+    </w:text>
+</w:timeline-entry>
+
+</div></content>
+
+</page>
+__XML_TEMPLATE__
+}
+
+sub year_index {
+    return << '__YEAR_INDEX__';
+<?xml version="1.0" encoding="UTF-8"?>
+<page xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns="http://web.meon.eu/" xmlns:w="http://web.meon.eu/">
+<meta><redirect>{$TIMELINE_NEWEST}/</redirect></meta>
+<content><div xmlns="http://www.w3.org/1999/xhtml">
+</div></content>
+</page>
+__YEAR_INDEX__
+}
+
+sub month_index {
+    return << '__MONTH_INDEX__';
+<?xml version="1.0" encoding="UTF-8"?>
+<page xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns="http://web.meon.eu/" xmlns:w="http://web.meon.eu/">
+<content><div xmlns="http://www.w3.org/1999/xhtml">
+<w:timeline/>
+</div></content>
+</page>
+__MONTH_INDEX__
+}
+
+=head1 NAME
+
+meon-web-mail2blog - parse email and create timeline entries out of it
+
+=head1 SYNOPSIS
+
+    meon-web-mail2blog --hostname domain
+        --notify email      send notification about new submissions
+
+=head1 DESCRIPTION
+
+
+=cut
