@@ -15,7 +15,8 @@ use DateTime;
 use String::Ident;
 use URI::Escape qw(uri_escape);
 use Imager;
-use List::Util qw(min uniq);
+use List::Util qw(min);
+use List::MoreUtils qw(uniq);
 use File::Basename qw(basename);
 use DateTime::Format::Mail;
 use Run::Env;
@@ -43,7 +44,7 @@ sub main {
     die 'no sender' unless $from;
     my ($to) = Email::Address->parse($email->header_obj->header('To'));
     my $reply_from_email = $to // meon::Web::Config->get->{main}->{'no-reply-email'};
-    my @to_notify = uniq map {defined($_); $_;} ($notify_email, $from);
+    my @to_notify = uniq map {defined($_) ? $_ : ()} ($notify_email, $from->address);
     my $subject = $email->header_obj->header('Subject');
     die 'no subject' unless $subject;
 
