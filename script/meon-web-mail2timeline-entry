@@ -15,7 +15,7 @@ use DateTime;
 use String::Ident;
 use URI::Escape qw(uri_escape);
 use Imager;
-use List::Util qw(min);
+use List::Util qw(min uniq);
 use File::Basename qw(basename);
 use DateTime::Format::Mail;
 use Run::Env;
@@ -27,10 +27,12 @@ sub main {
     my $help;
     my $dst_domain;
     my $notify_email;
+    my $author;
     GetOptions(
         'help|h'     => \$help,
         'hostname=s' => \$dst_domain,
         'notify=s'   => \$notify_email,
+        'author=s'   => \$author,
     ) or pod2usage;
     pod2usage if $help;
     pod2usage unless defined $dst_domain;
@@ -39,6 +41,9 @@ sub main {
     my $email     = Email::MIME->new($email_txt);
     my ($from)    = Email::Address->parse($email->header_obj->header('From'));
     die 'no sender' unless $from;
+    my ($to) = Email::Address->parse($email->header_obj->header('To'));
+    my $reply_from_email = $to // meon::Web::Config->get->{main}->{'no-reply-email'};
+    my @to_notify = uniq map {defined($_); $_;} ($notify_email, $from);
     my $subject = $email->header_obj->header('Subject');
     die 'no subject' unless $subject;
 
@@ -74,7 +79,7 @@ sub main {
     my $entry = xc(xml_template())->set_io_any($dst_file);
     $entry->find('//w:title')->empty->t($subject);
     $entry->find('//w:created')->empty->t($sent_dt);
-    $entry->find('//w:author')->empty->t($from->name // 'anonymous');
+    $entry->find('//w:author')->empty->t($author // $from->name // 'anonymous');
     my $content_el   = $entry->find('//xhtml:div[@id="main-content"]')->empty;
     my $main_img_el  = $entry->find('//xhtml:img[@id="main-image"]');
     my $img_thumb_el = $entry->find('//w:img-thumb')->empty;
@@ -167,14 +172,13 @@ sub main {
 
     $entry->store;
 
-    if ($notify_email) {
+    foreach my $to_email (@to_notify) {
         my @attachments;
-        my $noreply_email = meon::Web::Config->get->{main}->{'no-reply-email'};
         my @email_headers = (
             header_str => [
-                From    => $noreply_email,
-                To      => $notify_email,
-                Subject => 'new post on '.$dst_domain,
+                From    => $reply_from_email,
+                To      => $to_email,
+                Subject => 'new post on ' . $dst_domain,
             ],
         );
         my @email_text = (
@@ -183,21 +187,20 @@ sub main {
                 charset      => "UTF-8",
                 encoding     => "8bit",
             },
-            body_str => 'new post processed and available under '.file($year, $month, $ident)."\n",
+            body_str => 'new post processed and available under http://'
+                . $dst_domain . '/'
+                . file($year, $month, $ident) . "\n",
         );
-        my $email = Email::MIME->create(
-            @email_headers,
-            @email_text,
-        );
+        my $email = Email::MIME->create(@email_headers, @email_text,);
         if (Run::Env->prod) {
-            sendmail($email, {to => $notify_email, from => $noreply_email});
+            sendmail($email, {to => $to_email, from => $reply_from_email});
         }
         else {
             my $email_string = $email->as_string;
-            my $i = 0;
+            my $i            = 0;
             for (@attachments) {
                 $i++;
-                $email_string .= "\nAttachment $i: ". $_;
+                $email_string .= "\nAttachment $i: " . $_;
             }
             warn $email_string;
         }
@@ -270,8 +273,10 @@ meon-web-mail2blog - parse email and create timeline entries out of it
 
 =head1 SYNOPSIS
 
-    meon-web-mail2blog --hostname domain
-        --notify email      send notification about new submissions
+    meon-web-mail2timeline-entry --hostname domain
+        --hostname domain   where to store timeline entries
+        --notify email      (opt.) send notification about new submissions
+        --author name       (opt.) set author, otherwise taken from email name
 
 =head1 DESCRIPTION
 

@@ -1,5 +1,6 @@
 0.04 Thu 28 May 11:29:07 CEST 2015
     - namespace change for Catalyst-Authentication-Store-UserXML
+    - add meon-web-mail2timeline-entry script
 
 0.03  2015-05-20
     - replace smartmatch and given/when
