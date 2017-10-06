@@ -15,7 +15,7 @@ use DateTime;
 use String::Ident;
 use URI::Escape qw(uri_escape);
 use Imager;
-use List::Util qw(min);
+use List::Util qw(min any);
 use List::MoreUtils qw(uniq);
 use File::Basename qw(basename);
 use DateTime::Format::Mail;
@@ -109,6 +109,14 @@ sub main {
             $assets_dir->mkpath
                 unless -d $assets_dir;
 
+            while (any {$_->{filename} eq $filename} @images) {
+                if ($filename =~ m/^(\d+)(_.+$)/) {
+                    $filename = ($1 + 1) . $2;
+                }
+                else {
+                    $filename = '2_' . $filename;
+                }
+            }
             my $file = $assets_dir->file($filename);
             $file->spew($body);
             my $href = $ident . '/' . uri_escape($filename);
@@ -116,8 +124,9 @@ sub main {
             if ($mime_type =~ m{^image/}) {
                 push(
                     @images,
-                    {   src  => $href,
-                        file => $file,
+                    {   src      => $href,
+                        file     => $file,
+                        filename => $filename,
                     }
                 );
             }
