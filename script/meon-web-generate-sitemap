@@ -1,0 +1,107 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Getopt::Long;
+use Pod::Usage;
+use Path::Class qw(dir file);
+use meon::Web::Config;
+use XML::Chain qw(xc);
+use DateTime;
+use URI;
+use URI::Escape qw(uri_escape);
+use 5.010;
+
+my $google_sitemap_image_ns = 'http://www.google.com/schemas/sitemap-image/1.1';
+
+exit main();
+
+sub main {
+    my $help;
+    my $dst_domain;
+    my $notify_email;
+    my $author;
+    my $changefreq = 'monthly';
+    GetOptions(
+        'help|h'       => \$help,
+        'hostname=s'   => \$dst_domain,
+        'changefreq=s' => \$changefreq,
+    ) or pod2usage;
+    pod2usage if $help;
+    pod2usage unless defined $dst_domain;
+
+    my $hostname_folder = meon::Web::Config->hostname_to_folder($dst_domain);
+    my $dst_hostname_dir =
+        dir(meon::Web::SPc->srvdir, 'www', 'meon-web', $hostname_folder, 'content',);
+    die 'no such hostname ' . $dst_domain unless $hostname_folder;
+
+    my $sitemap = xc(sitemap_xml())->set_io_any($dst_hostname_dir->file('sitemap.xml'));
+    $dst_hostname_dir->recurse(
+        callback => sub {
+            my ($file) = @_;
+            return if $file->is_dir;
+            return if $file !~ m/\.xml$/;
+            my $rel_file = $file->stringify;
+            $rel_file =~ s/(index)?\.xml$//;
+            $rel_file =~ s/^$dst_hostname_dir//;
+            return if $rel_file eq '/sitemap.xml';
+
+            my $content_xml = xc($file);
+            return
+                unless
+                eval {$content_xml->find('/w:page/w:content')->count}; # FIXME xc() should be able to look-up/register a namespace so that if missing it's not fatal
+
+            my $url =
+                URI->new('http://'
+                    . $dst_domain
+                    . join('/', map {uri_escape($_)} file($rel_file)->components));
+            my $url_el = $sitemap->c('url');
+            $url_el->c('loc')->t($url);
+            $url_el->c('lastmod')
+                ->t(DateTime->from_epoch(epoch => $file->stat->mtime)->strftime('%Y-%m-%d'));
+            $url_el->c('changefreq')->t($changefreq);
+            $url_el->c('priority')->t('0.5');
+
+            if (my $thumb = eval {$content_xml->find('//w:img-thumb')->text_content}) {
+                my @thumb_comp;
+                if ($thumb =~ m{^/}) {
+                    @thumb_comp = file($thumb)->components;
+                }
+                else {
+                    @thumb_comp = (file($rel_file)->components, $thumb);
+                }
+                my $thumb_uri =
+                    URI->new('http://' . $dst_domain . join('/', map {uri_escape($_)} @thumb_comp));
+                $url_el->c('image', xmlns => $google_sitemap_image_ns)->c('loc')->t($thumb_uri);
+            }
+            $sitemap->t("\n");
+        }
+    );
+    $sitemap->store;
+
+    return 0;
+}
+
+sub sitemap_xml {
+    return XML::LibXML->load_xml(string => <<'__XML_TEMPLATE__');
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+</urlset>
+__XML_TEMPLATE__
+}
+
+=head1 NAME
+
+meon-web-generate-sitemap - generate content sitemap.xml
+
+=head1 SYNOPSIS
+
+    meon-web-generate-sitemap --hostname domain
+        --hostname domain   where to store timeline entries
+        --changefreq $      one of always hourly daily weekly monthly yearly never
+
+=head1 DESCRIPTION
+
+
+=cut

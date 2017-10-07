@@ -39,6 +39,7 @@ my $builder = Module::Build::SysPath->new(
         'Path::Class'                      => 0.04,    # mkpath()
         'HTML::FormHandler::Moose'         => 0,
         'Catalyst::Model::Factory::PerRequest' => 0,
+        'URI'                              => 0,
         'URI::Escape'                      => 0,
         'IO::Any'                          => 0,
         'XML::LibXML'                      => '1.70',
@@ -87,6 +88,7 @@ my $builder = Module::Build::SysPath->new(
         script/meon-web-expire-members
         script/meon-web-sync-members
         script/meon-web-mail2timeline-entry
+        script/meon-web-generate-sitemap
     )],
     conffiles => [qw(
         etc/meon/web-config.ini
