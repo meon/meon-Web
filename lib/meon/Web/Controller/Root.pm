@@ -121,24 +121,27 @@ sub resolve_xml : Private {
 
     if ((! -f $xml_file) && (-f substr($xml_file,0,-4))) {
         my $static_file = file(substr($xml_file,0,-4));
-        my $mtime = $static_file->stat->mtime;
-        if (!$c->req->param('t')) {
-            $c->res->redirect($c->req->uri_with({t => $mtime})->absolute);
-            $c->detach;
-        }
 
-        my $max_age = 365*24*60*60;
-        $c->res->header('Cache-Control' => 'max-age='.$max_age.', private');
-        $c->res->header(
-            'Expires' => DateTime::Format::HTTP->format_datetime(
-                DateTime->now->add(seconds => $max_age)
-            )
-        );
-        $c->res->header(
-            'Last-Modified' => DateTime::Format::HTTP->format_datetime(
-                DateTime->from_epoch(epoch => $mtime)
-            )
-        );
+        if ($path->path !~ m{^/(robots.txt|sitemap.xml)$}) {
+            my $mtime = $static_file->stat->mtime;
+            if (!$c->req->param('t')) {
+                $c->res->redirect($c->req->uri_with({t => $mtime})->absolute);
+                $c->detach;
+            }
+
+            my $max_age = 365*24*60*60;
+            $c->res->header('Cache-Control' => 'max-age='.$max_age.', private');
+            $c->res->header(
+                'Expires' => DateTime::Format::HTTP->format_datetime(
+                    DateTime->now->add(seconds => $max_age)
+                )
+            );
+            $c->res->header(
+                'Last-Modified' => DateTime::Format::HTTP->format_datetime(
+                    DateTime->from_epoch(epoch => $mtime)
+                )
+            );
+        }
 
         my $mime_type = mimetype($static_file->basename);
         $c->res->content_type($mime_type);
