@@ -48,9 +48,8 @@ sub main {
             return if $rel_file eq '/sitemap.xml';
 
             my $content_xml = xc($file);
-            return
-                unless
-                eval {$content_xml->find('/w:page/w:content')->count}; # FIXME xc() should be able to look-up/register a namespace so that if missing it's not fatal
+            $content_xml->reg_global_ns('w' => 'http://web.meon.eu/');
+            return unless $content_xml->find('/w:page/w:content')->count;
 
             my $url =
                 URI->new('http://'
@@ -63,7 +62,7 @@ sub main {
             $url_el->c('changefreq')->t($changefreq);
             $url_el->c('priority')->t('0.5');
 
-            if (my $thumb = eval {$content_xml->find('//w:img-thumb')->text_content}) {
+            if (my $thumb = $content_xml->find('//w:img-thumb')->text_content) {
                 my @thumb_comp;
                 if ($thumb =~ m{^/}) {
                     @thumb_comp = file($thumb)->components;
