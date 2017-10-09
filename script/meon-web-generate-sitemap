@@ -45,7 +45,7 @@ sub main {
             my $rel_file = $file->stringify;
             $rel_file =~ s/(index)?\.xml$//;
             $rel_file =~ s/^$dst_hostname_dir//;
-            return if $rel_file eq '/sitemap.xml';
+            return if $rel_file eq '/sitemap';
 
             my $content_xml = xc($file);
             $content_xml->reg_global_ns('w' => 'http://web.meon.eu/');
