@@ -89,6 +89,7 @@ my $builder = Module::Build::SysPath->new(
         script/meon-web-sync-members
         script/meon-web-mail2timeline-entry
         script/meon-web-generate-sitemap
+        script/meon-web-rss2-feed
     )],
     conffiles => [qw(
         etc/meon/web-config.ini

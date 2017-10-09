@@ -109,11 +109,11 @@ sub main {
 
 =head1 NAME
 
-meon-web-generate-sitemap - generate content sitemap.xml
+meon-web-rss2-feed - generate content sitemap.xml
 
 =head1 SYNOPSIS
 
-    meon-web-generate-sitemap --hostname domain
+    meon-web-rss2-feed --hostname domain
         --hostname domain   hostname
         --tittle $          title of the feed
 
