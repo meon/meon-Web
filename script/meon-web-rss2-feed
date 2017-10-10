@@ -13,6 +13,7 @@ use URI;
 use URI::Escape qw(uri_escape);
 use DateTime::Format::Strptime;
 use HTML::Entities qw(encode_entities);
+use File::MimeInfo qw(mimetype);
 use 5.010;
 
 our $MAX_FEED_ITEMS_COUNT = 20;
@@ -84,12 +85,33 @@ sub main {
                 my $text = $tl_entry->find('w:text')->text_content;
                 $text =~ s/^\s+//;
                 $text =~ s/\s+$//;
+                my $description;
+                if ($text) {
+                    my @paras = split(/\n\n/, $text);
+                    $description = xc('div', xmlns => 'http://www.w3.org/1999/xhtml');
+                    foreach my $para (@paras) {
+                        $description->a(xc('p')->t($para));
+                    }
+                }
+                my $img_thumb = $tl_entry->find('w:img-thumb')->text_content;
+                my $enclosure;
+                if ($img_thumb) {
+                    my $rel_link = $rel_file.'/'.uri_escape($img_thumb);
+                    my $img_file = file($dst_hostname_dir, $rel_file, $img_thumb);
+                    my $mime = mimetype($img_thumb);
+                    $enclosure = {
+                        url    => 'http://'.$dst_domain.$rel_link,
+                        length => $img_file->stat->size,
+                        type   => $mime,
+                    };
+                }
                 push(
                     @feed_items,
                     {   link        => $url,
                         created     => $created,
                         title       => $tl_entry->find('w:title')->text_content,
-                        description => encode_entities($text),
+                        description => $description,
+                        enclosure   => $enclosure,
                     }
                 );
             }
@@ -99,9 +121,14 @@ sub main {
 
     @feed_items = splice(@feed_items, 0, $MAX_FEED_ITEMS_COUNT);
     foreach my $feed_item (sort {$b->{created} <=> $a->{created}} @feed_items) {
-        $channel->c('item')->t("\n")->a('title', '-' => $feed_item->{title})->t("\n")
-            ->a('link',        '-' => $feed_item->{link})->t("\n")
-            ->a('description', '-' => $feed_item->{description})->t("\n");
+        my $item = $channel->c('item')->t("\n");
+        $item->a('title', '-' => $feed_item->{title})->t("\n")
+            ->a('link', '-' => $feed_item->{link})->t("\n")->a('guid', '-' => $feed_item->{link})
+            ->t("\n");
+        $item->a('description', '-' => $feed_item->{description}->as_string)->t("\n")
+            if $feed_item->{description};
+        $item->a('enclosure', %{$feed_item->{enclosure}})->t("\n")
+            if $feed_item->{enclosure};
         $channel->t("\n");
     }
 
