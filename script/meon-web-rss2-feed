@@ -71,9 +71,10 @@ sub main {
                 my $created_iso8601 = $tl_entry->find('w:created')->text_content;
                 my $created         = (
                     $created_iso8601
-                    ? eval {$strptime_iso8601->parse_datetime($created_iso8601)}->epoch
+                    ? eval {$strptime_iso8601->parse_datetime($created_iso8601)->epoch}
                     : undef
                 ) // $file->stat->mtime;
+                warn $@.' - '.$file if $@;
                 my $url =
                     URI->new('http://'
                         . $dst_domain
