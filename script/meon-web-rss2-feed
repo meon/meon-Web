@@ -85,12 +85,17 @@ sub main {
                 my $text = $tl_entry->find('w:text')->text_content;
                 $text =~ s/^\s+//;
                 $text =~ s/\s+$//;
+                my $intro = $tl_entry->find('w:intro')->text_content;
+                $intro =~ s/^\s+//;
+                $intro =~ s/\s+$//;
                 my $description;
                 if ($text) {
                     my @paras = split(/\n\n/, $text);
                     $description = xc('div', xmlns => 'http://www.w3.org/1999/xhtml');
+                    $description->c('p')->c('i', '-' => $intro)
+                        if $intro;
                     foreach my $para (@paras) {
-                        $description->a(xc('p')->t($para));
+                        $description->c('p', '-' => $para);
                     }
                 }
                 my $img_thumb = $tl_entry->find('w:img-thumb')->text_content;
