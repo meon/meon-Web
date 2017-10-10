@@ -12,6 +12,7 @@ use DateTime;
 use URI;
 use URI::Escape qw(uri_escape);
 use DateTime::Format::Strptime;
+use HTML::Entities qw(encode_entities);
 use 5.010;
 
 our $MAX_FEED_ITEMS_COUNT = 20;
@@ -87,7 +88,7 @@ sub main {
                     {   link        => $url,
                         created     => $created,
                         title       => $tl_entry->find('w:title')->text_content,
-                        description => $text,
+                        description => encode_entities($text),
                     }
                 );
             }
