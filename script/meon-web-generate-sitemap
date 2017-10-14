@@ -11,6 +11,7 @@ use XML::Chain qw(xc);
 use DateTime;
 use URI;
 use URI::Escape qw(uri_escape);
+use List::Util qw(max);
 use 5.010;
 
 my $google_sitemap_image_ns = 'http://www.google.com/schemas/sitemap-image/1.1';
@@ -42,6 +43,7 @@ sub main {
             my ($file) = @_;
             return if $file->is_dir;
             return if $file !~ m/\.xml$/;
+            my $file_mtime = $file->stat->mtime;
             my $rel_file = $file->stringify;
             $rel_file =~ s/(index)?\.xml$//;
             $rel_file =~ s/^$dst_hostname_dir//;
@@ -58,9 +60,12 @@ sub main {
             my $url_el = $sitemap->c('url');
             $url_el->c('loc')->t($url);
             $url_el->c('lastmod')
-                ->t(DateTime->from_epoch(epoch => $file->stat->mtime)->strftime('%Y-%m-%d'));
+                ->t(DateTime->from_epoch(epoch => $file_mtime)->strftime('%Y-%m-%d'));
             $url_el->c('changefreq')->t($changefreq);
-            $url_el->c('priority')->t('0.5');
+
+            # priority based on distance from today
+            my $mtime_days = int((time - $file_mtime) / (24 * 60 * 60) + 0.5) || 1;
+            $url_el->c('priority')->t(sprintf('%.2f', max(0.01, 1 / $mtime_days)));
 
             if (my $thumb = $content_xml->find('//w:img-thumb')->text_content) {
                 my @thumb_comp;
