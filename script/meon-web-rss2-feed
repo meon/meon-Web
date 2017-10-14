@@ -101,11 +101,24 @@ sub main {
                 my $img_thumb = $tl_entry->find('w:img-thumb')->text_content;
                 my $enclosure;
                 if ($img_thumb) {
-                    my $rel_link = $rel_file.'/'.uri_escape($img_thumb);
-                    my $img_file = file($dst_hostname_dir, $rel_file, $img_thumb);
-                    my $mime = mimetype($img_thumb);
+                    my $thumb_abs = ($img_thumb =~ m{^/});
+                    my $is_static = ($img_thumb =~ m{^/static});
+                    my $rel_link  = (
+                          $thumb_abs
+                        ? $img_thumb
+                        : $rel_file . '/' . uri_escape($img_thumb)
+                    );
+                    my $img_file = file(
+                        (     $is_static
+                            ? $dst_hostname_dir->parent->subdir('www')
+                            : $dst_hostname_dir
+                        ),
+                        ($thumb_abs ? () : $rel_file),
+                        $img_thumb
+                    );
+                    my $mime = mimetype(file($img_thumb)->basename);
                     $enclosure = {
-                        url    => 'http://'.$dst_domain.$rel_link,
+                        url    => 'http://' . $dst_domain . $rel_link,
                         length => $img_file->stat->size,
                         type   => $mime,
                     };
