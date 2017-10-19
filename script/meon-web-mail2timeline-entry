@@ -56,7 +56,7 @@ sub main {
     $sent_dt //= DateTime->now();
     $sent_dt->set_time_zone('UTC');
 
-    my $ident = String::Ident->cleanup($subject);
+    my $ident = String::Ident->cleanup($subject,-1);
 
     my $hostname_folder = meon::Web::Config->hostname_to_folder($dst_domain);
     my $dst_hostname_dir =
