@@ -122,7 +122,7 @@ sub resolve_xml : Private {
     if ((! -f $xml_file) && (-f substr($xml_file,0,-4))) {
         my $static_file = file(substr($xml_file,0,-4));
 
-        if ($path->path !~ m{^/(robots\.txt|sitemap\.xml|rss\.xml)$}) {
+        if ($path->path !~ m{^/(robots\.txt|sitemap\.xml|rss\.xml|atom\.xml)$}) {
             my $mtime = $static_file->stat->mtime;
             if (!$c->req->param('t')) {
                 $c->res->redirect($c->req->uri_with({t => $mtime})->absolute);

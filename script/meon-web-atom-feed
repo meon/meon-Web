@@ -46,12 +46,16 @@ sub main {
         dir(meon::Web::SPc->srvdir, 'www', 'meon-web', $hostname_folder, 'content',);
     die 'no such hostname ' . $dst_domain unless $hostname_folder;
 
-    my $channel =
-        xc('rss', version => "2.0", 'xmlns:atom' => "http://www.w3.org/2005/Atom")->t("\n")
-        ->set_io_any($dst_hostname_dir->file('rss.xml'))->c('channel')->t("\n")
-        ->a('atom:link', href => 'http://'.$dst_domain.'/rss.xml', rel => 'self', type => 'application/rss+xml')->t("\n")
-        ->a('title', '-' => $title)->t("\n")->a('link', '-' => 'http://' . $dst_domain . '/')
-        ->t("\n")->a('description', '-' => 'news feed')->t("\n");
+    my $feed =
+        xc('feed', xmlns => 'http://www.w3.org/2005/Atom', 'xmlns:media' => 'http://search.yahoo.com/mrss/', 'xml:lang' => 'en-US')->t("\n")
+        ->set_io_any($dst_hostname_dir->file('atom.xml'))
+        ->a('id', '-' => 'tag:'.$dst_domain.',2018://1')->t("\n")
+        ->a('link', href => 'http://'.$dst_domain.'/', rel => 'alternate', type => 'text/html')->t("\n")
+        ->a('link', href => 'http://'.$dst_domain.'/atom.xml', rel => 'self', type => 'application/atom+xml')->t("\n")
+        ->a('title', '-' => $title)->t("\n")
+        ->a('updated', '-' => DateTime->now())->t("\n")
+        ->a('generator', 'uri'=> 'https://metacpan.org/pod/meon::Web', '-' => 'meon::Web')->t("\n")
+        ->a('description', '-' => 'news feed')->t("\n");
     my @feed_items;
     foreach my $year_dir (sort {$b cmp $a} $dst_hostname_dir->children) {
         next unless $year_dir->basename =~ m/^\d{4}$/;
@@ -89,6 +93,7 @@ sub main {
                 $intro =~ s/^\s+//;
                 $intro =~ s/\s+$//;
                 my $description = xc('div', xmlns => 'http://www.w3.org/1999/xhtml');
+
                 my $img_thumb = $tl_entry->find('w:img-thumb')->text_content;
                 my $enclosure;
                 if ($img_thumb) {
@@ -110,11 +115,10 @@ sub main {
                     my $mime = mimetype(file($img_thumb)->basename);
                     $enclosure = {
                         url    => 'http://' . $dst_domain . $rel_link,
-                        length => $img_file->stat->size,
-                        type   => $mime,
                     };
                     $description->c('div')->a('img', width => '32', height => '32', src=> $enclosure->{url});
                 }
+
                 if ($text) {
                     my @paras = split(/\n\n/, $text);
                     $description->c('p')->c('i', '-' => $intro)
@@ -128,6 +132,7 @@ sub main {
                     {   link        => $url,
                         created     => $created,
                         title       => $tl_entry->find('w:title')->text_content,
+                        author      => $tl_entry->find('w:author')->text_content,
                         description => $description,
                         enclosure   => $enclosure,
                     }
@@ -139,29 +144,34 @@ sub main {
 
     @feed_items = splice(@feed_items, 0, $MAX_FEED_ITEMS_COUNT);
     foreach my $feed_item (sort {$b->{created} <=> $a->{created}} @feed_items) {
-        my $item = $channel->c('item')->t("\n");
-        $item->a('title', '-' => $feed_item->{title})->t("\n")
-            ->a('link', '-' => $feed_item->{link})->t("\n")->a('guid', '-' => $feed_item->{link})
-            ->t("\n");
-        $item->a('description', '-' => $feed_item->{description}->as_string)->t("\n")
-            if $feed_item->{description};
-        $item->a('enclosure', %{$feed_item->{enclosure}})->t("\n")
+        my $created = DateTime->from_epoch(epoch => $feed_item->{created});
+        my $item = $feed->c('entry')->t("\n");
+        $item
+            ->a('id', '-' => $feed_item->{link})->t("\n")
+            ->a('published', '-' => $created)->t("\n")
+            ->a('updated', '-' => $created)->t("\n")
+            ->c('author')->a('name', '-' => $feed_item->{author})->up->t("\n")
+            ->a('link', type => 'text/html', rel => 'alternate', '-' => $feed_item->{link})->t("\n")
+            ->a('title', type => 'html', '-' => $feed_item->{title})->t("\n");
+        $item->a('media:thumbnail', width => '30', height => '30', %{$feed_item->{enclosure}})->t("\n")
             if $feed_item->{enclosure};
-        $channel->t("\n");
+        $item->a('content', type => 'html', '-' => $feed_item->{description}->as_string)->t("\n")
+            if $feed_item->{description};
+        $feed->t("\n");
     }
 
-    $channel->store;
+    $feed->store;
 
     return 0;
 }
 
 =head1 NAME
 
-meon-web-rss2-feed - generate content sitemap.xml
+meon-web-atom-feed - generate content sitemap.xml
 
 =head1 SYNOPSIS
 
-    meon-web-rss2-feed --hostname domain
+    meon-web-atom-feed --hostname domain
         --hostname domain   hostname
         --title $           title of the feed
 
