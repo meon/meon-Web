@@ -116,7 +116,7 @@ sub main {
                     $enclosure = {
                         url    => 'http://' . $dst_domain . $rel_link,
                     };
-                    $description->c('div')->a('img', width => '32', height => '32', src=> $enclosure->{url});
+                    $description->c('div')->c('a', href => $url)->a('img', width => '32', height => '32', src=> $enclosure->{url});
                 }
 
                 if ($text) {
@@ -151,7 +151,7 @@ sub main {
             ->a('published', '-' => $created)->t("\n")
             ->a('updated', '-' => $created)->t("\n")
             ->c('author')->a('name', '-' => $feed_item->{author})->up->t("\n")
-            ->a('link', type => 'text/html', rel => 'alternate', '-' => $feed_item->{link})->t("\n")
+            ->a('link', type => 'text/html', rel => 'alternate', 'href' => $feed_item->{link})->t("\n")
             ->a('title', type => 'html', '-' => $feed_item->{title})->t("\n");
         $item->a('media:thumbnail', width => '30', height => '30', %{$feed_item->{enclosure}})->t("\n")
             if $feed_item->{enclosure};

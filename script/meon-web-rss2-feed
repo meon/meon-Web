@@ -113,7 +113,7 @@ sub main {
                         length => $img_file->stat->size,
                         type   => $mime,
                     };
-                    $description->c('div')->a('img', width => '32', height => '32', src=> $enclosure->{url});
+                    $description->c('div')->c('a', href => $url)->a('img', width => '32', height => '32', src=> $enclosure->{url});
                 }
                 if ($text) {
                     my @paras = split(/\n\n/, $text);
