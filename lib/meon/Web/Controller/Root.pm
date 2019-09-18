@@ -279,9 +279,19 @@ sub resolve_xml : Private {
                 include_node => $include_el,
                 user         => $c->user,
             )->apply;
-            if (my $err_msg = $status->{error}) {
-                if (($status->{status} // 0) == 404) {
+            my $http_status = $status->{status} // 200;
+            if ($http_status != 200) {
+                my $err_msg = $status->{error} // '';
+                if ($http_status == 404) {
                     $c->detach('/status_not_found', [$err_msg]);
+                }
+                elsif ($http_status == 302) {
+                    my $redirect = $status->{href} || die 'no href';
+                    my $redirect_uri = $c->traverse_uri($redirect);
+                    $redirect_uri = $redirect_uri->absolute
+                        if $redirect_uri->can('absolute');
+                    $c->res->redirect($redirect_uri);
+                    $c->detach;
                 }
                 else {
                     die $err_msg;

@@ -69,10 +69,20 @@ sub apply {
                 && !$self->_has_subcategory($current_category, $next_category_ident)
             )
         ) {
-            return {
-                error  => 'category path not found',
-                status => 404,
-            };
+            if ($all_items->{$current_ident}) {
+                $self->_set_href($all_items->{'home'},'canonical');
+                my $href = $all_items->{$current_ident}->getAttribute('href-canonical');
+                return {
+                    href   => $HREF_BASE.$href,
+                    status => 302,
+                };
+            }
+            else {
+                return {
+                    error  => 'category path not found',
+                    status => 404,
+                };
+            }
         }
 
         my $breadcrumb_item_el = meon::Web::ResponseXML->new(dom => $dom)->create_element('breadcrumb-item');
