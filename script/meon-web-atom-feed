@@ -14,6 +14,7 @@ use URI::Escape qw(uri_escape);
 use DateTime::Format::Strptime;
 use HTML::Entities qw(encode_entities);
 use File::MimeInfo qw(mimetype);
+use List::Util qw(max);
 use 5.010;
 
 our $MAX_FEED_ITEMS_COUNT = 20;
@@ -75,6 +76,7 @@ sub main {
                 my $tl_entry = $content_xml->find('/w:page/w:content//w:timeline-entry')->first;
                 return unless $tl_entry->count;
 
+                my $updated = $file->stat->mtime;
                 my $created_iso8601 = $tl_entry->find('w:created')->text_content;
                 my $created         = (
                     $created_iso8601
@@ -131,6 +133,7 @@ sub main {
                     @feed_items,
                     {   link        => $url,
                         created     => $created,
+                        updated     => max($created, $updated),
                         title       => $tl_entry->find('w:title')->text_content,
                         author      => $tl_entry->find('w:author')->text_content,
                         description => $description,
@@ -145,11 +148,12 @@ sub main {
     @feed_items = splice(@feed_items, 0, $MAX_FEED_ITEMS_COUNT);
     foreach my $feed_item (sort {$b->{created} <=> $a->{created}} @feed_items) {
         my $created = DateTime->from_epoch(epoch => $feed_item->{created});
+        my $updated = DateTime->from_epoch(epoch => $feed_item->{updated});
         my $item = $feed->c('entry')->t("\n");
         $item
             ->a('id', '-' => $feed_item->{link})->t("\n")
             ->a('published', '-' => $created)->t("\n")
-            ->a('updated', '-' => $created)->t("\n")
+            ->a('updated', '-' => $updated)->t("\n")
             ->c('author')->a('name', '-' => $feed_item->{author})->up->t("\n")
             ->a('link', type => 'text/html', rel => 'alternate', 'href' => $feed_item->{link})->t("\n")
             ->a('title', type => 'html', '-' => $feed_item->{title})->t("\n");
