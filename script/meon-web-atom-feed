@@ -101,7 +101,9 @@ sub main {
                 if ($img_thumb) {
                     my $thumb_abs = ($img_thumb =~ m{^/});
                     my $is_static = ($img_thumb =~ m{^/static});
-                    my $is_extern = ($img_thumb =~ m{^https?:});
+                    my $is_extern = ($img_thumb =~ m{^(https?:)?//});
+                    $img_thumb = 'http:'.$img_thumb
+                        if $is_extern && !$1;
                     my $rel_link  = (
                           $thumb_abs
                         ? $img_thumb
