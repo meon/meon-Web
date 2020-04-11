@@ -31,6 +31,7 @@ has 'source_link'  => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has
 has 'audio'        => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_audio');
 has 'video'        => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_video');
 has 'quote_author' => (is=>'ro', isa=>'Maybe[Str]',lazy_build=>1,predicate=>'has_quote_author');
+has 'members_only' => (is=>'ro', isa=>'Bool',lazy_build=>1);
 
 my $strptime_iso8601 = DateTime::Format::Strptime->new(
     pattern => '%FT%T',
@@ -149,6 +150,16 @@ sub _build_category {
         unless $category;
 
     return $category->textContent;
+}
+
+sub _build_members_only {
+    my ($self) = @_;
+
+    my $xml = $self->xml;
+    my $xc  = $self->xc;
+    my ($members_only) = $xc->findnodes('/w:page/w:meta/w:members-only/text()');
+
+    return !!$members_only;
 }
 
 sub create {

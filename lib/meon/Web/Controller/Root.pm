@@ -480,6 +480,7 @@ sub resolve_xml : Private {
 
         my @entries =
             sort { $b->created <=> $a->created }
+            grep { !$_->members_only || $c->user_exists }
             grep { eval { $_->element } }
             map  { meon::Web::TimelineEntry->new(file => $_) }
             grep { $_->basename ne $xml_file->basename }

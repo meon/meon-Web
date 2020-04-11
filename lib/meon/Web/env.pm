@@ -131,8 +131,10 @@ sub profiles_dir {
 
 sub xml_file {
     my $self = shift;
-    $env->{xml_file} = shift
-        if @_;
+    if (@_) {
+        $env->{xml_file} = shift;
+        delete($env->{xml});
+    }
     return $env->{xml_file} // confess('unset');
 }
 
