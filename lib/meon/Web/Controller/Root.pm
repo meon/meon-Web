@@ -10,6 +10,7 @@ use meon::Web::Util;
 use meon::Web::env;
 use XML::LibXML 1.70;
 use URI::Escape 'uri_escape';
+use URI::WithBase;
 use IO::Any;
 use Class::Load 'load_class';
 use File::MimeInfo 'mimetype';
@@ -173,8 +174,14 @@ sub resolve_xml : Private {
 
     $c->model('ResponseXML')->dom($dom);
 
+    my ($current_base) = split(/\?/, $c->req->uri->absolute);
+
     $c->model('ResponseXML')->push_new_element('current-path')->appendText($c->req->uri->path);
     $c->model('ResponseXML')->push_new_element('current-uri')->appendText($c->req->uri->absolute);
+    $c->model('ResponseXML')->push_new_element('current-base')->appendText($current_base);
+    $c->model('ResponseXML')->push_new_element('current-hostbase')->appendText(
+        URI::WithBase->new("/", $c->req->uri->absolute.'')->abs
+    );
     $c->model('ResponseXML')->push_new_element('static-mtime')->appendText(meon::Web::env->static_dir_mtime);
     $c->model('ResponseXML')->push_new_element('run-env')->appendText(Run::Env->current);
 
