@@ -2,6 +2,7 @@ package meon::Web::Controller::Root;
 use Moose;
 use namespace::autoclean;
 use 5.010;
+use utf8;
 
 use Path::Class 'file', 'dir';
 use meon::Web::SPc;
@@ -506,7 +507,7 @@ sub resolve_xml : Private {
             if (defined($intro)) {
                 my $intro_snipped_el = $c->model('ResponseXML')->create_element('intro-snipped');
                 $entry_el->appendChild($intro_snipped_el);
-                $intro_snipped_el->appendText(length($intro) > 78 ? substr($intro,0,78).'…' : $intro);
+                $intro_snipped_el->appendText(length($intro) > 160 ? substr($intro,0,160).'…' : $intro);
             }
 
             $timeline_el->appendChild($entry_el);
