@@ -125,10 +125,10 @@ sub main {
                     }
                     $description->c('div')->c('a', href => $url)->a('img', width => '32', height => '32', src=> $enclosure->{url});
                 }
+                $description->c('p')->c('i', '-' => $intro)
+                    if $intro;
                 if ($text) {
                     my @paras = split(/\n\n/, $text);
-                    $description->c('p')->c('i', '-' => $intro)
-                        if $intro;
                     foreach my $para (@paras) {
                         $description->c('p', '-' => $para);
                     }
