@@ -54,7 +54,7 @@ sub main {
         ->a('link', href => 'http://'.$dst_domain.'/', rel => 'alternate', type => 'text/html')->t("\n")
         ->a('link', href => 'http://'.$dst_domain.'/atom.xml', rel => 'self', type => 'application/atom+xml')->t("\n")
         ->a('title', '-' => $title)->t("\n")
-        ->a('updated', '-' => DateTime->now())->t("\n")
+        ->a('updated', '-' => DateTime->now().'Z')->t("\n")
         ->a('generator', 'uri'=> 'https://metacpan.org/pod/meon::Web', '-' => 'meon::Web')->t("\n")
         ->a('description', '-' => 'news feed')->t("\n");
     my @feed_items;
@@ -162,8 +162,8 @@ sub main {
         my $item = $feed->c('entry')->t("\n");
         $item
             ->a('id', '-' => $feed_item->{link})->t("\n")
-            ->a('published', '-' => $created)->t("\n")
-            ->a('updated', '-' => $updated)->t("\n")
+            ->a('published', '-' => $created.'Z')->t("\n")
+            ->a('updated', '-' => $updated.'Z')->t("\n")
             ->c('author')->a('name', '-' => $feed_item->{author})->up->t("\n")
             ->a('link', type => 'text/html', rel => 'alternate', 'href' => $feed_item->{link})->t("\n")
             ->a('title', type => 'html', '-' => $feed_item->{title})->t("\n");

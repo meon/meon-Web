@@ -71,6 +71,7 @@ sub main {
                 my $tl_entry = $content_xml->find('/w:page/w:content//w:timeline-entry')->first;
                 return unless $tl_entry->count;
 
+                my $updated = $file->stat->mtime;
                 my $created_iso8601 = $tl_entry->find('w:created')->text_content;
                 my $created         = (
                     $created_iso8601
@@ -137,6 +138,7 @@ sub main {
                     @feed_items,
                     {   link        => $url,
                         created     => $created,
+                        updated     => $updated,
                         title       => $tl_entry->find('w:title')->text_content,
                         description => $description,
                         enclosure   => $enclosure,
@@ -149,6 +151,8 @@ sub main {
 
     @feed_items = splice(@feed_items, 0, $MAX_FEED_ITEMS_COUNT);
     foreach my $feed_item (sort {$b->{created} <=> $a->{created}} @feed_items) {
+        my $created = DateTime->from_epoch(epoch => $feed_item->{created});
+        my $updated = DateTime->from_epoch(epoch => $feed_item->{updated});
         my $item = $channel->c('item')->t("\n");
         $item->a('title', '-' => $feed_item->{title})->t("\n")
             ->a('link', '-' => $feed_item->{link})->t("\n")->a('guid', '-' => $feed_item->{link})
@@ -157,6 +161,7 @@ sub main {
             if $feed_item->{description};
         $item->a('enclosure', %{$feed_item->{enclosure}})->t("\n")
             if $feed_item->{enclosure};
+        $item->a('pubDate',       '-' => $created->strftime('%a, %d %b %Y %H:%M:%S %z'))->t("\n");
         $channel->t("\n");
     }
 
