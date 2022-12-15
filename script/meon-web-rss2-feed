@@ -49,7 +49,7 @@ sub main {
     my $channel =
         xc('rss', version => "2.0", 'xmlns:atom' => "http://www.w3.org/2005/Atom")->t("\n")
         ->set_io_any($dst_hostname_dir->file('rss.xml'))->c('channel')->t("\n")
-        ->a('atom:link', href => 'http://'.$dst_domain.'/rss.xml', rel => 'self', type => 'application/rss+xml')->t("\n")
+        ->a('atom:link', href => 'https://'.$dst_domain.'/rss.xml', rel => 'self', type => 'application/rss+xml')->t("\n")
         ->a('title', '-' => $title)->t("\n")->a('link', '-' => 'http://' . $dst_domain . '/')
         ->t("\n")->a('description', '-' => 'news feed')->t("\n");
     my @feed_items;
