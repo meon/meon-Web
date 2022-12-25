@@ -54,9 +54,9 @@ sub main {
         ->a('link', href => 'https://'.$dst_domain.'/', rel => 'alternate', type => 'text/html')->t("\n")
         ->a('link', href => 'https://'.$dst_domain.'/atom.xml', rel => 'self', type => 'application/atom+xml')->t("\n")
         ->a('title', '-' => $title)->t("\n")
+        ->a('subtitle', '-' => 'news feed')->t("\n")
         ->a('updated', '-' => DateTime->now().'Z')->t("\n")
-        ->a('generator', 'uri'=> 'https://metacpan.org/pod/meon::Web', '-' => 'meon::Web')->t("\n")
-        ->a('description', '-' => 'news feed')->t("\n");
+        ->a('generator', 'uri'=> 'https://metacpan.org/pod/meon::Web', '-' => 'meon::Web')->t("\n");
     my @feed_items;
     foreach my $year_dir (sort {$b cmp $a} $dst_hostname_dir->children) {
         next unless $year_dir->basename =~ m/^\d{4}$/;
