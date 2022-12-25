@@ -48,7 +48,12 @@ sub main {
     die 'no such hostname ' . $dst_domain unless $hostname_folder;
 
     my $feed =
-        xc('feed', xmlns => 'http://www.w3.org/2005/Atom', 'xmlns:media' => 'http://search.yahoo.com/mrss/', 'xml:lang' => 'en-US')->t("\n")
+        xc( 'feed',
+            xmlns         => 'http://www.w3.org/2005/Atom',
+            'xmlns:media' => 'http://search.yahoo.com/mrss/',
+            'xmlns:g'     => 'http://base.google.com/ns/1.0',
+            'xml:lang'    => 'en-US'
+        )->t("\n")
         ->set_io_any($dst_hostname_dir->file('atom.xml'))
         ->a('id', '-' => 'tag:'.$dst_domain.',2018://1')->t("\n")
         ->a('link', href => 'https://'.$dst_domain.'/', rel => 'alternate', type => 'text/html')->t("\n")
@@ -167,8 +172,11 @@ sub main {
             ->c('author')->a('name', '-' => $feed_item->{author})->up->t("\n")
             ->a('link', type => 'text/html', rel => 'alternate', 'href' => $feed_item->{link})->t("\n")
             ->a('title', type => 'html', '-' => $feed_item->{title})->t("\n");
-        $item->a('media:thumbnail', width => '30', height => '30', %{$feed_item->{enclosure}})->t("\n")
-            if $feed_item->{enclosure};
+        if ($feed_item->{enclosure}) {
+            $item->a('media:thumbnail', width => '30', height => '30', %{$feed_item->{enclosure}})
+                ->t("\n");
+            $item->a('g:image_link', '-' => $feed_item->{enclosure}->{url})->t("\n");
+        }
         $item->c('content', type => 'xhtml')->a($feed_item->{description})
             if ($feed_item->{description});
         $feed->t("\n");
