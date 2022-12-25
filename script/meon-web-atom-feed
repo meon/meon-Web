@@ -90,7 +90,7 @@ sub main {
                 ) // $file->stat->mtime;
                 warn $@.' - '.$file if $@;
                 my $url =
-                    URI->new('http://'
+                    URI->new('https://'
                         . $dst_domain
                         . join('/', map {uri_escape($_)} file($rel_file)->components));
                 my $text = $tl_entry->find('w:text')->text_content;
@@ -107,7 +107,7 @@ sub main {
                     my $thumb_abs = ($img_thumb =~ m{^/});
                     my $is_static = ($img_thumb =~ m{^/static});
                     my $is_extern = ($img_thumb =~ m{^(https?:)?//});
-                    $img_thumb = 'http:'.$img_thumb
+                    $img_thumb = 'https:'.$img_thumb
                         if $is_extern && !$1;
                     my $rel_link  = (
                           $thumb_abs
@@ -130,7 +130,7 @@ sub main {
                         );
                         my $mime = mimetype(file($img_thumb)->basename);
                         $enclosure = {
-                            url    => 'http://' . $dst_domain . $rel_link,
+                            url    => 'https://' . $dst_domain . $rel_link,
                         };
                     }
                     $description->c('div')->c('a', href => $url)->a('img', width => '32', height => '32', src=> $enclosure->{url});
