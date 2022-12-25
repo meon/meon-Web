@@ -169,8 +169,8 @@ sub main {
             ->a('title', type => 'html', '-' => $feed_item->{title})->t("\n");
         $item->a('media:thumbnail', width => '30', height => '30', %{$feed_item->{enclosure}})->t("\n")
             if $feed_item->{enclosure};
-        $item->a('content', type => 'html', '-' => $feed_item->{description}->as_string)->t("\n")
-            if $feed_item->{description};
+        $item->c('content', type => 'xhtml')->a($feed_item->{description})
+            if ($feed_item->{description});
         $feed->t("\n");
     }
 
