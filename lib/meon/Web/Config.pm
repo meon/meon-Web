@@ -48,6 +48,7 @@ foreach my $hostname_dir_name (keys %{$config->{domains} || {}}) {
                 my $merged_js = '';
                 my @merge_js_files;
                 foreach my $js_file (sort $js_dir->children(no_hidden => 1)) {
+                    next unless -f $js_file;
                     push(@merge_js_files, $js_file.'');
                     $merged_js .= '/* '.$js_file." */\n\n".$js_file->slurp.";\n\n";
                 }
@@ -57,8 +58,16 @@ foreach my $hostname_dir_name (keys %{$config->{domains} || {}}) {
                     my ($tmp_fh, $tmp_filename) = tempfile(undef, UNLINK => 1);
                     print $tmp_fh $merged_js;
                     close($tmp_fh);
-                    system("cat $tmp_filename | yui-compressor --type js --charset UTF-8 -o $js_merged_file.tmp && mv $js_merged_file.tmp $js_merged_file")
-                        and die 'failed to minify js '.$!;
+                    #~ system("closure-compiler --js ".join(' --js ', @merge_js_files)." --js_output_file -o $js_merged_file.tmp && mv $js_merged_file.tmp $js_merged_file")
+                    if (system(
+                            "cat $tmp_filename | yui-compressor --type js --charset UTF-8 -o $js_merged_file.tmp && mv $js_merged_file.tmp $js_merged_file"
+                        ) != 0
+                    ) {
+                        warn 'failed to minify js ' . $!;
+                        system(
+                            "cat $tmp_filename > $js_merged_file.tmp && mv $js_merged_file.tmp $js_merged_file"
+                        )
+                    }
                 }
             }
             if (my $css_dir = $config->{$hostname_dir_name}->{main}->{'css-dir'}) {
@@ -66,6 +75,7 @@ foreach my $hostname_dir_name (keys %{$config->{domains} || {}}) {
                 my $merged_css = '';
                 my @merge_css_files;
                 foreach my $css_file (sort $css_dir->children(no_hidden => 1)) {
+                    next unless -f $css_file;
                     push(@merge_css_files, $css_file);
                     $merged_css .= '/* '.$css_file." */\n\n".$css_file->slurp."\n\n";
                 }
@@ -75,8 +85,15 @@ foreach my $hostname_dir_name (keys %{$config->{domains} || {}}) {
                     my ($tmp_fh, $tmp_filename) = tempfile(undef, UNLINK => 1);
                     print $tmp_fh $merged_css;
                     close($tmp_fh);
-                    system("cat $tmp_filename | yui-compressor --type css --charset UTF-8 -o $css_merged_file.tmp && mv $css_merged_file.tmp $css_merged_file")
-                        and die 'failed to minify css '.$!;
+                    if (system(
+                            "cat $tmp_filename | yui-compressor --type css --charset UTF-8 -o $css_merged_file.tmp && mv $css_merged_file.tmp $css_merged_file"
+                        ) != 0
+                    ) {
+                        warn 'failed to minify css ' . $!;
+                        system(
+                            "cat $tmp_filename > $css_merged_file.tmp && mv $css_merged_file.tmp $css_merged_file"
+                        );
+                    }
                 }
             }
         }
