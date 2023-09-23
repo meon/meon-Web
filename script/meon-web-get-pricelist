@@ -1,0 +1,81 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+use 5.010;
+
+use Getopt::Long;
+use Pod::Usage;
+use meon::Web::Config;
+use meon::Web::env;
+use LWP::UserAgent;
+use MIME::Base64 qw(encode_base64);
+use Data::asXML;
+use Path::Class qw(file dir);
+
+exit main();
+
+sub main {
+    my $help;
+    my $dst_domain;
+    GetOptions(
+        'help|h'       => \$help,
+        'hostname|d=s' => \$dst_domain,
+    ) or pod2usage;
+    pod2usage if $help;
+    pod2usage unless $dst_domain;
+
+    meon::Web::env->clear;
+
+    meon::Web::env->hostname($dst_domain);
+
+    my $cfg     = meon::Web::env->hostname_config->{'rapi'};
+    my $dst_dir = meon::Web::env->hostname_subdir('include');
+    my $ua      = LWP::UserAgent->new(timeout => 30);
+    my $dxml = Data::asXML->new(
+        pretty           => !!Run::Env->dev,
+        namespace_prefix => 'd',
+    );
+    my $json    = JSON::XS->new()->pretty(!!Run::Env->dev)->utf8;
+
+    if (my $bauth_usr = $cfg->{bauth_username}) {
+        my $bauth_sec = $cfg->{bauth_secret};
+        $ua->default_header(
+            'Authorization' => 'Basic ' . encode_base64($bauth_usr . ':' . $bauth_sec));
+    }
+
+    my $a_res = $ua->get($cfg->{url} . 'pricelist');
+    die 'error fetching pricelist: ' . $a_res->code . ' ' . $a_res->status_line
+        unless ($a_res->is_success);
+
+    my $pricelist_xml = join("\n",
+        '<?xml version="1.0"?>',
+        '<w:pricelist xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:d="http://search.cpan.org/perldoc?Data::asXML" xmlns:w="http://web.meon.eu/">',
+        $dxml->encode($json->decode($a_res->decoded_content)->{pricelist})->toString,
+        '</w:pricelist>',
+        '');
+
+    my $pxml = $dst_dir->file('~pricelist.xml.swp');
+    $pxml->spew(
+        iomode => '>:utf8',
+        $pricelist_xml,
+    );
+    $pxml->move_to($dst_dir->file('pricelist.xml'));
+
+    return 0;
+}
+
+=head1 NAME
+
+meon-web-get-pricelist - get pricelist from rAPI
+
+=head1 SYNOPSIS
+
+    meon-web-get-pricelist --hostname-dir my-b2c-web
+
+=head1 DESCRIPTION
+
+Will fetch and save F<include/pricelist.xml>.
+
+=cut
