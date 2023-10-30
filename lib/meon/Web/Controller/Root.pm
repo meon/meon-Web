@@ -186,6 +186,19 @@ sub resolve_xml : Private {
     $c->model('ResponseXML')->push_new_element('static-mtime')->appendText(meon::Web::env->static_dir_mtime);
     $c->model('ResponseXML')->push_new_element('run-env')->appendText(Run::Env->current);
 
+    # session
+    if (my $backend_user_data = $c->session->{backend_user_data}) {
+        my $bu_data_el = $c->model('ResponseXML')->create_element('backend-user-data');
+        $c->model('ResponseXML')->append_xml($bu_data_el);
+        my $dxml = Data::asXML->new(
+            pretty    => Run::Env->dev,
+            namespace => 1,
+        );
+        $bu_data_el->appendChild(
+            $dxml->encode($backend_user_data)
+        );
+    }
+
     # user
     if ($c->user_exists) {
         my $user_el = $c->model('ResponseXML')->create_element('user');
@@ -208,16 +221,6 @@ sub resolve_xml : Private {
 
         my @user_roles = $c->user->roles;
         if (my $backend_user_data = $c->session->{backend_user_data}) {
-            my $bu_data_el = $c->model('ResponseXML')->create_element('backend-user-data');
-            $c->model('ResponseXML')->append_xml($bu_data_el);
-            my $dxml = Data::asXML->new(
-                pretty    => Run::Env->dev,
-                namespace => 1,
-            );
-            $bu_data_el->appendChild(
-                $dxml->encode($backend_user_data)
-            );
-
             if ($backend_user_data->{web_roles}) {
                 my @backed_roles = map {
                     'backend-'.$_
@@ -225,7 +228,6 @@ sub resolve_xml : Private {
                 push(@user_roles, @backed_roles);
             }
         }
-
         my $roles_el = $c->model('ResponseXML')->create_element('roles');
         foreach my $role (@user_roles) {
             $roles_el->appendChild(
@@ -233,7 +235,6 @@ sub resolve_xml : Private {
             );
         }
         $user_el->appendChild($roles_el);
-
         my @access_roles = map { $_->textContent } $xpc->findnodes('/w:page/w:meta/w:access/w:role',$dom);
         foreach my $role (@access_roles) {
             $c->detach('/status_forbidden', []) if (none {$_ eq $role} @user_roles);

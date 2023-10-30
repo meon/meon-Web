@@ -26,6 +26,7 @@ sub base : Chained('/') PathPart('rapi') {
     my $path = $c->request->path;
     $path =~ s{^rapi/?}{};
     my $rapi_url = $base_url.$path;
+    my ($rapi_ctrl) = split('/', $path);
 
     my $cfg = meon::Web::env->hostname_config->{'rapi'};
 
@@ -39,8 +40,13 @@ sub base : Chained('/') PathPart('rapi') {
     $ua->default_header('rapi-session-id' => $c->sessionid);
     $ua->default_header('rapi-email' => $c->session->{usr}->{email})
         if $c->session->{usr}->{email};
+    $ua->default_header('Content-Type' => 'application/json; charset=utf-8');
 
-    my $a_res = $ua->post($rapi_url, $c->req->params,);
+    my %post_params = %{$c->req->params};
+    if (my $api_data = $c->session->{api_data}->{$rapi_ctrl}) {
+        $post_params{session} = $api_data;
+    }
+    my $a_res = $ua->post($rapi_url, Content => $json->encode(\%post_params));
     unless ($a_res->is_success) {
         $c->res->status($a_res->code);
         $c->json_reply({
@@ -67,13 +73,18 @@ sub base : Chained('/') PathPart('rapi') {
     if (my $session_actions = delete($a_res_data->{session})) {
         if (my $to_add = $session_actions->{add}) {
             for my $add_key (keys %$to_add) {
-                $c->session->{$add_key} = $to_add->{$add_key};
+                $c->session->{backend_user_data}->{$add_key} = $to_add->{$add_key};
             }
-            if (my $email = $to_add->{backend_user_data}->{email}) {
+            if (my $email = $to_add->{email}) {
                 $c->log->info(sprintf('user with %s authenticated', $email));
                 my $user = $c->find_user({username => $email});
                 $c->set_authenticated($user);
                 $c->change_session_id;
+            }
+        }
+        if (my $to_add = $session_actions->{add_api}) {
+            for my $add_key (keys %$to_add) {
+                $c->session->{api_data}->{$rapi_ctrl}->{$add_key} = $to_add->{$add_key};
             }
         }
     }
