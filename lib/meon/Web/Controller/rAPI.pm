@@ -38,8 +38,8 @@ sub base : Chained('/') PathPart('rapi') {
             'Authorization' => 'Basic ' . encode_base64($bauth_usr . ':' . $bauth_sec));
     }
     $ua->default_header('rapi-session-id' => $c->sessionid);
-    $ua->default_header('rapi-email' => $c->session->{usr}->{email})
-        if $c->session->{usr}->{email};
+    $ua->default_header('rapi-email' => $c->session->{backend_user_data}->{email})
+        if $c->session->{backend_user_data}->{email};
     $ua->default_header('Content-Type' => 'application/json; charset=utf-8');
 
     my %post_params = %{$c->req->params};
