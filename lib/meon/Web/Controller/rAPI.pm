@@ -88,6 +88,8 @@ sub base : Chained('/') PathPart('rapi') {
             }
         }
     }
+    $a_res_data->{session} = $c->session->{backend_user_data};
+
     if (my $redirect = $a_res_data->{redirect}) {
         my $redirect_uri = $c->traverse_uri($redirect);
         $redirect_uri = $redirect_uri->absolute
