@@ -177,14 +177,28 @@ sub resolve_xml : Private {
 
     my ($current_base) = split(/\?/, $c->req->uri->absolute);
 
-    $c->model('ResponseXML')->push_new_element('current-path')->appendText($c->req->uri->path);
-    $c->model('ResponseXML')->push_new_element('current-uri')->appendText($c->req->uri->absolute);
-    $c->model('ResponseXML')->push_new_element('current-base')->appendText($current_base);
-    $c->model('ResponseXML')->push_new_element('current-hostbase')->appendText(
+    $c->model('ResponseXML')->push_new_element_nl('current-path')->appendText($c->req->uri->path);
+    $c->model('ResponseXML')->push_new_element_nl('current-uri')->appendText($c->req->uri->absolute);
+    $c->model('ResponseXML')->push_new_element_nl('current-base')->appendText($current_base);
+    $c->model('ResponseXML')->push_new_element_nl('current-hostbase')->appendText(
         URI::WithBase->new("/", $c->req->uri->absolute.'')->abs
     );
-    $c->model('ResponseXML')->push_new_element('static-mtime')->appendText(meon::Web::env->static_dir_mtime);
-    $c->model('ResponseXML')->push_new_element('run-env')->appendText(Run::Env->current);
+    $c->model('ResponseXML')->push_new_element_nl('run-env')->appendText(Run::Env->current);
+    $c->model('ResponseXML')->push_new_element_nl('static-mtime')->appendText(meon::Web::env->static_dir_mtime);
+
+    my $x_fwd_el = $c->model('ResponseXML')->push_new_element_nl('req-x-forwarded');
+    $x_fwd_el->appendText("\n");
+    $c->req->headers->scan(
+        sub {
+            my ($hkey, $hvalue) = @_;
+            return unless $hkey =~ m/^x-forwarded-./i;
+            $x_fwd_el->appendText("\t");
+            my $h_el = $c->model('ResponseXML')->create_element(lc($hkey));
+            $h_el->appendText($hvalue);
+            $x_fwd_el->appendChild($h_el);
+            $x_fwd_el->appendText("\n");
+        }
+    );
 
     # session
     if (my $backend_user_data = $c->session->{backend_user_data}) {
@@ -259,6 +273,15 @@ sub resolve_xml : Private {
     }
 
     # includes
+    my $auto_include_dir = dir($include_dir)->subdir('auto');
+    if (-d $auto_include_dir) {
+        for my $auto_include_xml_file (sort $auto_include_dir->children) {
+            my $include_el = $c->model('ResponseXML')->create_element('include');
+            $include_el->setAttribute(path => $auto_include_xml_file->relative($include_dir));
+            $dom->documentElement->appendChild($include_el);
+            $dom->documentElement->appendChild(XML::LibXML::Text->new("\n"));
+        }
+    }
     my (@include_elements) =
         $xpc->findnodes('/w:page//w:include',$dom);
     foreach my $include_el (@include_elements) {
@@ -269,7 +292,10 @@ sub resolve_xml : Private {
         }
         my $include_rel = dir(meon::Web::Util->path_fixup($include_path));
         my $file = file($include_dir, $include_rel)->absolute;
-        next unless -f $file;
+        unless (-f $file) {
+            warn 'can not read include file: '.$file;
+            next;
+        }
         $file = $file->resolve;
         $c->detach('/status_forbidden', [])
             unless $include_dir->contains($file);

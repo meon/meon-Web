@@ -93,6 +93,13 @@ sub parse_xhtml_string {
     return $element;
 }
 
+sub push_new_element_nl {
+    my ($self, @args) = @_;
+    my $el = $self->push_new_element(@args);
+    $self->push_element(XML::LibXML::Text->new("\n"));
+    return $el;
+}
+
 sub push_new_element {
     my ($self, $name, $id) = @_;
 
@@ -105,7 +112,11 @@ sub get_element {
     my ($self, $id) = @_;
 
     foreach my $element ($self->elements_all) {
-        my $eid = ($element->can('id') ? $element->id : $element->getAttribute('id'));
+        my $eid = (
+              $element->can('id')           ? $element->id
+            : $element->can('getAttribute') ? $element->getAttribute('id')
+            :                                 undef
+        );
         return $element
             if (defined($eid) && ($id eq $eid));
     }

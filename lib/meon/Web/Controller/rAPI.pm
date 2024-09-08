@@ -30,7 +30,16 @@ sub base : Chained('/') PathPart('rapi') {
 
     my $cfg = meon::Web::env->hostname_config->{'rapi'};
 
-    my $ua = LWP::UserAgent->new(timeout => 30);
+    my $ua = LWP::UserAgent->new(timeout => 60);
+
+    # add x-forwarded-* headers
+    $c->req->headers->scan(
+        sub {
+            my ($hkey, $hvalue) = @_;
+            return unless $hkey =~ m/^x-forwarded-./i;
+            $ua->default_header($hkey, $hvalue);
+        }
+    );
 
     if (my $bauth_usr = $cfg->{bauth_username}) {
         my $bauth_sec = $cfg->{bauth_secret};

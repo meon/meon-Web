@@ -49,10 +49,14 @@ sub main {
     die 'error fetching pricelist: ' . $a_res->code . ' ' . $a_res->status_line
         unless ($a_res->is_success);
 
+    my $resp_info      = $json->decode($a_res->decoded_content);
+    my $pricelist_info = $resp_info->{pricelist};
+    $pricelist_info->{shipping_country_vat} = $resp_info->{shipping_country_vat};
+
     my $pricelist_xml = join("\n",
         '<?xml version="1.0"?>',
         '<w:pricelist xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:d="http://search.cpan.org/perldoc?Data::asXML" xmlns:w="http://web.meon.eu/">',
-        $dxml->encode($json->decode($a_res->decoded_content)->{pricelist})->toString,
+        $dxml->encode($pricelist_info)->toString,
         '</w:pricelist>',
         '');
 
