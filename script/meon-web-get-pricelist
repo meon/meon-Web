@@ -13,6 +13,7 @@ use LWP::UserAgent;
 use MIME::Base64 qw(encode_base64);
 use Data::asXML;
 use Path::Class qw(file dir);
+use JSON::XS;
 
 exit main();
 
