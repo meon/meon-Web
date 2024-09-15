@@ -83,14 +83,16 @@ my $builder = Module::Build::SysPath->new(
         'DateTime::Format::Mail'           => 0,
     },
     script_files => [qw(
-        script/meon-web.psgi
         script/meon-web-aggregate-timelines
-        script/meon-web-expire-members
-        script/meon-web-sync-members
-        script/meon-web-mail2timeline-entry
-        script/meon-web-generate-sitemap
-        script/meon-web-rss2-feed
         script/meon-web-atom-feed
+        script/meon-web-expire-members
+        script/meon-web-generate-product-categories
+        script/meon-web-generate-sitemap
+        script/meon-web-get-pricelist
+        script/meon-web-mail2timeline-entry
+        script/meon-web.psgi
+        script/meon-web-rss2-feed
+        script/meon-web-sync-members
     )],
     conffiles => [qw(
         etc/meon/web-config.ini
