@@ -20,9 +20,11 @@ exit main();
 sub main {
     my $help;
     my $dst_domain;
+    my $sub_dir;
     GetOptions(
         'help|h'       => \$help,
         'hostname|d=s' => \$dst_domain,
+        'subdir|s=s'   => \$sub_dir,
     ) or pod2usage;
     pod2usage if $help;
     pod2usage unless $dst_domain;
@@ -33,6 +35,9 @@ sub main {
 
     my $cfg     = meon::Web::env->hostname_config->{'rapi'};
     my $dst_dir = meon::Web::env->hostname_subdir('include');
+    $dst_dir = $dst_dir->subdir($sub_dir)
+        if defined($sub_dir);
+
     my $ua      = LWP::UserAgent->new(timeout => 30);
     my $dxml = Data::asXML->new(
         pretty           => !!Run::Env->dev,
@@ -77,10 +82,11 @@ meon-web-get-pricelist - get pricelist from rAPI
 
 =head1 SYNOPSIS
 
-    meon-web-get-pricelist --hostname-dir my-b2c-web
+    meon-web-get-pricelist --hostname-dir my-b2c-web.meon.eu
+        --subdir=$DIR   write to some sub-dir of include/
 
 =head1 DESCRIPTION
 
-Will fetch and save F<include/pricelist.xml>.
+Will fetch and save F<include/pricelist.xml> into F<include/>.
 
 =cut
