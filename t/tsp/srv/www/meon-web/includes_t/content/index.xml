@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<page
+    xmlns:xhtml="http://www.w3.org/1999/xhtml"
+    xmlns="http://web.meon.eu/"
+    xmlns:w="http://web.meon.eu/"
+>
+
+<meta>
+    <title>includes</title>
+</meta>
+
+<content><div xmlns="http://www.w3.org/1999/xhtml">
+
+<h1>Welcome to includes!</h1>
+
+<p>This meon::Web includes test page.</p>
+
+</div></content>
+
+<w:include path="extras.xml"/>
+
+</page>

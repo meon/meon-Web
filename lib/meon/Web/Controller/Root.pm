@@ -80,7 +80,9 @@ sub static : Path('/static') {
 
     my $mime_type = mimetype($static_file->stringify);
     $c->res->content_type($mime_type);
-    $c->res->body(IO::Any->read([$static_file]));
+    my $static_fh = IO::Any->read([$static_file]);
+    binmode($static_fh, ':raw');
+    $c->res->body($static_fh);
 }
 
 sub default :Path {
@@ -272,76 +274,7 @@ sub resolve_xml : Private {
         $c->detach;
     }
 
-    # includes
-    my $auto_include_dir = dir($include_dir)->subdir('auto');
-    if (-d $auto_include_dir) {
-        for my $auto_include_xml_file (sort $auto_include_dir->children) {
-            my $include_el = $c->model('ResponseXML')->create_element('include');
-            $include_el->setAttribute(path => $auto_include_xml_file->relative($include_dir));
-            $dom->documentElement->appendChild($include_el);
-            $dom->documentElement->appendChild(XML::LibXML::Text->new("\n"));
-        }
-    }
-    my (@include_elements) =
-        $xpc->findnodes('/w:page//w:include',$dom);
-    foreach my $include_el (@include_elements) {
-        my $include_path = $include_el->getAttribute('path');
-        unless ($include_path) {
-            $include_el->appendText('path attribute missing');
-            next;
-        }
-        my $include_rel = dir(meon::Web::Util->path_fixup($include_path));
-        my $file = file($include_dir, $include_rel)->absolute;
-        unless (-f $file) {
-            warn 'can not read include file: '.$file;
-            next;
-        }
-        $file = $file->resolve;
-        $c->detach('/status_forbidden', [])
-            unless $include_dir->contains($file);
-        my $include_xml = eval { XML::LibXML->load_xml(location => $file) };
-
-        my (@include_filter_elements) =
-            $xpc->findnodes('//w:apply-filter',$include_xml);
-        foreach my $include_filter_el (@include_filter_elements) {
-            my $filter_ident = $include_filter_el->getAttribute('ident');
-            die 'no filter name specified'
-                unless $filter_ident;
-            my $filter_class = 'meon::Web::Filter::'.$filter_ident;
-            load_class($filter_class);
-            my $status = $filter_class->new(
-                dom          => $include_xml,
-                include_node => $include_el,
-                user         => $c->user,
-            )->apply;
-            my $http_status = $status->{status} // 200;
-            if ($http_status != 200) {
-                my $err_msg = $status->{error} // '';
-                if ($http_status == 404) {
-                    $c->detach('/status_not_found', [$err_msg]);
-                }
-                elsif ($http_status == 302) {
-                    my $redirect = $status->{href} || die 'no href';
-                    my $redirect_uri = $c->traverse_uri($redirect);
-                    $redirect_uri = $redirect_uri->absolute
-                        if $redirect_uri->can('absolute');
-                    $c->res->redirect($redirect_uri);
-                    $c->detach;
-                }
-                else {
-                    die $err_msg;
-                }
-            }
-            $include_filter_el->parentNode->removeChild($include_filter_el);
-        }
-
-        if ($include_xml) {
-            $include_el->replaceNode($include_xml->documentElement());
-        }
-        else {
-            die 'failed to load include '.$@;
-        }
-    }
+    meon::Web::env->apply_includes($c);
 
     # forms
     if (my ($form_el) = $xpc->findnodes('/w:page/w:meta/w:form',$dom)) {

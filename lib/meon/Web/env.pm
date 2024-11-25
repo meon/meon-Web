@@ -11,10 +11,13 @@ use XML::LibXSLT;
 use Scalar::Util 'weaken';
 use meon::Web::Config;
 use meon::Web::SPc;
+use meon::Web::Util;
 use Path::Class 'dir', 'file';
 use URI::Escape 'uri_escape_utf8';
 use meon::Web::Member;
 use File::Find::Age;
+use HTTP::Exception;
+use Class::Load qw(load_class);
 
 my $env = {};
 sub get { return $env; }
@@ -205,6 +208,97 @@ sub session {
         if @_;
 
     return $env->{session};
+}
+
+sub apply_includes {
+    my $self = shift;
+    my $c    = shift;
+
+    my $include_dir = $self->include_dir;
+    my $dom         = $self->xml;
+    my $xpc         = meon::Web::Util->xpc;
+
+    # includes
+    my $auto_include_dir = dir($include_dir)->subdir('auto');
+    if (-d $auto_include_dir) {
+        for my $auto_include_xml_file (sort $auto_include_dir->children) {
+            my $include_el = $self->create_element('include');
+            $include_el->setAttribute(path => $auto_include_xml_file->relative($include_dir));
+            $dom->documentElement->appendChild($include_el);
+            $dom->documentElement->appendChild(XML::LibXML::Text->new("\n"));
+        }
+    }
+    my (@include_elements) =
+        $xpc->findnodes('/w:page//w:include',$dom);
+    foreach my $include_el (@include_elements) {
+        my $include_path = $include_el->getAttribute('path');
+        unless ($include_path) {
+            $include_el->appendText('path attribute missing');
+            next;
+        }
+        my $include_rel = dir(meon::Web::Util->path_fixup($include_path));
+        my $file = file($include_dir, $include_rel)->absolute;
+        unless (-f $file) {
+            warn 'can not read include file: '.$file;
+            next;
+        }
+        $file = $file->resolve;
+        HTTP::Exception::403->throw(status_message => 'file: ' . $file)
+            unless $include_dir->contains($file);
+        my $include_xml = eval { XML::LibXML->load_xml(location => $file) };
+
+        my (@include_filter_elements) =
+            $xpc->findnodes('//w:apply-filter',$include_xml);
+        foreach my $include_filter_el (@include_filter_elements) {
+            my $filter_ident = $include_filter_el->getAttribute('ident');
+            die 'no filter name specified'
+                unless $filter_ident;
+            my $filter_class = 'meon::Web::Filter::'.$filter_ident;
+            load_class($filter_class);
+            my $status = $filter_class->new(
+                dom          => $include_xml,
+                include_node => $include_el,
+                user         => ($c ? $c->user : undef),
+            )->apply;
+            my $http_status = $status->{status} // 200;
+            if ($http_status != 200) {
+                my $err_msg = $status->{error} // '';
+                if ($http_status == 404) {
+                    HTTP::Exception::404->throw(status_message => $err_msg);
+                }
+                elsif ($http_status == 302) {
+                    my $redirect = $status->{href} || die 'no href';
+                    my $redirect_uri = $c->traverse_uri($redirect);
+                    $redirect_uri = $redirect_uri->absolute
+                        if $redirect_uri->can('absolute');
+                    HTTP::Exception::302->throw(location => $redirect_uri);
+                }
+                else {
+                    die $err_msg;
+                }
+            }
+            $include_filter_el->parentNode->removeChild($include_filter_el);
+        }
+
+        if ($include_xml) {
+            $include_el->replaceNode($include_xml->documentElement());
+        }
+        else {
+            die 'failed to load include '.$@;
+        }
+    }
+
+    return $self->xml;
+}
+
+sub create_element {
+    my ($self, $name, $id) = @_;
+
+    my $element = $self->xml->createElementNS('http://web.meon.eu/',$name);
+    $element->setAttribute('id'=>$id)
+        if defined $id;
+
+    return $element;
 }
 
 1;

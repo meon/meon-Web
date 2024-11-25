@@ -1,0 +1,140 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Getopt::Long;
+use Pod::Usage;
+use Path::Class qw(dir file);
+use meon::Web::Config;
+use XML::Chain qw(xc);
+use DateTime;
+use URI;
+use URI::Escape qw(uri_escape);
+use List::Util qw(max);
+use 5.010;
+
+exit main();
+
+sub main {
+    my $help;
+    my $dst_domain;
+    GetOptions(
+        'help|h'       => \$help,
+        'hostname=s'   => \$dst_domain,
+    ) or pod2usage;
+    pod2usage if $help;
+    pod2usage unless defined $dst_domain;
+
+    my $hostname_folder = meon::Web::Config->hostname_to_folder($dst_domain);
+    my $dst_hostname_dir =
+        dir(meon::Web::SPc->srvdir, 'www', 'meon-web', $hostname_folder, 'content',);
+    die 'no such hostname ' . $dst_domain unless $hostname_folder;
+
+    my @osearch_records;
+    #~ my %ex_record = (
+        #~ type      => 'page|product|category',
+        #~ title     => 'item title',
+        #~ teaser    => 'cool stuff',
+        #~ content   => 'loren ipsum ...',
+        #~ uri       => '/d1/page2',
+        #~ thumbnail => '/static/img/x.jpg',
+    #~ );
+
+    $dst_hostname_dir->recurse(
+        callback => sub {
+            my ($file) = @_;
+            return if $file->is_dir;
+            return if $file !~ m/\.xml$/;
+            my $file_mtime = $file->stat->mtime;
+            my $rel_file = $file->stringify;
+            $rel_file =~ s/(index)?\.xml$//;
+            $rel_file =~ s/^$dst_hostname_dir//;
+            return if $rel_file eq '/sitemap';
+
+            my $content_xml = xc($file);
+            $content_xml->reg_global_ns('w' => 'http://web.meon.eu/');
+            return unless $content_xml->find('/w:page/w:content')->count;
+
+            my $robots_txt = $content_xml->find('/w:page/w:meta/w:robots')->text_content;
+            return if $robots_txt =~ m/\b noindex \b/xms;
+
+            my $title_txt = $content_xml->find('/w:page/w:meta/w:title')->text_content;
+            my $page_uri = join('/', map {uri_escape($_)} file($rel_file)->components);
+
+            my $thumb_uri;
+            if (my $thumb = $content_xml->find('//w:img-thumb')->text_content) {
+                my @thumb_comp;
+                if ($thumb =~ m{^/}) {
+                    @thumb_comp = file($thumb)->components;
+                }
+                else {
+                    @thumb_comp = (file($rel_file)->components, $thumb);
+                }
+                $thumb_uri = join('/', map {uri_escape($_)} @thumb_comp);
+            }
+
+            my $content_txt = $content_xml->find('/w:page/w:content')->text_content;
+
+            push(
+                @osearch_records,
+                {   type      => 'page',
+                    title     => $title_txt,
+                    content   => $content_txt,
+                    uri       => $page_uri,
+                    thumbnail => $thumb_uri,
+                }
+            );
+        }
+    );
+
+    # TODO category-product...
+    use meon::Web;
+    meon::Web::env->xml_file('_search.xml');
+    meon::Web::env->xml(search_xml());
+
+    use Data::Dumper; print "dump> ", Dumper([@osearch_records]), "\n";
+
+
+    return 0;
+}
+
+sub search_xml {
+    return XML::LibXML->load_xml(string => <<'__XML_SEARCH__');
+<?xml version="1.0" encoding="UTF-8"?>
+<page
+    xmlns:xhtml="http://www.w3.org/1999/xhtml"
+    xmlns="http://web.meon.eu/"
+    xmlns:w="http://web.meon.eu/"
+>
+<meta>
+    <title>Search</title>
+    <robots>noindex, follow</robots>
+</meta>
+<content><div class="main-container col1-layout" xmlns="http://www.w3.org/1999/xhtml">
+    <div id="search-items">
+    <w:category-product-search-items/>
+    </div>
+</div>
+</content>
+<w:include path="category-products.xml">
+    <w:current-category-product ident="home"/>
+    <w:category-product-breadcrumb href="home"/>
+</w:include>
+</page>
+__XML_SEARCH__
+}
+
+=head1 NAME
+
+meon-web-generate-opensearch - generate opensearch search data
+
+=head1 SYNOPSIS
+
+    meon-web-generate-opensearch --hostname domain
+        --hostname domain   domain of the web to generate search index
+
+=head1 DESCRIPTION
+
+
+=cut

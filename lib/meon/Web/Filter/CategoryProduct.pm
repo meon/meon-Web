@@ -79,7 +79,7 @@ sub apply {
             }
             else {
                 return {
-                    error  => 'category path not found',
+                    error  => 'category path "'.$current_ident.'" not found',
                     status => 404,
                 };
             }

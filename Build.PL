@@ -17,6 +17,7 @@ my $builder = Module::Build::SysPath->new(
     build_requires => {
         'Module::Build::SysPath' => 0.13,
         'Test::Most'             => 0,
+        'Monkey::Patch::Action'  => 0,
     },
     requires => {
         'perl'                             => '5.010',
@@ -81,6 +82,7 @@ my $builder = Module::Build::SysPath->new(
         'List::Util'                       => 0,
         'File::Basename'                   => 0,
         'DateTime::Format::Mail'           => 0,
+        'HTTP::Exception'                  => 0,
     },
     script_files => [qw(
         script/meon-web-aggregate-timelines
