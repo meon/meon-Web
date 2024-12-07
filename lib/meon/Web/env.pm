@@ -42,7 +42,7 @@ sub hostname {
     my $self = shift;
     $env->{hostname} = shift
         if @_;
-    return $env->{hostname} // confess('unset');
+    return $env->{hostname} // confess('hostname unset');
 }
 
 sub current_dir {
@@ -54,7 +54,7 @@ sub current_path {
     my $self = shift;
     $env->{current_path} = shift
         if @_;
-    return $env->{current_path} // confess('unset');
+    return $env->{current_path} // confess('current_path unset');
 }
 
 sub hostname_dir_name {
@@ -299,6 +299,39 @@ sub create_element {
         if defined $id;
 
     return $element;
+}
+
+sub template {
+    my ($self, $template) = @_;
+
+    $env->{template} = $template
+        if $template;
+
+    return $env->{template}
+        if $env->{template};
+
+    my ($template_node) = $self->xpc->findnodes('/w:page/w:meta/w:template');
+    if ($template_node) {
+        my $template_name = $template_node->textContent;
+        my $template_file =
+            file($self->hostname_dir, 'template', 'xsl', $template_name . '.xsl')->stringify;
+        HTTP::Exception::404->throw(status_message => 'no such template ' . $template_name)
+            unless -f $template_file;
+        return $env->{template} = $template_file;
+    }
+
+    return $env->{template} =
+        file($self->hostname_dir, 'template', 'xsl', 'default.xsl')->stringify;
+}
+
+sub transform_xml {
+    my ($self) = @_;
+
+    my $template = $self->template;
+    my $xslt     = XML::LibXSLT->new();
+    my $xslt_t   = $xslt->parse_stylesheet(XML::LibXML->load_xml(location => $template));
+
+    return $xslt_t->transform($self->xml)
 }
 
 1;

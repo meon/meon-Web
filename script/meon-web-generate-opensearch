@@ -7,6 +7,7 @@ use Getopt::Long;
 use Pod::Usage;
 use Path::Class qw(dir file);
 use meon::Web::Config;
+use meon::Web::env;
 use XML::Chain qw(xc);
 use DateTime;
 use URI;
@@ -90,10 +91,12 @@ sub main {
 
     # TODO category-product...
     use meon::Web;
+    meon::Web::env->hostname($dst_domain);
     meon::Web::env->xml_file('_search.xml');
     meon::Web::env->xml(search_xml());
+    meon::Web::env->apply_includes;
 
-    use Data::Dumper; print "dump> ", Dumper([@osearch_records]), "\n";
+    use Data::Dumper; print "dump> ", Dumper([\@osearch_records, meon::Web::env->transform_xml->toString]), "\n";
 
 
     return 0;
@@ -110,12 +113,10 @@ sub search_xml {
 <meta>
     <title>Search</title>
     <robots>noindex, follow</robots>
+    <template>search</template>
 </meta>
-<content><div class="main-container col1-layout" xmlns="http://www.w3.org/1999/xhtml">
-    <div id="search-items">
-    <w:category-product-search-items/>
-    </div>
-</div>
+<content>
+    <category-product-search-items/>
 </content>
 <w:include path="category-products.xml">
     <w:current-category-product ident="home"/>
