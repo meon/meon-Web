@@ -17,7 +17,6 @@ use Catalyst qw(
     Session::Store::File
     Session::State::Cookie
     SmartURI
-    Unicode::Encoding
 );
 extends 'Catalyst';
 use Catalyst::View::XSLT 0.10;
