@@ -528,7 +528,7 @@ sub resolve_xml : Private {
         $exist_el->appendText(-e $path ? 1 : 0);
     }
 
-    $c->stash->{template} = meon::Web::env->resolve_template;
+    $c->stash->{template} = meon::Web::env->template;
 }
 
 sub _older_entries {
