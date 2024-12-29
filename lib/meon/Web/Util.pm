@@ -75,7 +75,7 @@ sub path_fixup {
 
     $path =~ s/{\$USERNAME}/$username/;
 
-    if ($path =~ m/^(.*){\$TIMELINE_NEWEST}/) {
+    if ($path =~ m/^(.*)\{\$TIMELINE_NEWEST\}/) {
         my $base_dir = dir(meon::Web::env->current_dir, (defined($1) ? $1 : ()));
         my $dir = $base_dir;
         while (my @subfolders = sort grep { $_->basename =~ m/^\d+$/ } grep { $_->is_dir } $dir->children(no_hidden => 1)) {
