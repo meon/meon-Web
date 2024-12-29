@@ -1,5 +1,8 @@
 package meon::Web::Util;
 
+use strict;
+use warnings;
+
 use Text::Unidecode 'unidecode';
 use Path::Class 'dir', 'file';
 use XML::LibXML::XPathContext;
@@ -9,6 +12,7 @@ use Email::MIME;
 use Email::Sender::Simple qw(sendmail);
 use File::MimeInfo 'mimetype';
 use Encode;
+use List::MoreUtils qw(uniq);
 
 sub xpc {
     my $xpc = XML::LibXML::XPathContext->new;
@@ -64,8 +68,8 @@ sub path_fixup {
     my ($self, $path) = @_;
 
     my $username = (
-        meon::Web::env->user
-        ? $username = meon::Web::env->user->username
+          meon::Web::env->user
+        ? meon::Web::env->user->username
         : 'anonymous'
     );
 
@@ -189,6 +193,42 @@ sub fix_cell_value {
 	}
 
 	return $cell_value;
+}
+
+sub explode_for_autocomplete {
+    my ($class, $text) = @_;
+
+    $text = lc(unidecode($text));
+    $text =~ s/-/ /g;
+    $text =~ s/\s+/ /g;
+    $text =~ s/[^a-z0-9 ]//g;
+
+    my @parts =
+        (map {@{$_}} map {$class->explode_to_4ths($_)} split(/ /, $text));
+    push(@parts, @{$class->explode_to_4ths($text =~ s/\s//gr)});
+
+    return [uniq @parts];
+}
+
+sub explode_to_4ths {
+    my ($class, $word) = @_;
+
+    my $word_len = length($word);
+    my @parts;
+    return []
+        if $word_len < 2;
+    return [$word]
+        if $word_len < 3;
+    push(@parts, substr($word,0,2), substr($word,0,3));
+    return \@parts
+        if $word_len < 4;
+    my $i = 0;
+    while ($i + 4 <= $word_len) {
+        push(@parts, substr($word, $i, 4));
+        $i++;
+    }
+
+    return \@parts;
 }
 
 1;

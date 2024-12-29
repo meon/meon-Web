@@ -39,4 +39,26 @@ subtest 'username_cleanup' => sub {
     );
 };
 
+subtest 'explode_to_4ths' => sub {
+    eq_or_diff(meon::Web::Util->explode_to_4ths('a'),    [],                'too short');
+    eq_or_diff(meon::Web::Util->explode_to_4ths('ab'),   [qw(ab)],          'len 2');
+    eq_or_diff(meon::Web::Util->explode_to_4ths('abc'),  [qw(ab abc)],      'len 3');
+    eq_or_diff(meon::Web::Util->explode_to_4ths('abcd'), [qw(ab abc abcd)], 'len 4');
+    eq_or_diff(
+        meon::Web::Util->explode_to_4ths('abcdefghi'),
+        [qw(ab abc abcd bcde cdef defg efgh fghi)],
+        'long word'
+    );
+};
+
+subtest 'explode_for_autocomplete' => sub {
+    eq_or_diff(
+        meon::Web::Util->explode_for_autocomplete('Quick brown Fox, where are you fox?'),
+        [   qw(qu qui quic uick br bro brow rown fo fox wh whe wher here ar are yo you),
+            qw(ickb ckbr kbro ownf wnfo nfox foxw oxwh xwhe erea rear eare arey reyo eyou youf oufo ufox),
+        ],
+        'sentence'
+    );
+};
+
 done_testing();
