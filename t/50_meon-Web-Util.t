@@ -4,24 +4,17 @@ use strict;
 use warnings;
 use utf8;
 
-use Test::More 'no_plan';
-#use Test::More tests => 10;
-use Test::Differences;
-use Test::Exception;
+use Test::Most;
 
 use FindBin qw($Bin);
 use lib "$Bin/lib";
 
-use File::Temp 'tempdir';
-use Path::Class 'dir';
+use File::Temp qw(tempdir);
+use Path::Class qw(file dir);
 
-BEGIN {
-    use_ok ( 'meon::Web::Util' ) or exit;
-}
+use_ok ( 'meon::Web::Util' ) or exit;
 
-exit main();
-
-sub main {
+subtest 'username_cleanup' => sub {
     my $tmp_dir = tempdir( CLEANUP => 1 );
     dir($tmp_dir, 'username')->mkpath;
     dir($tmp_dir, 'username02')->mkpath;
@@ -44,7 +37,6 @@ sub main {
         'axxx',
         'finding username'
     );
+};
 
-    return 0;
-}
-
+done_testing();
