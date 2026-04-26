@@ -33,6 +33,7 @@ my $builder = Module::Build::SysPath->new(
         'Catalyst::Action::RenderView'     => 0,
         'namespace::autoclean'             => 0,
         'Catalyst::View::XSLT'             => '0.10',
+        'Catalyst::View::JSON'             => 0,
         'File::MimeInfo'                   => 0,
         'Email::MIME'                      => 0,
         'Email::Sender::Simple'            => 0,

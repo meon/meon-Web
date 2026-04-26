@@ -25,7 +25,10 @@ sub check {
         'xml',
         'category-product.xml'
     );
-    return 0 unless -e $category_product_template;
+    unless (-e $category_product_template) {
+        warn("Category product template not found: $category_product_template");
+        return 0;
+    };
 
     my $dom = XML::LibXML->load_xml(location => $category_product_template);
     meon::Web::env->xml($dom);

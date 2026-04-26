@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<w:category-products xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns="http://web.meon.eu/" xmlns:w="http://web.meon.eu/">
+
+<w:apply-filter ident="CategoryProduct"/>
+
+<w:category-product ident="home">
+    <w:title>Home</w:title>
+    <w:subcategory-products>
+        <w:category-product ident="cat1"/>
+        <w:category-product ident="cat2"/>
+    </w:subcategory-products>
+    <w:thumb-img-src>/static/img/products/home-thumb-img.jpg</w:thumb-img-src>
+</w:category-product>
+
+<w:category-product ident="cat1">
+    <w:title>Category 1</w:title>
+    <w:subcategory-products>
+        <w:category-product ident="prod-1-1"/>
+        <w:category-product ident="prod-1-2"/>
+    </w:subcategory-products>
+    <w:thumb-img-src>/static/img/products/cat1-thumb-img.jpg</w:thumb-img-src>
+</w:category-product>
+<w:category-product ident="cat2">
+    <w:title>Category 2</w:title>
+    <w:subcategory-products>
+        <w:category-product ident="cat2-1"/>
+    </w:subcategory-products>
+    <w:thumb-img-src>/static/img/products/cat2-thumb-img.jpg</w:thumb-img-src>
+</w:category-product>
+<w:category-product ident="cat2-1">
+    <w:title>Category 2-1</w:title>
+    <w:subcategory-products>
+        <w:category-product ident="prod-2-1-1"/>
+        <w:category-product ident="prod-2-1-2"/>
+        <w:category-product ident="prod-2-1-3"/>
+    </w:subcategory-products>
+    <w:thumb-img-src>/static/img/products/cat2-1-thumb-img.jpg</w:thumb-img-src>
+</w:category-product>
+
+<w:category-product xmlns:w="http://web.meon.eu/" ident="prod-1-1">
+    <w:title>Product 1-1</w:title>
+    <w:teaser>Very first test product.</w:teaser>
+    <w:description>
+        <div xmlns="http://www.w3.org/1999/xhtml">
+            <p>Description of 1st product from 1st category</p>
+        </div>
+    </w:description>
+    <w:thumb-img-src>/static/img/products/prod-1-1-thumb-img.jpg</w:thumb-img-src>
+</w:category-product>
+<w:category-product xmlns:w="http://web.meon.eu/" ident="prod-1-2">
+    <w:title>Product 1-2</w:title>
+    <w:teaser>Second test product.</w:teaser>
+    <w:description>
+        <div xmlns="http://www.w3.org/1999/xhtml">
+            <p>Description of 2nd product from 1st category</p>
+        </div>
+    </w:description>
+    <w:thumb-img-src>/static/img/products/prod-1-2-thumb-img.jpg</w:thumb-img-src>
+</w:category-product>
+
+<w:category-product xmlns:w="http://web.meon.eu/" ident="prod-2-1-1">
+    <w:title>Product 2-1-1</w:title>
+    <w:teaser>First test product from category 2-1.</w:teaser>
+    <w:description>
+        <div xmlns="http://www.w3.org/1999/xhtml">
+            <p>Description of 1st product from 2nd category, 1st subcategory</p>
+        </div>
+    </w:description>
+    <w:thumb-img-src>/static/img/products/prod-2-1-1-thumb-img.jpg</w:thumb-img-src>
+</w:category-product>
+
+<w:category-product xmlns:w="http://web.meon.eu/" ident="prod-2-1-2">
+    <w:title>Product 2-1-2</w:title>
+    <w:teaser>Second test product from category 2-1.</w:teaser>
+    <w:description>
+        <div xmlns="http://www.w3.org/1999/xhtml">
+            <p>Description of 2nd product from 2nd category, 1st subcategory</p>
+        </div>
+    </w:description>
+    <w:thumb-img-src>/static/img/products/prod-2-1-2-thumb-img.jpg</w:thumb-img-src>
+</w:category-product>
+
+<w:category-product xmlns:w="http://web.meon.eu/" ident="prod-2-1-3">
+    <w:title>Product 2-1-3</w:title>
+    <w:teaser>Third test product from category 2-1.</w:teaser>
+    <w:description>
+        <div xmlns="http://www.w3.org/1999/xhtml">
+            <p>Description of 3rd product from 2nd category, 1st subcategory</p>
+        </div>
+    </w:description>
+    <w:thumb-img-src>/static/img/products/prod-2-1-3-thumb-img.jpg</w:thumb-img-src>
+</w:category-product>
+
+</w:category-products>

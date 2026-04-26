@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<page
+    xmlns:xhtml="http://www.w3.org/1999/xhtml"
+    xmlns="http://web.meon.eu/"
+    xmlns:w="http://web.meon.eu/"
+>
+
+<meta>
+    <title>category-product test</title>
+</meta>
+
+<content><div xmlns="http://www.w3.org/1999/xhtml">
+
+    <w:category-product-view/>
+
+</div></content>
+
+<w:include path="category-products.xml">
+    <w:current-category-product/>
+    <w:category-product-breadcrumb/>
+</w:include>
+
+</page>

@@ -1,0 +1,49 @@
+{
+   "_meta" : {
+      "schema_version" : 1,
+      "document_id_policy" : "sha256(url)",
+      "notes" : [
+         "Ranking fields title, teaser and search_content use text+whitespace analyzer for term-frequency scoring.",
+         "Application is still responsible for normalization of search input and indexed values.",
+         "Exact/filter fields remain keyword (url, breadcrumb, search_type, title_ngram)."
+      ],
+      "search_type_values" : ["page", "product", "category"]
+   },
+   "_source" : {
+      "enabled" : true
+   },
+   "dynamic" : "strict",
+   "properties" : {
+      "url" : {
+         "type" : "keyword"
+      },
+      "title" : {
+         "type" : "text",
+         "analyzer" : "whitespace"
+      },
+      "teaser" : {
+         "type" : "text",
+         "analyzer" : "whitespace"
+      },
+      "breadcrumb" : {
+         "type" : "keyword"
+      },
+      "search_type" : {
+         "type" : "keyword"
+      },
+      "index_ts" : {
+         "type" : "date",
+         "format" : "strict_date_optional_time||epoch_millis"
+      },
+      "weight" : {
+         "type" : "float"
+      },
+      "title_ngram" : {
+         "type" : "keyword"
+      },
+      "search_content" : {
+         "type" : "text",
+         "analyzer" : "whitespace"
+      }
+   }
+}

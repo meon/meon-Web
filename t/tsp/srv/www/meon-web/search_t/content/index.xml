@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<page
+    xmlns:xhtml="http://www.w3.org/1999/xhtml"
+    xmlns="http://web.meon.eu/"
+    xmlns:w="http://web.meon.eu/"
+>
+
+<meta>
+    <title>search test home</title>
+</meta>
+
+<content><div xmlns="http://www.w3.org/1999/xhtml">
+
+<h1>there is no place like home</h1>
+
+<ul>
+<li><a href="c/cat1">category1</a></li>
+<li><a href="c/cat2">category2</a></li>
+</ul>
+
+</div></content>
+
+<w:include path="category-products.xml">
+    <w:current-category-product ident="home"/>
+    <w:category-product-breadcrumb href="home"/>
+</w:include>
+
+</page>
