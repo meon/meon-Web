@@ -41,6 +41,17 @@ has 'index_ts' => (
     lazy    => 1,
     builder => '_build_index_ts',
 );
+has 'search_index' => (
+    is      => 'ro',
+    isa     => 'meon::Web::SearchIndex',
+    lazy    => 1,
+    builder => '_build_search_index',
+);
+
+sub _build_search_index {
+    my ($self) = @_;
+    return meon::Web::SearchIndex->new( hostname => $self->hostname );
+}
 
 sub _build_dst_hostname_dir {
     my ($self) = @_;
@@ -215,6 +226,18 @@ sub _records_from_content {
     );
 
     return \@osearch_records;
+}
+
+sub do_indexing {
+    my ($self) = @_;
+    $self->search_index->init_index;
+    my @ose_records = $self->all_osearch_records;
+    while (@ose_records) {
+        my @batch = splice( @ose_records, 0, 100 );
+        $self->search_index->index_docs(\@batch);
+    }
+    $self->search_index->switch_active_index;
+    return;
 }
 
 sub _build_index_ts {
