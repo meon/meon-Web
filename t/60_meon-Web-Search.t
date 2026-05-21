@@ -5,6 +5,7 @@ use warnings;
 use utf8;
 
 use Test::Most;
+use Test::Dirs;
 
 use FindBin qw($Bin);
 use lib "$Bin/lib";
@@ -13,6 +14,8 @@ use File::Temp            qw(tempdir);
 use Path::Class           qw(file dir);
 use Monkey::Patch::Action qw(patch_package);
 use List::Util            qw(first);
+use JSON::XS;
+use Test::MockTime       qw(set_fixed_time);
 
 use_ok('meon::Web::SPc') or exit;
 my $patch_prefix = patch_package(
@@ -27,8 +30,13 @@ my $patch_prefix = patch_package(
 
 use_ok('meon::Web::Search') or exit;
 
+set_fixed_time('2026-05-01T13:38:00');
+
 meon::Web::env->clear;
 meon::Web::env->hostname('search-test.local');
+
+my $t_data_dir = dir($Bin, 'tdata');
+my $json = JSON::XS->new->utf8(1)->pretty(1)->canonical(1);
 
 subtest 'check env' => sub {
     ok( -d meon::Web::env->hostname_dir,
@@ -43,44 +51,17 @@ subtest 'opensearch-records' => sub {
     my $mws = meon::Web::Search->new( hostname => 'search-test.local', );
     $mws->index_ts;    # force index_ts to be built before records
     my @osearch_records = $mws->all_osearch_records;
-    cmp_ok( scalar(@osearch_records), '>', 5, 'osearch_records count' );
+    cmp_ok( scalar(@osearch_records), '>', 5, 'osearch_records count' ) or return;
 
-    my ($first_page) =
-        grep { $_->search_type eq 'page' } @osearch_records;
-    ok( $first_page, 'found first page - home page' ) or return;
-    eq_or_diff(
-        $first_page->as_opensearch_record,
-        {   search_type    => 'page',
-            title          => 'search test home',
-            breadcrumb     => undef,
-            teaser         => undef,
-            url            => '/',
-            index_ts       => $mws->index_ts,
-            weight         => 1,
-            thumbnail      => undef,
-            search_content =>
-                'there is no place like home category1 category2',
-        },
-        'first page record'
-    );
+    my @osearch_records_json =
+        map { $_->as_opensearch_record }
+        sort { $a->url cmp $b->url } @osearch_records;
 
-    my ($first_product) =
-        grep { $_->ident eq 'prod-1-1' } @osearch_records;
-    ok( $first_product, 'found first product' ) or return;
-    eq_or_diff(
-        $first_product->as_opensearch_record,
-        {   search_type    => 'product',
-            title          => 'Product 1-1',
-            breadcrumb     => 'Home > Category 1',
-            teaser         => 'Very first test product.',
-            url            => '/c/cat1/prod-1-1',
-            index_ts       => $mws->index_ts,
-            weight         => 1,
-            thumbnail      => '/static/img/products/prod-1-1-thumb-img.jpg',
-            search_content => 'Description of 1st product from 1st category',
-        },
-        'first product record'
-    );
+    my $tmp_dir = tempdir( CLEANUP => 1 );
+    file( $tmp_dir, 'osearch_records.json' )
+        ->spew( $json->encode( \@osearch_records_json ) );
+
+    is_dir($tmp_dir, $t_data_dir->subdir('meon-Web-Search'), 'generated data match');
 };
 
 done_testing();

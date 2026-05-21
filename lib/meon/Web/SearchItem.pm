@@ -17,7 +17,7 @@ has 'index_ts'       => ( is => 'ro', isa => 'Str',        required => 1, );
 has 'weight'         => ( is => 'ro', isa => 'Num',        default  => 1, );
 has 'title_ngram' => (
     is      => 'ro',
-    isa     => 'ArrayRef[Str]',
+    isa     => 'Str',
     lazy    => 1,
     builder => '_build_title_ngram',
 );
@@ -34,7 +34,7 @@ has 'sub_cat_prod' => (
 sub _build_title_ngram {
     my ($self) = @_;
 
-    return meon::Web::Util->explode_for_autocomplete( $self->title );
+    return join(' ', @{ meon::Web::Util->explode_for_autocomplete( $self->title ) });
 }
 
 sub as_opensearch_record {
@@ -54,6 +54,7 @@ sub as_opensearch_record {
         index_ts       => $self->index_ts,
         weight         => $self->weight,
         thumbnail      => $self->thumbnail,
+        title_ngram    => $self->title_ngram,
     };
 }
 

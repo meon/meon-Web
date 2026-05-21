@@ -26,7 +26,8 @@
          "analyzer" : "whitespace"
       },
       "breadcrumb" : {
-         "type" : "keyword"
+         "type" : "text",
+         "analyzer" : "whitespace"
       },
       "search_type" : {
          "type" : "keyword"
@@ -39,7 +40,8 @@
          "type" : "float"
       },
       "title_ngram" : {
-         "type" : "keyword"
+         "type" : "text",
+         "analyzer" : "whitespace"
       },
       "search_content" : {
          "type" : "text",
