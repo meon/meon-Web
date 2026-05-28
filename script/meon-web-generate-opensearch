@@ -13,21 +13,18 @@ exit main();
 sub main {
     my $help;
     my $dst_domain;
+    my $dry_run;
     GetOptions(
-        'help|h'       => \$help,
-        'hostname=s'   => \$dst_domain,
+        'help|h'     => \$help,
+        'hostname=s' => \$dst_domain,
+        'dry-run!'   => \$dry_run,
     ) or pod2usage;
     pod2usage if $help;
     pod2usage unless defined $dst_domain;
 
-    my $mws = meon::Web::Search->new(
-        hostname => $dst_domain,
-    );
+    my $mws = meon::Web::Search->new( hostname => $dst_domain, );
 
-    use Data::Dumper; print "dump> ", Dumper([
-        $mws->osearch_records,
-    ]), "\n";
-
+    $mws->do_indexing( dry_run => $dry_run );
 
     return 0;
 }
@@ -40,6 +37,7 @@ meon-web-generate-opensearch - generate opensearch search data
 
     meon-web-generate-opensearch --hostname domain
         --hostname domain   domain of the web to generate search index
+    --dry-run           populate the working index without switching alias
 
 =head1 DESCRIPTION
 

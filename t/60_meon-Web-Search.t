@@ -29,6 +29,7 @@ my $patch_prefix = patch_package(
 );
 
 use_ok('meon::Web::Search') or exit;
+use_ok('meon::Web::SearchIndex') or exit;
 
 set_fixed_time('2026-05-01T13:38:00');
 
@@ -62,6 +63,51 @@ subtest 'opensearch-records' => sub {
         ->spew( $json->encode( \@osearch_records_json ) );
 
     is_dir($tmp_dir, $t_data_dir->subdir('meon-Web-Search'), 'generated data match');
+};
+
+subtest 'dry-run indexing' => sub {
+    my %calls = (
+        init   => 0,
+        index  => 0,
+        switch => 0,
+    );
+
+    my $patch_init = patch_package(
+        'meon::Web::SearchIndex',
+        'init_index',
+        'replace',
+        sub {
+            $calls{init}++;
+            return;
+        }
+    );
+    my $patch_index_docs = patch_package(
+        'meon::Web::SearchIndex',
+        'index_docs',
+        'replace',
+        sub {
+            my ( $self, $docs ) = @_;
+            $calls{index}++;
+            ok( ref($docs) eq 'ARRAY', 'index_docs gets a batch array' );
+            return;
+        }
+    );
+    my $patch_switch = patch_package(
+        'meon::Web::SearchIndex',
+        'switch_active_index',
+        'replace',
+        sub {
+            $calls{switch}++;
+            return;
+        }
+    );
+
+    my $mws = meon::Web::Search->new( hostname => 'search-test.local', );
+    $mws->do_indexing( dry_run => 1 );
+
+    is( $calls{init},   1, 'init_index called once' );
+    cmp_ok( $calls{index}, '>', 0, 'index_docs called' );
+    is( $calls{switch}, 0, 'switch_active_index skipped in dry run' );
 };
 
 done_testing();

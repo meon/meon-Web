@@ -57,6 +57,19 @@ subtest 'clean-up first' => sub {
     is($search_index->work_index, 'meon-search_search_t_idx_a', 'work index');
 };
 
+subtest 'dry run indexing' => sub {
+    $mws->do_indexing( dry_run => 1 );
+
+    ok($search_index->_indices_info->{index_a}, 'work index exists after dry run');
+    is($search_index->_indices_info->{index_b}, undef, 'active index untouched after dry run');
+    is($search_index->_indices_info->{alias}, undef, 'alias not switched during dry run');
+
+    my $search_result = $search_index->ose->count(
+        index => $search_index->work_index,
+    )->sync;
+    cmp_ok( $search_result->{count}, '>', 5, 'documents indexed into work index' );
+};
+
 subtest 'init and switch' => sub {
     $search_index->init_index;
 

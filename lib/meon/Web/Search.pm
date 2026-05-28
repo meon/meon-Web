@@ -230,14 +230,19 @@ sub _records_from_content {
 }
 
 sub do_indexing {
-    my ($self) = @_;
+    my ( $self, @args ) = @_;
+    my %args =
+        ( @args == 1 && ref( $args[0] ) eq 'HASH' ? %{ $args[0] } : @args, );
+    my $dry_run = $args{dry_run} ? 1 : 0;
+
     $self->search_index->init_index;
     my @ose_records = $self->all_osearch_records;
     while (@ose_records) {
         my @batch = splice( @ose_records, 0, 100 );
-        $self->search_index->index_docs(\@batch);
+        $self->search_index->index_docs( \@batch );
     }
-    $self->search_index->switch_active_index;
+    $self->search_index->switch_active_index
+        unless $dry_run;
     return;
 }
 
