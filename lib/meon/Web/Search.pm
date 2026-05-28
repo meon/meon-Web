@@ -9,6 +9,7 @@ use meon::Web::Config;
 use meon::Web::env;
 use meon::Web::SearchItem;
 use meon::Web::SearchIndex;
+use meon::Web::Util;
 use Path::Class qw(dir file);
 use XML::Chain  qw(xc);
 use URI::Escape qw(uri_escape);
@@ -99,8 +100,6 @@ sub _records_from_category_product {
             my $cat_prod_uri = $cat_prod_el->find('w:href')->text_content;
             my $title_txt    = $cat_prod_el->find('w:title')->text_content;
             my $teaser_txt   = $cat_prod_el->find('w:teaser')->text_content;
-            my $content_txt =
-                $cat_prod_el->find('w:description')->text_content;
             my $thumb_uri =
                 $cat_prod_el->find('w:thumb-img-src')->text_content;
             my @sub_cat_prod;
@@ -110,6 +109,14 @@ sub _records_from_category_product {
                     push( @sub_cat_prod, $_->attr('ident') );
                 }
                 );
+
+            my $content_txt = join(
+                "\n",
+                map { meon::Web::Util->uniq_tokens($_) } (
+                    $title_txt . ' ' . $teaser_txt,
+                    $cat_prod_el->find('w:description')->text_content
+                )
+            );
 
             push(
                 @osearch_records,
@@ -151,15 +158,17 @@ sub _records_from_category_product {
     for my $rec (@osearch_records) {
         my $cident = $rec->{ident};
         next unless $cident;
+        my @breadcrumb_parts;
         while ( my $parent_ident = $ident_parent{$cident} ) {
             $cident = $parent_ident;
             my $ctitle = $ident_to_rec{$cident}->{title};
-            if ( $rec->{breadcrumb} ) {
-                $rec->{breadcrumb} = $ctitle . ' > ' . $rec->{breadcrumb};
-            }
-            else {
-                $rec->{breadcrumb} = $ctitle;
-            }
+            unshift(@breadcrumb_parts, $ctitle);
+        }
+        if (@breadcrumb_parts) {
+            $rec->breadcrumb( join( ' > ', @breadcrumb_parts ) );
+            $rec->search_content(
+                join( ' ', @breadcrumb_parts ) . "\n"
+                    . $rec->search_content );
         }
     }
 
@@ -208,8 +217,13 @@ sub _records_from_content {
                 $thumb_uri = join( '/', map { uri_escape($_) } @thumb_comp );
             }
 
-            my $content_txt =
-                $content_xml->find('/w:page/w:content')->text_content;
+            my $content_txt = join(
+                "\n",
+                map { meon::Web::Util->uniq_tokens($_) } (
+                    $title_txt,
+                    $content_xml->find('/w:page/w:content')->text_content
+                )
+            );
 
             push(
                 @osearch_records,

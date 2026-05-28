@@ -62,7 +62,12 @@ subtest 'opensearch-records' => sub {
     file( $tmp_dir, 'osearch_records.json' )
         ->spew( $json->encode( \@osearch_records_json ) );
 
-    is_dir($tmp_dir, $t_data_dir->subdir('meon-Web-Search'), 'generated data match');
+    is_dir(
+        $tmp_dir,
+        $t_data_dir->subdir('meon-Web-Search'),
+        'generated data match',
+        [], 'verbose'
+    );
 };
 
 subtest 'dry-run indexing' => sub {

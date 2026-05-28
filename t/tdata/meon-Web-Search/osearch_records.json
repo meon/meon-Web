@@ -2,7 +2,7 @@
    {
       "breadcrumb" : null,
       "index_ts" : "2026-05-01T13:38:00Z",
-      "search_content" : "there is no place like home category1 category2",
+      "search_content" : "search test home there is no place like home category1 category2",
       "search_type" : "page",
       "teaser" : null,
       "thumbnail" : null,
@@ -14,7 +14,7 @@
    {
       "breadcrumb" : null,
       "index_ts" : "2026-05-01T13:38:00Z",
-      "search_content" : "",
+      "search_content" : "home",
       "search_type" : "category",
       "teaser" : "",
       "thumbnail" : "/static/img/products/home-thumb-img.jpg",
@@ -26,7 +26,7 @@
    {
       "breadcrumb" : "Home",
       "index_ts" : "2026-05-01T13:38:00Z",
-      "search_content" : "",
+      "search_content" : "Home category 1",
       "search_type" : "category",
       "teaser" : "",
       "thumbnail" : "/static/img/products/cat1-thumb-img.jpg",
@@ -38,7 +38,7 @@
    {
       "breadcrumb" : "Home > Category 1",
       "index_ts" : "2026-05-01T13:38:00Z",
-      "search_content" : "Description of 1st product from 1st category",
+      "search_content" : "Home Category 1 product 1-1 very first test description of 1st product from category",
       "search_type" : "product",
       "teaser" : "Very first test product.",
       "thumbnail" : "/static/img/products/prod-1-1-thumb-img.jpg",
@@ -50,7 +50,7 @@
    {
       "breadcrumb" : "Home > Category 1",
       "index_ts" : "2026-05-01T13:38:00Z",
-      "search_content" : "Description of 2nd product from 1st category",
+      "search_content" : "Home Category 1 product 1-2 second test description of 2nd product from 1st category",
       "search_type" : "product",
       "teaser" : "Second test product.",
       "thumbnail" : "/static/img/products/prod-1-2-thumb-img.jpg",
@@ -62,7 +62,7 @@
    {
       "breadcrumb" : "Home",
       "index_ts" : "2026-05-01T13:38:00Z",
-      "search_content" : "",
+      "search_content" : "Home category 2",
       "search_type" : "category",
       "teaser" : "",
       "thumbnail" : "/static/img/products/cat2-thumb-img.jpg",
@@ -74,7 +74,7 @@
    {
       "breadcrumb" : "Home > Category 2",
       "index_ts" : "2026-05-01T13:38:00Z",
-      "search_content" : "",
+      "search_content" : "Home Category 2 category 2-1",
       "search_type" : "category",
       "teaser" : "",
       "thumbnail" : "/static/img/products/cat2-1-thumb-img.jpg",
@@ -86,7 +86,7 @@
    {
       "breadcrumb" : "Home > Category 2 > Category 2-1",
       "index_ts" : "2026-05-01T13:38:00Z",
-      "search_content" : "Description of 1st product from 2nd category, 1st subcategory",
+      "search_content" : "Home Category 2 Category 2-1 product 2-1-1 first test from category 2-1 description of 1st product from 2nd category subcategory",
       "search_type" : "product",
       "teaser" : "First test product from category 2-1.",
       "thumbnail" : "/static/img/products/prod-2-1-1-thumb-img.jpg",
@@ -98,7 +98,7 @@
    {
       "breadcrumb" : "Home > Category 2 > Category 2-1",
       "index_ts" : "2026-05-01T13:38:00Z",
-      "search_content" : "Description of 2nd product from 2nd category, 1st subcategory",
+      "search_content" : "Home Category 2 Category 2-1 product 2-1-2 second test from category 2-1 description of 2nd product from category 1st subcategory",
       "search_type" : "product",
       "teaser" : "Second test product from category 2-1.",
       "thumbnail" : "/static/img/products/prod-2-1-2-thumb-img.jpg",
@@ -110,7 +110,7 @@
    {
       "breadcrumb" : "Home > Category 2 > Category 2-1",
       "index_ts" : "2026-05-01T13:38:00Z",
-      "search_content" : "Description of 3rd product from 2nd category, 1st subcategory",
+      "search_content" : "Home Category 2 Category 2-1 product 2-1-3 third test from category 2-1 description of 3rd product from 2nd category 1st subcategory",
       "search_type" : "product",
       "teaser" : "Third test product from category 2-1.",
       "thumbnail" : "/static/img/products/prod-2-1-3-thumb-img.jpg",
