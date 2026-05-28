@@ -1,0 +1,7 @@
+#!/bin/bash
+
+BASEDIR=$(dirname "$0")
+cd $BASEDIR/..
+
+plackup -Ilib --server Twiggy --port 5001 script/meon-web-search-api.psgi
+

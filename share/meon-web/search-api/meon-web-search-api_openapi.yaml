@@ -1,0 +1,262 @@
+openapi: 3.0.0
+info:
+  version: '1'
+  title: 'Perl meon::Web Search API'
+  description: 'Search API for meon::Web backed by OpenSearch'
+  license:
+    name: Perl Licence
+    url: https://perldoc.perl.org/index-licence.html
+servers:
+  - url: /v1/
+paths:
+  '/hcheck':
+    get:
+      description: 'Returns a 200 response and Perl package name as text when the service is available'
+      responses:
+        200:
+          description: 'healthy'
+          content:
+            'text/plain':
+              example: 'meon::Web::SearchAPI'
+            'application/json':
+              example: '{"data": "Service-name: meon-web-search\nAPI-version: 1\nOK\n"}'
+        405:
+          $ref: '#/components/responses/Method-Not-Allowed'
+        503:
+          description: 'unhealthy'
+          content:
+            'text/plain':
+              example: 'shutting down'
+            'application/json':
+              example: '{"data": "shutting down"}'
+  '/autocomplete':
+    post:
+      description: 'Return autocomplete suggestions for a partial query'
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/Autocomplete-Request'
+      responses:
+        200:
+          description: 'autocomplete results'
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Autocomplete-Response'
+        405:
+          $ref: '#/components/responses/Input-Processing-Error'
+        500:
+          $ref: '#/components/responses/Internal-Server-Error'
+  '/search':
+    post:
+      description: 'Return ranked full-text search results'
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/Search-Request'
+      responses:
+        200:
+          description: 'search results'
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Search-Response'
+        405:
+          $ref: '#/components/responses/Input-Processing-Error'
+        500:
+          $ref: '#/components/responses/Internal-Server-Error'
+components:
+  responses:
+    'Method-Not-Allowed':
+      description: 'Method not allowed for this route.'
+      headers:
+        Allow:
+          description: 'Comma-separated list of allowed HTTP methods for the route.'
+          schema:
+            type: string
+            example: 'POST'
+      content:
+        'text/plain':
+          example: 'method not allowed'
+        'application/json':
+          schema:
+            $ref: '#/components/schemas/Error-Response'
+    'Internal-Server-Error':
+      description: 'Internal server error.'
+      content:
+        'text/plain':
+          example: 'Some exception at lib/meon/Web/SearchAPI.pm line 42.'
+    'Input-Processing-Error':
+      description: 'Input processing error for a supported HTTP method.'
+      content:
+        'application/json':
+          schema:
+            $ref: '#/components/schemas/Error-Response'
+        'text/plain':
+          example: 'requires application/json data'
+  schemas:
+    'Autocomplete-Request':
+      type: object
+      properties:
+        query:
+          type: string
+          description: partial text for autocomplete suggestions
+          example: 'apple mac'
+        limit:
+          type: integer
+          description: max number of suggestions
+          default: 10
+          minimum: 1
+          maximum: 100
+        search_type:
+          type: array
+          description: optional filter by document types
+          items:
+            type: string
+            enum: ['page', 'product', 'category']
+      required:
+        - query
+    'Search-Request':
+      type: object
+      properties:
+        query:
+          type: string
+          description: full-text query
+          example: 'macbook pro 14'
+        page:
+          type: integer
+          description: page number (1-based)
+          default: 1
+          minimum: 1
+        size:
+          type: integer
+          description: number of hits per page
+          default: 20
+          minimum: 1
+          maximum: 200
+        search_type:
+          type: array
+          description: optional filter by document types
+          items:
+            type: string
+            enum: ['page', 'product', 'category']
+      required:
+        - query
+    'Autocomplete-Item':
+      type: object
+      properties:
+        title:
+          type: string
+          description: matched title
+          example: 'Apple MacBook Pro 14"'
+        url:
+          type: string
+          description: relative URL
+          example: '/products/apple-macbook-pro-14'
+        search_type:
+          type: string
+          enum: ['page', 'product', 'category']
+          example: 'product'
+        breadcrumb:
+          type: string
+          description: navigation path text
+          example: 'Products > Notebooks > Apple'
+        teaser:
+          type: string
+          description: short description text
+          example: 'Powerful 14-inch notebook for professional workloads.'
+        thumbnail:
+          type: string
+          description: optional preview image URL
+          example: '/img/product/macbook-pro-14-thumb.jpg'
+        weight:
+          type: number
+          description: ranking weight from indexed document
+          example: 2.5
+      required:
+        - title
+        - url
+        - search_type
+    'Search-Item':
+      allOf:
+        - $ref: '#/components/schemas/Autocomplete-Item'
+        - type: object
+          properties:
+            score:
+              type: number
+              description: engine score for the hit
+              example: 12.345
+            index_ts:
+              type: string
+              description: indexing timestamp in ISO 8601 format
+              example: '2026-05-01T13:38:00Z'
+            search_content:
+              type: string
+              description: cleaned searchable text content
+              example: 'Apple MacBook Pro 14 M3 Pro 18GB 512GB'
+    'Autocomplete-Response':
+      type: object
+      properties:
+        query:
+          type: string
+          example: 'apple mac'
+        total:
+          type: integer
+          description: number of returned suggestions
+          example: 3
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Autocomplete-Item'
+      required:
+        - query
+        - total
+        - items
+    'Search-Response':
+      type: object
+      properties:
+        query:
+          type: string
+          example: 'macbook pro 14'
+        total:
+          type: integer
+          description: total number of hits
+          example: 42
+        page:
+          type: integer
+          example: 1
+        size:
+          type: integer
+          example: 20
+        took_ms:
+          type: integer
+          description: search execution time in milliseconds
+          example: 12
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Search-Item'
+      required:
+        - query
+        - total
+        - page
+        - size
+        - items
+    'Error-Response':
+      description: 'Error object definition'
+      type: object
+      properties:
+        err_status:
+          type: integer
+          description: error number
+          example: 405
+        err_msg:
+          type: string
+          description: error message
+          example: 'input format error'
+      required:
+        - err_status

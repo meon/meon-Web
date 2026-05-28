@@ -8,6 +8,7 @@ use namespace::autoclean;
 use meon::Web::Config;
 use meon::Web::env;
 use meon::Web::SearchItem;
+use meon::Web::SearchIndex;
 use Path::Class qw(dir file);
 use XML::Chain  qw(xc);
 use URI::Escape qw(uri_escape);

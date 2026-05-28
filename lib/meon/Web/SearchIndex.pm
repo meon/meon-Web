@@ -121,7 +121,8 @@ sub _build__index_mapping {
 sub _build_index_alias {
     my ($self) = @_;
     return 'meon-search_'
-        . meon::Web::Config->hostname_to_folder( $self->hostname );
+        . ( meon::Web::Config->hostname_to_folder( $self->hostname )
+            // die 'no such hostname ' . $self->hostname );
 }
 
 sub _build_index_a {
