@@ -112,7 +112,7 @@ sub _records_from_category_product {
 
             my $content_txt = join(
                 "\n",
-                map { meon::Web::Util->uniq_tokens($_) } (
+                map { meon::Web::Util->norm_tokens($_) } (
                     $title_txt . ' ' . $teaser_txt,
                     $cat_prod_el->find('w:description')->text_content
                 )
@@ -167,8 +167,12 @@ sub _records_from_category_product {
         if (@breadcrumb_parts) {
             $rec->breadcrumb( join( ' > ', @breadcrumb_parts ) );
             $rec->search_content(
-                join( ' ', @breadcrumb_parts ) . "\n"
-                    . $rec->search_content );
+                meon::Web::Util->norm_tokens(
+                    join( ' ', @breadcrumb_parts )
+                    )
+                    . "\n"
+                    . $rec->search_content
+            );
         }
     }
 
@@ -219,7 +223,7 @@ sub _records_from_content {
 
             my $content_txt = join(
                 "\n",
-                map { meon::Web::Util->uniq_tokens($_) } (
+                map { meon::Web::Util->norm_tokens($_) } (
                     $title_txt,
                     $content_xml->find('/w:page/w:content')->text_content
                 )

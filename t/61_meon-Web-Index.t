@@ -59,6 +59,7 @@ subtest 'clean-up first' => sub {
 
 subtest 'dry run indexing' => sub {
     $mws->do_indexing( dry_run => 1 );
+    $search_index->ose->indices->refresh( index => $search_index->work_index )->sync;
 
     ok($search_index->_indices_info->{index_a}, 'work index exists after dry run');
     is($search_index->_indices_info->{index_b}, undef, 'active index untouched after dry run');

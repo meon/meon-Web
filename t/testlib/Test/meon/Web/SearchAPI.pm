@@ -23,11 +23,11 @@ sub _build__service {
     my $pmgapi = meon::Web::SearchAPI->new();
     my $app    = sub { $pmgapi->plack_handler(@_) };
 
-    my $time_service = builder {
+    my $searchapi_service = builder {
         enable "Plack::Middleware::ContentLength";
         $app;
     };
-    my $t_server = Plack::Test::Server->new($time_service);
+    my $t_server = Plack::Test::Server->new($searchapi_service);
     $self->{_url} = 'http://127.0.0.1:' . $t_server->port . '/v1/';
     return $t_server;
 }

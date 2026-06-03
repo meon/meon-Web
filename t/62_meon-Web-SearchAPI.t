@@ -37,12 +37,14 @@ use_ok('Test::meon::Web::SearchAPI') or die;
 my $static_dir = $tdata_dir->subdir('oapi');
 $static_dir->mkpath;
 $ENV{STATIC_DIR} = $static_dir;
+$ENV{USING_FRONTEND_PROXY} = 1;
 
 my $meon_webapi = Test::meon::Web::SearchAPI->start;
 my $service_url = $meon_webapi->url;
 my $mech        = Test::WWW::Mechanize->new();
 $mech->add_header( content_type => 'application/json' );
 $mech->add_header( accept       => 'application/json' );
+$mech->add_header( 'HTTP_X_FORWARDED_HOST' => 'search-test.local' );
 
 $mech->get_ok( $service_url . 'hcheck' )
     or die Test::More::diag( Data::Dumper::Dumper( $mech->content ) );
@@ -85,16 +87,19 @@ subtest '/autocomplete' => sub {
 
 subtest '/search' => sub {
     $mech->post( $service_url . 'search',
-        content => $json->encode( { todo_search => 1 } ), );
-    ok( $mech->success, 'post to search' );
+        content => $json->encode( { query => 'sEcond product' } ), );
+    ok( $mech->success, 'post to search' ) or diag($mech->content);
     my $dt_data;
     lives_ok( sub { $dt_data = $json->decode( $mech->content ) },
         'json content' );
-    eq_or_diff_data(
-        $dt_data,
-        { todo_search => 1 },
-        'search response content'
-    );
+
+    is( $dt_data->{query}, 'second product', 'search response query' );
+    is( $dt_data->{total}, 2, 'search response total' );
+    is( $dt_data->{page}, 1, 'search response page' );
+    is( $dt_data->{size}, 20, 'search response size' );
+    ok( exists $dt_data->{took_ms}, 'search response took_ms present' );
+    ok( ref( $dt_data->{items} ) eq 'ARRAY', 'search response items array' );
+    is( scalar( @{ $dt_data->{items} } ), 2, 'search response has 2 items' );
 };
 
 done_testing();

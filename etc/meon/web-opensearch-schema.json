@@ -46,6 +46,9 @@
       "search_content" : {
          "type" : "text",
          "analyzer" : "whitespace"
+      },
+      "thumbnail" : {
+         "type" : "keyword"
       }
    }
 }

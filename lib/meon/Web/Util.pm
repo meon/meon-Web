@@ -231,12 +231,13 @@ sub explode_to_4ths {
     return \@parts;
 }
 
-sub uniq_tokens {
+sub norm_tokens {
     my ( $class, $text ) = @_;
     my @tokens = split( /\s+/, $text );
     my %seen;
-    return grep { !$seen{$_}++ }
-        map { $class->clean_up_token($_) } @tokens;
+    return join( ' ',
+        grep { !$seen{$_}++ }
+        map { $class->clean_up_token($_) } @tokens );
 }
 
 sub clean_up_token {
