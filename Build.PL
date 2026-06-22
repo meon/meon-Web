@@ -95,6 +95,7 @@ my $builder = Module::Build::SysPath->new(
         script/meon-web.psgi
         script/meon-web-rss2-feed
         script/meon-web-sync-members
+	script/meon-web-generate-opensearch
     )],
     conffiles => [qw(
         etc/meon/web-config.ini
