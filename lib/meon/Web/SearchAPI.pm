@@ -26,14 +26,20 @@ has 'ose' => (
 
 sub _build_opensearch {
     my ($self) = @_;
-    my @ose_nodes =
-        split( ',', meon::Web::Config->get->{opensearch}->{nodes} );
-    return Search::Elasticsearch::Async->new(
+    my $cfg = meon::Web::Config->get->{opensearch};
+    my @ose_nodes = split( ',', $cfg->{nodes} );
+    my %osearch_args = (
         nodes           => \@ose_nodes,
         request_timeout => 300,
-        cxn_pool        => 'Async::Sniff',
+        cxn_pool        => (
+            $cfg->{cxn_pool} // 'Async::Static'
+        ),
     );
+    $osearch_args{userinfo} = $cfg->{basic_auth}
+        if $cfg->{basic_auth};
+    return Search::Elasticsearch::Async->new(%osearch_args);
 }
+
 sub service_name {
     return 'meon-web-search-api';
 }
