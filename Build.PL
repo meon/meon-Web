@@ -18,91 +18,96 @@ my $builder = Module::Build::SysPath->new(
         'Module::Build::SysPath' => 0.13,
         'Test::Most'             => 0,
         'Monkey::Patch::Action'  => 0,
+        'Test::MockTime'         => 0,
     },
     requires => {
-        'perl'                             => '5.010',
-        'Moose'                            => 0,
-        'Catalyst::Runtime'                => '5.90007',
-        'Catalyst::Plugin::ConfigLoader'   => 0,
-        'Catalyst::Plugin::Static::Simple' => 0,
-        'Catalyst::Plugin::Session'        => '0.37', # change_session_expires()
+        'perl'                                     => '5.010',
+        'Moose'                                    => 0,
+        'Catalyst::Runtime'                        => '5.90007',
+        'Catalyst::Plugin::ConfigLoader'           => 0,
+        'Catalyst::Plugin::Static::Simple'         => 0,
+        'Catalyst::Plugin::Session'                => '0.37',      # change_session_expires()
         'Catalyst::Plugin::Session::State::Cookie' => 0,
-        'Catalyst::Plugin::Session::Store::File' => 0,
-        'Catalyst::Plugin::Authentication' => 0,
+        'Catalyst::Plugin::Session::Store::File'   => 0,
+        'Catalyst::Plugin::Authentication'         => 0,
         'Catalyst::Authentication::Store::UserXML' => '0.03',
-        'Catalyst::Action::RenderView'     => 0,
-        'namespace::autoclean'             => 0,
-        'Catalyst::View::XSLT'             => '0.10',
-        'Catalyst::View::JSON'             => 0,
-        'File::MimeInfo'                   => 0,
-        'Email::MIME'                      => 0,
-        'Email::Sender::Simple'            => 0,
-        'List::MoreUtils'                  => 0,
-        'Path::Class'                      => 0.04,    # mkpath()
-        'HTML::FormHandler::Moose'         => 0,
-        'Catalyst::Model::Factory::PerRequest' => 0,
-        'URI'                              => 0,
-        'URI::Escape'                      => 0,
-        'IO::Any'                          => 0,
-        'XML::LibXML'                      => '1.70',
-        'Catalyst::Plugin::SmartURI'       => 0,
-        'Config::INI::Reader'              => 0,
-        'Data::Dumper'                     => 0,
-        'JSON::XS'                         => 0,
-        'Class::Load'                      => 0,
-        'Text::Unidecode'                  => 0,
-        'Data::UUID::LibUUID'              => 0,
-        'DateTime::Format::Strptime'       => 0,
-        'Email::Valid'                     => 0,
-        'Email::MIME'                      => 0,
-        'Email::Sender::Simple'            => 0,
-        'Scalar::Util'                     => 0,
-        'Digest::SHA'                      => 0,
-        'Imager'                           => 0,
-        'Data::asXML'                      => 0.07,     # namespaces fixed
-        'DateTime::Format::Strptime'       => 0,
-        'MooseX::Types::Path::Class'       => 0,
-        'DateTime::Format::HTTP'           => 0,
-        'File::Copy'                       => 0,
-        'Getopt::Long'                     => 0,
-        'Pod::Usage'                       => 0,
-        'MooseX::StrictConstructor'        => 0,
-        'Data::Header::Fields'             => 0,
-        'Run::Env'                         => 0,
-        'Email::MIME'                      => 0,
-        'Email::Sender::Simple'            => 0,
-        'File::MimeInfo'                   => 0,
-        'File::Find::Age'                  => 0,
-        'WWW::Mechanize'                   => 0,
-        'File::is'                         => 0,
-        'File::Temp'                       => 0,
-        'XML::Chain'                       => 0.07,    # clean xc() creation with libxml document
-        'DateTime'                         => 0,
-        'String::Ident'                    => 0,
-        'List::Util'                       => 0,
-        'File::Basename'                   => 0,
-        'DateTime::Format::Mail'           => 0,
-        'HTTP::Exception'                  => 0,
-        'Future::AsyncAwait'               => 0,
+        'Catalyst::Action::RenderView'             => 0,
+        'namespace::autoclean'                     => 0,
+        'Catalyst::View::XSLT'                     => '0.10',
+        'Catalyst::View::JSON'                     => 0,
+        'File::MimeInfo'                           => 0,
+        'Email::MIME'                              => 0,
+        'Email::Sender::Simple'                    => 0,
+        'List::MoreUtils'                          => 0,
+        'Path::Class'                              => 0.04,        # mkpath()
+        'HTML::FormHandler::Moose'                 => 0,
+        'Catalyst::Model::Factory::PerRequest'     => 0,
+        'URI'                                      => 0,
+        'URI::Escape'                              => 0,
+        'IO::Any'                                  => 0,
+        'XML::LibXML'                              => '1.70',
+        'Catalyst::Plugin::SmartURI'               => 0,
+        'Config::INI::Reader'                      => 0,
+        'Data::Dumper'                             => 0,
+        'JSON::XS'                                 => 0,
+        'Class::Load'                              => 0,
+        'Text::Unidecode'                          => 0,
+        'Data::UUID::LibUUID'                      => 0,
+        'DateTime::Format::Strptime'               => 0,
+        'Email::Valid'                             => 0,
+        'Email::MIME'                              => 0,
+        'Email::Sender::Simple'                    => 0,
+        'Scalar::Util'                             => 0,
+        'Digest::SHA'                              => 0,
+        'Imager'                                   => 0,
+        'Data::asXML'                              => 0.07,        # namespaces fixed
+        'DateTime::Format::Strptime'               => 0,
+        'MooseX::Types::Path::Class'               => 0,
+        'DateTime::Format::HTTP'                   => 0,
+        'File::Copy'                               => 0,
+        'Getopt::Long'                             => 0,
+        'Pod::Usage'                               => 0,
+        'MooseX::StrictConstructor'                => 0,
+        'Data::Header::Fields'                     => 0,
+        'Run::Env'                                 => 0,
+        'Email::MIME'                              => 0,
+        'Email::Sender::Simple'                    => 0,
+        'File::MimeInfo'                           => 0,
+        'File::Find::Age'                          => 0,
+        'WWW::Mechanize'                           => 0,
+        'File::is'                                 => 0,
+        'File::Temp'                               => 0,
+        'XML::Chain'                   => 0.07,    # clean xc() creation with libxml document
+        'DateTime'                     => 0,
+        'String::Ident'                => 0,
+        'List::Util'                   => 0,
+        'File::Basename'               => 0,
+        'DateTime::Format::Mail'       => 0,
+        'HTTP::Exception'              => 0,
+        'Future::AsyncAwait'           => 0,
+        'Search::Elasticsearch::Async' => 0,
+        'Async::Microservice'          => 0,
     },
     script_files => [qw(
-        script/meon-web-aggregate-timelines
-        script/meon-web-atom-feed
-        script/meon-web-expire-members
-        script/meon-web-generate-product-categories
-        script/meon-web-generate-sitemap
-        script/meon-web-get-pricelist
-        script/meon-web-mail2timeline-entry
-        script/meon-web.psgi
-        script/meon-web-rss2-feed
-        script/meon-web-sync-members
-	script/meon-web-generate-opensearch
-    )],
+            script/meon-web-aggregate-timelines
+            script/meon-web-atom-feed
+            script/meon-web-expire-members
+            script/meon-web-generate-product-categories
+            script/meon-web-generate-sitemap
+            script/meon-web-get-pricelist
+            script/meon-web-mail2timeline-entry
+            script/meon-web.psgi
+            script/meon-web-rss2-feed
+            script/meon-web-sync-members
+            script/meon-web-generate-opensearch
+        )
+    ],
     conffiles => [qw(
-        etc/meon/web-config.ini
-        etc/cron.d/meon-web
-    )],
-    add_to_cleanup => [ 'meon-Web-*' ],
+            etc/meon/web-config.ini
+            etc/cron.d/meon-web
+        )
+    ],
+    add_to_cleanup => ['meon-Web-*'],
     create_readme  => 1,
 );
 
