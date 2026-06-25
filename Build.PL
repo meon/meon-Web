@@ -83,6 +83,7 @@ my $builder = Module::Build::SysPath->new(
         'File::Basename'                   => 0,
         'DateTime::Format::Mail'           => 0,
         'HTTP::Exception'                  => 0,
+        'Future::AsyncAwait'               => 0,
     },
     script_files => [qw(
         script/meon-web-aggregate-timelines
