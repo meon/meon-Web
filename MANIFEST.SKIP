@@ -6,6 +6,7 @@
 ^\.git
 \.cvsignore
 \.svnignore
+\.vscode
 
 # Avoid Makemaker generated and utility files.
 ^Makefile$
