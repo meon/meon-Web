@@ -44,7 +44,7 @@ my $service_url = $meon_webapi->url;
 my $mech        = Test::WWW::Mechanize->new();
 $mech->add_header( content_type => 'application/json' );
 $mech->add_header( accept       => 'application/json' );
-$mech->add_header( 'HTTP_X_FORWARDED_HOST' => 'search-test.local' );
+$mech->add_header( 'X-Forwarded-Host' => 'search-test.local' );
 
 $mech->get_ok( $service_url . 'hcheck' )
     or die Test::More::diag( Data::Dumper::Dumper( $mech->content ) );
@@ -72,17 +72,42 @@ subtest 'refresh index' => sub {
 };
 
 subtest '/autocomplete' => sub {
-    $mech->post( $service_url . 'autocomplete',
-        content => $json->encode( { todo_autocomplete => 1 } ), );
-    ok( $mech->success, 'post to autocomplete' );
-    my $dt_data;
-    lives_ok( sub { $dt_data = $json->decode( $mech->content ) },
-        'json content' );
-    eq_or_diff_data(
-        $dt_data,
-        { todo_autocomplete => 1 },
-        'autocomplete response content'
-    );
+    subtest 'title_ngram query' => sub {
+        $mech->post( $service_url . 'autocomplete',
+            content => $json->encode( { query => 'PRODUCT 2-1', limit => 3 } ), );
+        ok( $mech->success, 'post to autocomplete' ) or diag( $mech->content );
+
+        my $dt_data;
+        lives_ok( sub { $dt_data = $json->decode( $mech->content ) },
+            'json content' );
+
+        is( $dt_data->{query}, 'product 2-1', 'autocomplete response query' );
+        is( $dt_data->{total}, 3, 'autocomplete response total' );
+        ok( ref( $dt_data->{items} ) eq 'ARRAY', 'autocomplete items array' );
+        is( scalar( @{ $dt_data->{items} } ), 3, 'autocomplete items count' );
+        is( $dt_data->{items}->[0]->{title}, 'Product 2-1-1', 'first title' );
+        is( $dt_data->{items}->[1]->{title}, 'Product 2-1-2', 'second title' );
+        is( $dt_data->{items}->[2]->{title}, 'Product 2-1-3', 'third title' );
+    };
+
+    subtest 'fallback to normal search' => sub {
+        $mech->post( $service_url . 'autocomplete',
+            content => $json->encode( { query => 'second product' } ), );
+        ok( $mech->success, 'post to autocomplete with fallback query' )
+            or diag( $mech->content );
+
+        my $dt_data;
+        lives_ok( sub { $dt_data = $json->decode( $mech->content ) },
+            'json content' );
+
+        is( $dt_data->{query}, 'second product', 'fallback response query' );
+        is( $dt_data->{total}, 2, 'fallback response total' );
+        ok( ref( $dt_data->{items} ) eq 'ARRAY', 'fallback items array' );
+        is( scalar( @{ $dt_data->{items} } ), 2, 'fallback items count' );
+        is( $dt_data->{items}->[0]->{title}, 'Product 1-2', 'fallback first title' );
+        is( $dt_data->{items}->[1]->{title}, 'Product 2-1-2',
+            'fallback second title' );
+    };
 };
 
 subtest '/search' => sub {

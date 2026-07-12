@@ -8,7 +8,6 @@ our $VERSION = '0.01';
 
 use Async::Microservice;
 with qw(Async::Microservice);
-use Search::Elasticsearch::Async;
 use meon::Web::SearchIndex;
 use meon::Web::Util;
 
@@ -40,6 +39,45 @@ sub get_routes {
     );
 }
 
+sub _parse_search_types {
+    my ( $self, $req_args ) = @_;
+
+    my $search_types = [];
+    return $search_types
+        if !exists $req_args->{search_type};
+
+    return undef
+        unless ref( $req_args->{search_type} ) eq 'ARRAY';
+
+    my %allowed_type = map { $_ => 1 } qw(page product category);
+    for my $stype ( @{ $req_args->{search_type} } ) {
+        return undef
+            if !defined($stype) || ref($stype) || !$allowed_type{$stype};
+        push( @$search_types, $stype );
+    }
+
+    return $search_types;
+}
+
+sub _map_autocomplete_items {
+    my ( $self, $hits ) = @_;
+
+    return [
+        map {
+            my $src = $_->{_source} || {};
+            +{
+                title       => $src->{title},
+                url         => $src->{url},
+                search_type => $src->{search_type},
+                breadcrumb  => $src->{breadcrumb},
+                teaser      => $src->{teaser},
+                thumbnail   => $src->{thumbnail},
+                weight      => $src->{weight},
+            };
+        } @$hits
+    ];
+}
+
 async sub POST_autocomplete {
     my ( $self, $this_req, $match ) = @_;
 
@@ -47,7 +85,115 @@ async sub POST_autocomplete {
     return [ 400, [], 'invalid json body' ]
         if $@ || ( ref($ac_args) ne 'HASH' );
 
-    return $ac_args; # for testing
+    my $query = $ac_args->{query};
+    return [ 400, [], 'query is required' ]
+        if !defined($query) || ref($query);
+    $query =~ s/^\s+|\s+$//g;
+    return [ 400, [], 'query is required' ]
+        if $query eq '';
+    my $norm_query = meon::Web::Util->norm_tokens($query);
+
+    my $limit = defined $ac_args->{limit} ? $ac_args->{limit} : 10;
+    return [ 400, [], 'limit must be integer in range 1..100' ]
+        unless $limit =~ m/^\d+$/ && $limit >= 1 && $limit <= 100;
+
+    my $search_types = $self->_parse_search_types($ac_args);
+    return [ 400, [], 'search_type must be an array with valid values' ]
+        unless defined($search_types);
+
+    my $host = $this_req->http_host;
+    my $search_index = eval { meon::Web::SearchIndex->new( hostname => $host ) };
+    return [ 400, [], 'invalid Host header' ]
+        if $@ || !$search_index;
+
+    my @filter;
+    if (@$search_types) {
+        push( @filter, { terms => { search_type => $search_types } } );
+    }
+
+    my $ac_terms = meon::Web::Util->explode_for_autocomplete($query);
+    my $ac_query_txt = join( ' ', @$ac_terms );
+
+    my $ac_ose_result = eval {
+        await $self->ose->search(
+            index => $search_index->index_alias,
+            body  => {
+                query => {
+                    bool => {
+                        must => [
+                            {
+                                match => {
+                                    title_ngram => {
+                                        query                => $ac_query_txt,
+                                        operator             => 'or',
+                                        minimum_should_match => '70%',
+                                    },
+                                },
+                            },
+                        ],
+                        ( @filter ? ( filter => \@filter ) : () ),
+                    },
+                },
+                size => $limit,
+                sort => [
+                    { _score => { order => 'desc' } },
+                ],
+            },
+        )->ft;
+    };
+
+    if ( $@ || ref($ac_ose_result) ne 'HASH' ) {
+        warn "autocomplete backend query for host '$host' failed: $@";
+        return [ 500, [], 'search backend query failed' ];
+    }
+
+    my $ac_hits = $ac_ose_result->{hits}->{hits} || [];
+    if ( scalar(@$ac_hits) > 0 ) {
+        return {
+            query => $norm_query,
+            total => scalar(@$ac_hits),
+            items => $self->_map_autocomplete_items($ac_hits),
+        };
+    }
+
+    my $fallback_ose_result = eval {
+        await $self->ose->search(
+            index => $search_index->index_alias,
+            body  => {
+                query => {
+                    bool => {
+                        must => [
+                            {
+                                match => {
+                                    search_content => {
+                                        query    => $norm_query,
+                                        operator => 'and',
+                                    },
+                                },
+                            },
+                        ],
+                        ( @filter ? ( filter => \@filter ) : () ),
+                    },
+                },
+                size => $limit,
+                sort => [
+                    { _score => { order => 'desc' } },
+                ],
+            },
+        )->ft;
+    };
+
+    if ( $@ || ref($fallback_ose_result) ne 'HASH' ) {
+        warn "autocomplete fallback query for host '$host' failed: $@";
+        return [ 500, [], 'search backend query failed' ];
+    }
+
+    my $fallback_hits = $fallback_ose_result->{hits}->{hits} || [];
+    return {
+        query => $norm_query,
+        total => scalar(@$fallback_hits),
+        items => $self->_map_autocomplete_items($fallback_hits),
+    };
 }
 
 async sub POST_search {
@@ -73,18 +219,9 @@ async sub POST_search {
     return [ 400, [], 'size must be integer in range 1..200' ]
         unless $size =~ m/^\d+$/ && $size >= 1 && $size <= 200;
 
-    my $search_types = [];
-    if ( exists $srch_args->{search_type} ) {
-        return [ 400, [], 'search_type must be an array' ]
-            unless ref( $srch_args->{search_type} ) eq 'ARRAY';
-
-        my %allowed_type = map { $_ => 1 } qw(page product category);
-        for my $stype ( @{ $srch_args->{search_type} } ) {
-            return [ 400, [], 'invalid search_type value' ]
-                if !defined($stype) || ref($stype) || !$allowed_type{$stype};
-            push( @$search_types, $stype );
-        }
-    }
+    my $search_types = $self->_parse_search_types($srch_args);
+    return [ 400, [], 'search_type must be an array with valid values' ]
+        unless defined($search_types);
 
     my $host = $this_req->http_host;
     my $search_index = eval { meon::Web::SearchIndex->new( hostname => $host ) };
@@ -126,8 +263,10 @@ async sub POST_search {
         )->ft;
     };
 
-    return [ 500, [], 'search backend query failed' ]
-        if $@ || ref($ose_result) ne 'HASH';
+    if ( $@ || ref($ose_result) ne 'HASH' ) {
+        warn "search backend query for host '$host' failed: $@";
+        return [ 500, [], 'search backend query failed' ];
+    }
 
     my $hits = $ose_result->{hits}->{hits} || [];
     my $total = $ose_result->{hits}->{total};
