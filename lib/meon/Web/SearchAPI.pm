@@ -16,6 +16,8 @@ use namespace::autoclean;
 use Future::AsyncAwait;
 use Carp qw(croak);
 
+has '+api_prefix' => ( default => '/mws_1' );
+
 has 'ose' => (
     is      => 'ro',
     isa     => 'Object',

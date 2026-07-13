@@ -7,7 +7,7 @@ info:
     name: Perl Licence
     url: https://perldoc.perl.org/index-licence.html
 servers:
-  - url: /v1/
+  - url: /mws_1/
 paths:
   '/hcheck':
     get:
