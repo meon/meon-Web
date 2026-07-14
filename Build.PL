@@ -97,6 +97,7 @@ my $builder = Module::Build::SysPath->new(
             script/meon-web-get-pricelist
             script/meon-web-mail2timeline-entry
             script/meon-web.psgi
+            script/meon-web-search-api.psgi
             script/meon-web-rss2-feed
             script/meon-web-sync-members
             script/meon-web-generate-opensearch
