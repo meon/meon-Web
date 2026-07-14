@@ -34,6 +34,7 @@
     <w:search-item> <xsl:value-of select="$newline"/>
         <w:ident><xsl:value-of select="./@ident"/></w:ident> <xsl:value-of select="$newline"/>
         <w:href><xsl:value-of select="./@href"/></w:href> <xsl:value-of select="$newline"/>
+        <w:tree-idx><xsl:value-of select="./@tree-idx"/></w:tree-idx> <xsl:value-of select="$newline"/>
         <xsl:apply-templates
             select="w:title | w:subcategory-products | w:thumb-img-src | w:teaser | w:description"
             mode="copy-for-search"/>

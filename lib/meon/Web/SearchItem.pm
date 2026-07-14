@@ -14,7 +14,8 @@ has 'teaser'         => ( is => 'rw', isa => 'Maybe[Str]', required => 0, );
 has 'search_content' => ( is => 'rw', isa => 'Maybe[Str]', required => 0, );
 has 'url'            => ( is => 'rw', isa => 'Str',        required => 1, );
 has 'index_ts'       => ( is => 'rw', isa => 'Str',        required => 1, );
-has 'weight'         => ( is => 'rw', isa => 'Num',        default  => 1, );
+has 'weight'         => ( is => 'rw', isa => 'Num',        default  => 0, );
+has 'tree_idx'       => ( is => 'rw', isa => 'Num',        default  => 1, );
 has 'title_ngram' => (
     is      => 'rw',
     isa     => 'Str',

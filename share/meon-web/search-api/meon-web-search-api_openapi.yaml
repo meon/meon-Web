@@ -177,6 +177,10 @@ components:
           type: number
           description: ranking weight from indexed document
           example: 2.5
+        score:
+          type: number
+          description: Elasticsearch relevance score
+          example: 42.5
       required:
         - title
         - url
@@ -186,10 +190,6 @@ components:
         - $ref: '#/components/schemas/Autocomplete-Item'
         - type: object
           properties:
-            score:
-              type: number
-              description: engine score for the hit
-              example: 12.345
             index_ts:
               type: string
               description: indexing timestamp in ISO 8601 format

@@ -44,6 +44,23 @@ subtest 'clean-up first' => sub {
     $search_index->_delete_index($search_index->index_a);
     $search_index->_delete_index($search_index->index_b);
 
+    # Recreate the schema at test start and verify it is applied.
+    $search_index->init_index;
+    my $mapping = $search_index->ose->indices->get_mapping(
+        index => $search_index->work_index,
+    )->sync;
+    is(
+        $mapping->{ $search_index->work_index }->{mappings}->{properties}
+            ->{weight}->{type},
+        'float',
+        'schema mapping is recreated at test start',
+    );
+
+    $search_index->_delete_index($search_index->work_index);
+    $search_index->_clear__indices_info;
+    $search_index->_clear_active_index;
+    $search_index->_clear_work_index;
+
     eq_or_diff(
         $search_index->_indices_info,
         {   index_a => undef,

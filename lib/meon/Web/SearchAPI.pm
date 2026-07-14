@@ -75,6 +75,29 @@ sub _map_autocomplete_items {
                 teaser      => $src->{teaser},
                 thumbnail   => $src->{thumbnail},
                 weight      => $src->{weight},
+                score       => 0 + ( $_->{_score} // 0 ),
+            };
+        } @$hits
+    ];
+}
+
+sub _map_search_items {
+    my ( $self, $hits ) = @_;
+
+    return [
+        map {
+            my $src = $_->{_source} || {};
+            +{
+                title          => $src->{title},
+                url            => $src->{url},
+                search_type    => $src->{search_type},
+                breadcrumb     => $src->{breadcrumb},
+                teaser         => $src->{teaser},
+                thumbnail      => $src->{thumbnail},
+                weight         => $src->{weight},
+                score          => 0 + ( $_->{_score} // 0 ),
+                index_ts       => $src->{index_ts},
+                search_content => $src->{search_content},
             };
         } @$hits
     ];
@@ -123,23 +146,76 @@ async sub POST_autocomplete {
                 query => {
                     bool => {
                         must => [
-                            {
-                                match => {
-                                    title_ngram => {
-                                        query                => $ac_query_txt,
-                                        operator             => 'or',
-                                        minimum_should_match => '70%',
-                                    },
+                            {   dis_max => {
+                                    tie_breaker => 0,
+                                    queries     => [
+                                        {   script_score => {
+                                                query => {
+                                                    match =>
+                                                        { title_ngram => {
+                                                            query =>
+                                                                $ac_query_txt,
+                                                            operator => 'and',
+                                                        },
+                                                        },
+                                                },
+                                                script => {
+
+                                                    # Range: [30.0, 32.0)
+                                                    source =>
+                                                        q{30.0 + doc['weight'].value + (_score / (1.0 + _score))},
+                                                },
+                                            },
+                                        },
+                                        {   script_score => {
+                                                query => {
+                                                    match =>
+                                                        { title_ngram => {
+                                                            query =>
+                                                                $ac_query_txt,
+                                                            operator => 'or',
+                                                            minimum_should_match =>
+                                                                '85%',
+                                                        },
+                                                        },
+                                                },
+                                                script => {
+
+                                                    # Range: [20.0, 22.0)
+                                                    source =>
+                                                        q{20.0 + doc['weight'].value + (_score / (1.0 + _score))},
+                                                },
+                                            },
+                                        },
+                                        {   script_score => {
+                                                query => {
+                                                    match =>
+                                                        { search_content => {
+                                                            query =>
+                                                                $norm_query,
+                                                            operator => 'and',
+                                                        },
+                                                        },
+                                                },
+                                                script => {
+
+                                                    # Range: [10.0, 12.0)
+                                                    source =>
+                                                        q{10.0 + doc['weight'].value + (_score / (1.0 + _score))},
+                                                },
+                                            },
+                                        },
+                                    ],
                                 },
                             },
                         ],
                         ( @filter ? ( filter => \@filter ) : () ),
                     },
                 },
+
                 size => $limit,
-                sort => [
-                    { _score => { order => 'desc' } },
-                ],
+
+                sort => [ { _score => { order => 'desc' } }, ],
             },
         )->ft;
     };
@@ -150,51 +226,10 @@ async sub POST_autocomplete {
     }
 
     my $ac_hits = $ac_ose_result->{hits}->{hits} || [];
-    if ( scalar(@$ac_hits) > 0 ) {
-        return {
-            query => $norm_query,
-            total => scalar(@$ac_hits),
-            items => $self->_map_autocomplete_items($ac_hits),
-        };
-    }
-
-    my $fallback_ose_result = eval {
-        await $self->ose->search(
-            index => $search_index->index_alias,
-            body  => {
-                query => {
-                    bool => {
-                        must => [
-                            {
-                                match => {
-                                    search_content => {
-                                        query    => $norm_query,
-                                        operator => 'and',
-                                    },
-                                },
-                            },
-                        ],
-                        ( @filter ? ( filter => \@filter ) : () ),
-                    },
-                },
-                size => $limit,
-                sort => [
-                    { _score => { order => 'desc' } },
-                ],
-            },
-        )->ft;
-    };
-
-    if ( $@ || ref($fallback_ose_result) ne 'HASH' ) {
-        warn "autocomplete fallback query for host '$host' failed: $@";
-        return [ 500, [], 'search backend query failed' ];
-    }
-
-    my $fallback_hits = $fallback_ose_result->{hits}->{hits} || [];
     return {
         query => $norm_query,
-        total => scalar(@$fallback_hits),
-        items => $self->_map_autocomplete_items($fallback_hits),
+        total => scalar(@$ac_hits),
+        items => $self->_map_autocomplete_items($ac_hits),
     };
 }
 
@@ -280,23 +315,7 @@ async sub POST_search {
         page    => 0 + $page,
         size    => 0 + $size,
         took_ms => 0 + ( $ose_result->{took} // 0 ),
-        items   => [
-            map {
-                my $src = $_->{_source} || {};
-                +{
-                    title          => $src->{title},
-                    url            => $src->{url},
-                    search_type    => $src->{search_type},
-                    breadcrumb     => $src->{breadcrumb},
-                    teaser         => $src->{teaser},
-                    thumbnail      => $src->{thumbnail},
-                    weight         => $src->{weight},
-                    score          => 0 + ( $_->{_score} // 0 ),
-                    index_ts       => $src->{index_ts},
-                    search_content => $src->{search_content},
-                };
-            } @$hits
-        ],
+        items   => $self->_map_search_items($hits),
     };
 }
 

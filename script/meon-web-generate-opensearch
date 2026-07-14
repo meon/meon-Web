@@ -14,15 +14,22 @@ sub main {
     my $help;
     my $dst_domain;
     my $dry_run;
+    my $update_schema;
     GetOptions(
-        'help|h'     => \$help,
-        'hostname=s' => \$dst_domain,
-        'dry-run!'   => \$dry_run,
+        'help|h'          => \$help,
+        'hostname=s'      => \$dst_domain,
+        'dry-run!'        => \$dry_run,
+        'update-schema!'  => \$update_schema,
     ) or pod2usage;
     pod2usage if $help;
     pod2usage unless defined $dst_domain;
 
     my $mws = meon::Web::Search->new( hostname => $dst_domain, );
+
+    if ($update_schema) {
+        $mws->update_schema;
+        return 0;
+    }
 
     $mws->do_indexing( dry_run => $dry_run );
 
@@ -38,6 +45,7 @@ meon-web-generate-opensearch - generate opensearch search data
     meon-web-generate-opensearch --hostname domain
         --hostname domain   domain of the web to generate search index
     --dry-run           populate the working index without switching alias
+    --update-schema     upload mapping from web-opensearch-schema.json to existing indices
 
 =head1 DESCRIPTION
 

@@ -113,7 +113,7 @@ sub apply {
     $all_items->{'home'}->setAttribute('href' => '/');
 
     $all_items->{'home'}->setAttribute('href-canonical' => $HREF_BASE);
-    $self->_set_href($all_items->{'home'},'canonical');
+    $self->_set_href( $all_items->{'home'}, 'canonical', { tree_idx => 1 } );
     $all_items->{'home'}->setAttribute('href-canonical' => '/');
 
     return {
@@ -142,7 +142,13 @@ sub _has_subcategory {
 }
 
 sub _set_href {
-    my ($self, $item, $type) = @_;
+    my ($self, $item, $type, $eargs) = @_;
+
+    $eargs //= {};
+
+    if ( $eargs->{tree_idx} ) {
+        $item->setAttribute('tree-idx' => $eargs->{tree_idx}++ );
+    }
 
     # "href" or "href-$type" attribute
     my $href_attr_name = join('-', 'href', ($type // ()));
@@ -178,7 +184,7 @@ sub _set_href {
     }
 
     foreach my $sub_item (@to_recurse) {
-        $self->_set_href($sub_item, $type);
+        $self->_set_href($sub_item, $type, $eargs);
     }
 }
 

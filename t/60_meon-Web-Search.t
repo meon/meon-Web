@@ -115,4 +115,25 @@ subtest 'dry-run indexing' => sub {
     is( $calls{switch}, 0, 'switch_active_index skipped in dry run' );
 };
 
+subtest 'update schema' => sub {
+    my %calls = (
+        update_schema => 0,
+    );
+
+    my $patch_update_schema = patch_package(
+        'meon::Web::SearchIndex',
+        'update_schema',
+        'replace',
+        sub {
+            $calls{update_schema}++;
+            return;
+        }
+    );
+
+    my $mws = meon::Web::Search->new( hostname => 'search-test.local', );
+    $mws->update_schema;
+
+    is( $calls{update_schema}, 1, 'search_index->update_schema called once' );
+};
+
 done_testing();

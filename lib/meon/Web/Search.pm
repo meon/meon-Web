@@ -74,10 +74,34 @@ sub _build_dst_hostname_dir {
 sub _build_osearch_records {
     my ($self) = @_;
 
-    return [
-        @{ $self->_records_from_content },
+    my @osearch_records =
+        sort {
+        _url_depth( $a->url ) <=> _url_depth( $b->url )
+            || ( $a->tree_idx <=> $b->tree_idx )
+        } (
         @{ $self->_records_from_category_product },
-    ];
+        @{ $self->_records_from_content },
+        );
+
+    return \@osearch_records if @osearch_records < 2;
+
+    my $records_count = scalar(@osearch_records);
+    my $bucket_count  = $records_count < 1000 ? $records_count : 1000;
+    my $denom         = $bucket_count - 1;
+
+    for my $rec_idx ( 0 .. $#osearch_records ) {
+        my $rec    = $osearch_records[$rec_idx];
+        my $bucket = int( $rec_idx * $bucket_count / $records_count );
+        my $weight = 0.001 * ( 1 - ( $bucket / $denom ) );
+        $rec->weight( sprintf '%.6f', $weight );
+    }
+
+    return \@osearch_records;
+}
+
+sub _url_depth {
+    my ($url) = @_;
+    return scalar grep {length} split m{/+}, $url // '';
 }
 
 sub _records_from_category_product {
@@ -100,6 +124,7 @@ sub _records_from_category_product {
             my $cat_prod_uri = $cat_prod_el->find('w:href')->text_content;
             my $title_txt    = $cat_prod_el->find('w:title')->text_content;
             my $teaser_txt   = $cat_prod_el->find('w:teaser')->text_content;
+            my $tree_idx     = $cat_prod_el->find('w:tree-idx')->text_content;
             my $thumb_uri =
                 $cat_prod_el->find('w:thumb-img-src')->text_content;
             my @sub_cat_prod;
@@ -127,7 +152,8 @@ sub _records_from_category_product {
                     teaser      => $teaser_txt,
                     search_content => $content_txt,
                     url            => $cat_prod_uri,
-                    weight         => 1,
+                    weight         => 0,
+                    tree_idx       => $tree_idx,
                     thumbnail      => $thumb_uri,
                     (   @sub_cat_prod
                         ? ( sub_cat_prod => \@sub_cat_prod )
@@ -236,7 +262,7 @@ sub _records_from_content {
                     title          => $title_txt,
                     search_content => $content_txt,
                     url            => $page_uri,
-                    weight         => 1,
+                    weight         => 0,
                     thumbnail      => $thumb_uri,
                     index_ts       => $self->_build_index_ts,
                 )
@@ -261,6 +287,12 @@ sub do_indexing {
     }
     $self->search_index->switch_active_index
         unless $dry_run;
+    return;
+}
+
+sub update_schema {
+    my ($self) = @_;
+    $self->search_index->update_schema;
     return;
 }
 

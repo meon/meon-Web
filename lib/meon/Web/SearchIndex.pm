@@ -197,6 +197,23 @@ sub init_index {
     return;
 }
 
+sub update_schema {
+    my ($self) = @_;
+
+    my @indices = grep {
+        $self->ose->indices->exists( index => $_ )->sync
+    } ( $self->index_a, $self->index_b );
+
+    for my $index (@indices) {
+        $self->ose->indices->put_mapping(
+            index => $index,
+            body  => $self->_index_mapping,
+        )->sync;
+    }
+
+    return scalar(@indices);
+}
+
 sub _delete_index {
     my ( $self, $index ) = @_;
     $self->ose->indices->delete( index => $index )->sync

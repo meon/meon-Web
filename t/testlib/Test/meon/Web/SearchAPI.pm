@@ -28,7 +28,7 @@ sub _build__service {
         $app;
     };
     my $t_server = Plack::Test::Server->new($searchapi_service);
-    $self->{_url} = 'http://127.0.0.1:' . $t_server->port . '/v1/';
+    $self->{_url} = 'http://127.0.0.1:' . $t_server->port . '/mws_1/';
     return $t_server;
 }
 

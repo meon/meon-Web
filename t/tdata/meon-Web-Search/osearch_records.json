@@ -2,18 +2,6 @@
    {
       "breadcrumb" : null,
       "index_ts" : "2026-05-01T13:38:00Z",
-      "search_content" : "search test home there is no place like home category1 category2",
-      "search_type" : "page",
-      "teaser" : null,
-      "thumbnail" : null,
-      "title" : "search test home",
-      "title_ngram" : "se sea sear earc arch te tes test ho hom home rcht chte htes esth stho thom",
-      "url" : "/",
-      "weight" : 1
-   },
-   {
-      "breadcrumb" : null,
-      "index_ts" : "2026-05-01T13:38:00Z",
       "search_content" : "home",
       "search_type" : "category",
       "teaser" : "",
@@ -21,7 +9,19 @@
       "title" : "Home",
       "title_ngram" : "ho hom home",
       "url" : "/",
-      "weight" : 1
+      "weight" : "0.001000"
+   },
+   {
+      "breadcrumb" : null,
+      "index_ts" : "2026-05-01T13:38:00Z",
+      "search_content" : "search test home there is no place like home category1 category2",
+      "search_type" : "page",
+      "teaser" : null,
+      "thumbnail" : null,
+      "title" : "search test home",
+      "title_ngram" : "se sea sear earc arch te tes test ho hom home rcht chte htes esth stho thom",
+      "url" : "/",
+      "weight" : "0.000889"
    },
    {
       "breadcrumb" : "Home",
@@ -33,7 +33,7 @@
       "title" : "Category 1",
       "title_ngram" : "ca cat cate ateg tego egor gory ory1",
       "url" : "/c/cat1",
-      "weight" : 1
+      "weight" : "0.000778"
    },
    {
       "breadcrumb" : "Home > Category 1",
@@ -45,7 +45,7 @@
       "title" : "Product 1-1",
       "title_ngram" : "pr pro prod rodu oduc duct uct1 ct11",
       "url" : "/c/cat1/prod-1-1",
-      "weight" : 1
+      "weight" : "0.000556"
    },
    {
       "breadcrumb" : "Home > Category 1",
@@ -57,7 +57,7 @@
       "title" : "Product 1-2",
       "title_ngram" : "pr pro prod rodu oduc duct uct1 ct12",
       "url" : "/c/cat1/prod-1-2",
-      "weight" : 1
+      "weight" : "0.000444"
    },
    {
       "breadcrumb" : "Home",
@@ -69,7 +69,7 @@
       "title" : "Category 2",
       "title_ngram" : "ca cat cate ateg tego egor gory ory2",
       "url" : "/c/cat2",
-      "weight" : 1
+      "weight" : "0.000667"
    },
    {
       "breadcrumb" : "Home > Category 2",
@@ -81,7 +81,7 @@
       "title" : "Category 2-1",
       "title_ngram" : "ca cat cate ateg tego egor gory ory2 ry21",
       "url" : "/c/cat2/cat2-1",
-      "weight" : 1
+      "weight" : "0.000333"
    },
    {
       "breadcrumb" : "Home > Category 2 > Category 2-1",
@@ -93,7 +93,7 @@
       "title" : "Product 2-1-1",
       "title_ngram" : "pr pro prod rodu oduc duct uct2 ct21 t211",
       "url" : "/c/cat2/cat2-1/prod-2-1-1",
-      "weight" : 1
+      "weight" : "0.000222"
    },
    {
       "breadcrumb" : "Home > Category 2 > Category 2-1",
@@ -105,7 +105,7 @@
       "title" : "Product 2-1-2",
       "title_ngram" : "pr pro prod rodu oduc duct uct2 ct21 t212",
       "url" : "/c/cat2/cat2-1/prod-2-1-2",
-      "weight" : 1
+      "weight" : "0.000111"
    },
    {
       "breadcrumb" : "Home > Category 2 > Category 2-1",
@@ -117,6 +117,6 @@
       "title" : "Product 2-1-3",
       "title_ngram" : "pr pro prod rodu oduc duct uct2 ct21 t213",
       "url" : "/c/cat2/cat2-1/prod-2-1-3",
-      "weight" : 1
+      "weight" : "0.000000"
    }
 ]
