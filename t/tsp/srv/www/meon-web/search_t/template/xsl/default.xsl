@@ -12,6 +12,8 @@
 <xsl:import href="lib/product.xsl" />
 <xsl:import href="lib/category-product.xsl" />
 <xsl:import href="lib/html-page.xsl" />
+<xsl:import href="lib/forms.xsl" />
+<xsl:import href="lib/search-results.xsl" />
 
 <xsl:output
     method="html"

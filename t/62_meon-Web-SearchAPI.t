@@ -44,7 +44,7 @@ my $service_url = $meon_webapi->url;
 my $mech        = Test::WWW::Mechanize->new();
 $mech->add_header( content_type => 'application/json' );
 $mech->add_header( accept       => 'application/json' );
-$mech->add_header( 'X-Forwarded-Host' => 'search-test.local' );
+$mech->add_header( 'HTTP_X_FORWARDED_HOST' => 'search-test.local' );
 
 $mech->get_ok( $service_url . 'hcheck' )
     or die Test::More::diag( Data::Dumper::Dumper( $mech->content ) );
