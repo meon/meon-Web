@@ -48,11 +48,42 @@ subtest 'check env' => sub {
     ok( meon::Web::env->apply_includes(), 'apply_includes()' );
 };
 
+subtest 'derived teaser truncation' => sub {
+    my $mws = meon::Web::Search->new(
+        hostname       => 'search-test.local',
+        teaser_max_len => 12,
+    );
+    my $long_content = 'alpha beta gamma delta';
+
+    is(
+        $mws->_teaser_from_content( undef, $long_content ),
+        'alpha beta…',
+        'derived teaser is truncated at word boundary with ellipsis'
+    );
+};
+
 subtest 'opensearch-records' => sub {
     my $mws = meon::Web::Search->new( hostname => 'search-test.local', );
     $mws->index_ts;    # force index_ts to be built before records
     my @osearch_records = $mws->all_osearch_records;
     cmp_ok( scalar(@osearch_records), '>', 5, 'osearch_records count' ) or return;
+
+    my $home_page = first { $_->url eq '/' && $_->search_type eq 'page' }
+        @osearch_records;
+    is(
+        $home_page->teaser,
+        'there is no place like home category1 category2',
+        'page teaser is generated from content text'
+    );
+
+    my $product = first { $_->url eq '/c/cat1/prod-1-1' } @osearch_records;
+    is( $product->teaser, 'Very first test product.',
+        'existing category-product teaser is preserved' );
+    is(
+        $product->as_opensearch_record->{search_content},
+        'home category 1 product 1-1 very first test description of 1st product from category',
+        'category-product search_content includes explicit teaser text only'
+    );
 
     my @osearch_records_json =
         map { $_->as_opensearch_record }

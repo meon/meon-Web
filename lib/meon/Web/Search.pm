@@ -2,6 +2,7 @@ package meon::Web::Search;
 
 use Moose;
 use 5.010;
+use utf8;
 use Carp qw(croak);
 use namespace::autoclean;
 
@@ -42,6 +43,11 @@ has 'index_ts' => (
     isa     => 'Str',
     lazy    => 1,
     builder => '_build_index_ts',
+);
+has 'teaser_max_len' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 250,
 );
 has 'search_index' => (
     is      => 'ro',
@@ -104,6 +110,36 @@ sub _url_depth {
     return scalar grep {length} split m{/+}, $url // '';
 }
 
+sub _teaser_from_content {
+    my ( $self, $teaser_txt, $content_txt ) = @_;
+    my $teaser_limit = $self->teaser_max_len;
+
+    if ( defined $teaser_txt ) {
+        $teaser_txt =~ s/\s+/ /g;
+        $teaser_txt =~ s/^\s+|\s+$//g;
+        return $teaser_txt if length $teaser_txt;
+    }
+
+    return unless defined $content_txt;
+
+    $content_txt =~ s/\s+/ /g;
+    $content_txt =~ s/^\s+|\s+$//g;
+
+    return undef unless length $content_txt;
+    return $content_txt if length($content_txt) <= $teaser_limit;
+
+    my $truncated = substr( $content_txt, 0, $teaser_limit - 1 );
+    my $word_boundary = rindex( $truncated, ' ' );
+    if ( $word_boundary > 0 ) {
+        $truncated = substr( $truncated, 0, $word_boundary );
+    }
+    $truncated =~ s/^\s+|\s+$//g;
+    $truncated = substr( $content_txt, 0, $teaser_limit - 1 )
+        unless length $truncated;
+
+    return $truncated . '…';
+}
+
 sub _records_from_category_product {
     my ($self) = @_;
 
@@ -123,7 +159,16 @@ sub _records_from_category_product {
             my $ident        = $cat_prod_el->find('w:ident')->text_content;
             my $cat_prod_uri = $cat_prod_el->find('w:href')->text_content;
             my $title_txt    = $cat_prod_el->find('w:title')->text_content;
-            my $teaser_txt   = $cat_prod_el->find('w:teaser')->text_content;
+            my $xml_teaser_txt = $cat_prod_el->find('w:teaser')->text_content;
+            my $desc_txt     = $cat_prod_el->find('w:description')->text_content;
+            my $teaser_txt =
+                $self->_teaser_from_content( $xml_teaser_txt, $desc_txt );
+            my $has_xml_teaser = defined $xml_teaser_txt;
+            if ($has_xml_teaser) {
+                $xml_teaser_txt =~ s/\s+/ /g;
+                $xml_teaser_txt =~ s/^\s+|\s+$//g;
+                $has_xml_teaser = length $xml_teaser_txt ? 1 : 0;
+            }
             my $tree_idx     = $cat_prod_el->find('w:tree-idx')->text_content;
             my $thumb_uri =
                 $cat_prod_el->find('w:thumb-img-src')->text_content;
@@ -138,8 +183,8 @@ sub _records_from_category_product {
             my $content_txt = join(
                 "\n",
                 map { meon::Web::Util->norm_tokens($_) } (
-                    $title_txt . ' ' . $teaser_txt,
-                    $cat_prod_el->find('w:description')->text_content
+                    $title_txt . ( $has_xml_teaser ? ' ' . $teaser_txt : q{} ),
+                    $desc_txt
                 )
             );
 
@@ -231,6 +276,10 @@ sub _records_from_content {
 
             my $title_txt =
                 $content_xml->find('/w:page/w:meta/w:title')->text_content;
+            my $content_body_txt =
+                $content_xml->find('/w:page/w:content')->text_content;
+            my $teaser_txt =
+                $self->_teaser_from_content( undef, $content_body_txt );
             my $page_uri = join( '/',
                 map { uri_escape($_) } file($rel_file)->components );
 
@@ -251,7 +300,7 @@ sub _records_from_content {
                 "\n",
                 map { meon::Web::Util->norm_tokens($_) } (
                     $title_txt,
-                    $content_xml->find('/w:page/w:content')->text_content
+                    $content_body_txt
                 )
             );
 
@@ -260,6 +309,7 @@ sub _records_from_content {
                 meon::Web::SearchItem->new(
                     search_type    => 'page',
                     title          => $title_txt,
+                    teaser         => $teaser_txt,
                     search_content => $content_txt,
                     url            => $page_uri,
                     weight         => 0,
