@@ -299,7 +299,11 @@ sub resolve_xml : Private {
             my ($form_class) = 'meon::Web::Form::'.$xpc->findnodes('/w:page/w:meta/w:form/w:process', $dom);
             load_class($form_class);
             my $form = $form_class->new(c => $c);
-            my $params = $c->req->body_parameters;
+            my $params = (
+                  $form->http_method eq 'GET'
+                ? $c->req->query_parameters
+                : $c->req->body_parameters
+            );
             foreach my $field ($form->fields) {
                 next if $field->type ne 'Upload';
                 my $field_name = $field->name;
@@ -308,7 +312,9 @@ sub resolve_xml : Private {
             }
             $form->process(params=>$params);
             $form->submitted
-                if $form->is_valid && $form->can('submitted') && ($c->req->method eq 'POST');
+                if $form->is_valid
+                && $form->can('submitted')
+                && ( $c->req->method eq $form->http_method );
             $c->model('ResponseXML')->add_xhtml_form(
                 $form->render
             );

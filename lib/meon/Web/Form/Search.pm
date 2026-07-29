@@ -13,6 +13,7 @@ with 'meon::Web::Role::Form';
 
 has '+name'           => ( default => 'form-search' );
 has '+widget_wrapper' => ( default => 'Bootstrap' );
+has '+http_method'    => ( default => 'GET' );
 
 has_field 'q' => (
     type     => 'Text',
