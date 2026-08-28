@@ -314,7 +314,7 @@ sub resolve_xml : Private {
             $form->submitted
                 if $form->is_valid
                 && $form->can('submitted')
-                && ( $c->req->method eq $form->http_method );
+                && ( uc($c->req->method) eq uc($form->http_method) );
             $c->model('ResponseXML')->add_xhtml_form(
                 $form->render
             );
