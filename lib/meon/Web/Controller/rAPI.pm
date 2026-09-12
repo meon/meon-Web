@@ -46,13 +46,15 @@ sub base : Chained('/') PathPart('rapi') {
         $ua->default_header(
             'Authorization' => 'Basic ' . encode_base64($bauth_usr . ':' . $bauth_sec));
     }
+    my $backend_user_data = $c->session->{backend_user_data} // {};
     $ua->default_header('rapi-session-id' => $c->sessionid);
-    $ua->default_header('rapi-email' => $c->session->{backend_user_data}->{email})
-        if $c->session->{backend_user_data}->{email};
+    $ua->default_header('rapi-email' => $backend_user_data->{email})
+        if $backend_user_data->{email};
     $ua->default_header('Content-Type' => 'application/json; charset=utf-8');
 
     my %post_params = %{$c->req->params};
-    if (my $api_data = $c->session->{api_data}->{$rapi_ctrl}) {
+    my $all_api_data = $c->session->{api_data} // {};
+    if (my $api_data = $all_api_data->{$rapi_ctrl}) {
         $post_params{session} = $api_data;
     }
     my $a_res = $ua->post($rapi_url, Content => $json->encode(\%post_params));
@@ -82,8 +84,9 @@ sub base : Chained('/') PathPart('rapi') {
     if (my $session_actions = delete($a_res_data->{session})) {
         if (my $to_add = $session_actions->{add}) {
             for my $add_key (keys %$to_add) {
-                $c->session->{backend_user_data}->{$add_key} = $to_add->{$add_key};
+                $backend_user_data->{$add_key} = $to_add->{$add_key};
             }
+            $c->session->{backend_user_data} = $backend_user_data;
             if (my $email = $to_add->{email}) {
                 $c->log->info(sprintf('user with %s authenticated', $email));
                 my $user = $c->find_user({username => $email});
@@ -93,11 +96,12 @@ sub base : Chained('/') PathPart('rapi') {
         }
         if (my $to_add = $session_actions->{add_api}) {
             for my $add_key (keys %$to_add) {
-                $c->session->{api_data}->{$rapi_ctrl}->{$add_key} = $to_add->{$add_key};
+                $all_api_data->{$rapi_ctrl}{$add_key} = $to_add->{$add_key};
             }
+            $c->session->{api_data} = $all_api_data;
         }
     }
-    $a_res_data->{session} = $c->session->{backend_user_data};
+    $a_res_data->{session} = $backend_user_data;
 
     if (my $redirect = $a_res_data->{redirect}) {
         my $redirect_uri = $c->traverse_uri($redirect);

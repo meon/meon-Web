@@ -5,17 +5,17 @@ use namespace::autoclean;
 use Path::Class 'file', 'dir';
 use meon::Web::SPc;
 use meon::Web::Util;
+use meon::Web::Config;
+use Cache::FileCache;
+use Plack::Middleware::Session::Simple 0.05;
+use Run::Env;
 
 use Catalyst::Authentication::Store::UserXML 0.03;
 
 use Catalyst::Runtime 5.80;
-use Catalyst::Plugin::Session 0.37;
 use Catalyst qw(
     ConfigLoader
     Authentication
-    Session
-    Session::Store::File
-    Session::State::Cookie
     SmartURI
 );
 extends 'Catalyst';
@@ -60,10 +60,73 @@ __PACKAGE__->config(
         callback_param  => 'cb',
         expose_stash    => 'json',
     },
-    'Plugin::Session' => { expires => 4*60*60 },
 );
 
 __PACKAGE__->setup();
+
+sub apply_session_middleware {
+    my ($class, $app, %args) = @_;
+    my $expires = $args{expires} // meon::Web::Config->session_expires;
+    my $secure = exists $args{secure} ? $args{secure} : !Run::Env->dev;
+    my $store = $args{store};
+    $store //= $class->session_store(%args, expires => $expires);
+
+    return Plack::Middleware::Session::Simple->wrap(
+        $app,
+        store       => $store,
+        cookie_name => 'meon_web_session',
+        keep_empty  => 0,
+        path        => '/',
+        expires     => "+${expires}s",
+        secure      => $secure,
+        httponly    => 1,
+    );
+}
+
+sub session_store {
+    my ($class, %args) = @_;
+    my $expires = $args{expires} // meon::Web::Config->session_expires;
+    my $cache_root = $args{cache_root} // '/tmp/meon-web-session';
+    return Cache::FileCache->new({
+        namespace          => 'meon_web_session',
+        cache_root         => $cache_root,
+        cache_depth        => 3,
+        default_expires_in => $expires,
+    });
+}
+
+sub session {
+    my $c = shift;
+    return $c->req->env->{'psgix.session'};
+}
+
+sub session_options {
+    my $c = shift;
+    return $c->req->env->{'psgix.session.options'};
+}
+
+sub session_is_valid {
+    my $c = shift;
+    return defined $c->session && defined $c->session_options->{id};
+}
+
+sub sessionid {
+    my $c = shift;
+    return $c->session_options->{id};
+}
+
+sub change_session_id {
+    my $c = shift;
+    $c->session_options->{change_id} = 1;
+    return;
+}
+
+sub delete_session {
+    my $c = shift;
+    %{$c->session} = ();
+    $c->session_options->{expire} = 1;
+    return;
+}
 
 sub static_include_path {
     my $c = shift;
@@ -223,6 +286,33 @@ login + members area - users + credentials are stored in XML files. Login restri
 form2email - send form to email address
 
 =back
+
+=head1 SESSION STORAGE
+
+Sessions use C<Plack::Middleware::Session::Simple> with C<Cache::FileCache> at
+F</tmp/meon-web-session>. Reading the session is side-effect free. A session ID,
+cookie, and cache entry are created only after application code changes the
+session.
+
+A successful form POST may create a functional session to carry its
+POST/Redirect/GET destination into the following request. When that destination
+is the session's only value, consuming it also removes the session cookie and
+cache entry.
+
+Set the shared cookie and cache-entry lifetime in the global
+F<etc/meon/web-config.ini> file:
+
+    [main]
+    session-expires = 4 hours
+
+The value accepts C<Time::Duration::Parse::More> expressions and must resolve
+to a positive duration. It defaults to four hours when omitted. Cookies use the
+existing C<meon_web_session> name, site-specific domain, and root path, with
+HttpOnly and SameSite=Lax attributes. The Secure attribute is enabled outside
+the development environment; production requests must therefore use HTTPS.
+
+The C<meon-web-expire-sessions> command purges expired cache entries and is
+scheduled hourly by F<etc/cron.d/meon-web>.
 
 =head1 RESTRICTED WEBSITES
 

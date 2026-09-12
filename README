@@ -44,6 +44,33 @@ FEATURES
 
     *   form2email - send form to email address
 
+SESSION STORAGE
+    Sessions use "Plack::Middleware::Session::Simple" with
+    "Cache::FileCache" at /tmp/meon-web-session. Reading the session is
+    side-effect free. A session ID, cookie, and cache entry are created only
+    after application code changes the session.
+
+    A successful form POST may create a functional session to carry its
+    POST/Redirect/GET destination into the following request. When that
+    destination is the session's only value, consuming it also removes the
+    session cookie and cache entry.
+
+    Set the shared cookie and cache-entry lifetime in the global
+    etc/meon/web-config.ini file:
+
+        [main]
+        session-expires = 4 hours
+
+    The value accepts "Time::Duration::Parse::More" expressions and must
+    resolve to a positive duration. It defaults to four hours when omitted.
+    Cookies use the existing "meon_web_session" name, site-specific domain,
+    and root path, with HttpOnly and SameSite=Lax attributes. The Secure
+    attribute is enabled outside the development environment; production
+    requests must therefore use HTTPS.
+
+    The "meon-web-expire-sessions" command purges expired cache entries and
+    is scheduled hourly by etc/cron.d/meon-web.
+
 RESTRICTED WEBSITES
     To require login by default for a website's XML pages, add this to its
     config.ini:
@@ -131,6 +158,7 @@ CONTRIBUTORS
     my blog (in no particular order):
 
         Andrea Pavlovic
+        AI
 
 LICENSE AND COPYRIGHT
     This program is free software; you can redistribute it and/or modify it

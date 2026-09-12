@@ -46,6 +46,7 @@ sub submitted {
     my $password = $c->req->param('password') // '';
     my $all_required_set = 1;
     my $members_folder = $c->default_auth_store->folder;
+    my $form_input_errors = $c->session->{form_input_errors} // {};
 
     my $login = eval { $self->get_config_text('login') };
     if ($login) {
@@ -61,7 +62,7 @@ sub submitted {
             }
             else {
                 $all_required_set = 0;
-                $c->session->{form_input_errors}->{'password'} = 'wrong password';
+                $form_input_errors->{'password'} = 'wrong password';
             }
 
         }
@@ -75,7 +76,7 @@ sub submitted {
         $value = undef if (length($value) == 0);
         if (!defined($value) && $input->getAttribute('required')) {
             $all_required_set = 0;
-            $c->session->{form_input_errors}->{$key} = 'Required';
+            $form_input_errors->{$key} = 'Required';
         }
     }
     foreach my $input (values %inputs) {
@@ -95,6 +96,8 @@ sub submitted {
             $input->setAttribute(value => $input_value);
         }
     }
+    $c->session->{form_input_errors} = $form_input_errors
+        if keys %$form_input_errors;
     return unless $all_required_set;
 
     my $members_folder = $c->default_auth_store->folder;

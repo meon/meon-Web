@@ -28,9 +28,8 @@ my $builder = Module::Build::SysPath->new(
         'Catalyst::Runtime'                        => '5.90007',
         'Catalyst::Plugin::ConfigLoader'           => 0,
         'Catalyst::Plugin::Static::Simple'         => 0,
-        'Catalyst::Plugin::Session'                => '0.37',      # change_session_expires()
-        'Catalyst::Plugin::Session::State::Cookie' => 0,
-        'Catalyst::Plugin::Session::Store::File'   => 0,
+        'Plack::Middleware::Session::Simple'       => '0.05',
+        'Cache::FileCache'                         => 0,
         'Catalyst::Plugin::Authentication'         => 0,
         'Catalyst::Authentication::Store::UserXML' => '0.03',
         'Catalyst::Action::RenderView'             => 0,
@@ -50,6 +49,7 @@ my $builder = Module::Build::SysPath->new(
         'XML::LibXML'                              => '1.70',
         'Catalyst::Plugin::SmartURI'               => 0,
         'Config::INI::Reader'                      => 0,
+        'Time::Duration::Parse::More'              => '0.008',
         'Data::Dumper'                             => 0,
         'JSON::XS'                                 => 0,
         'Class::Load'                              => 0,
@@ -95,6 +95,7 @@ my $builder = Module::Build::SysPath->new(
             script/meon-web-aggregate-timelines
             script/meon-web-atom-feed
             script/meon-web-expire-members
+            script/meon-web-expire-sessions
             script/meon-web-generate-product-categories
             script/meon-web-generate-sitemap
             script/meon-web-get-pricelist

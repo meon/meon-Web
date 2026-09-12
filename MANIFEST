@@ -54,6 +54,7 @@ README
 script/meon-web-aggregate-timelines
 script/meon-web-atom-feed
 script/meon-web-expire-members
+script/meon-web-expire-sessions
 script/meon-web-generate-opensearch
 script/meon-web-generate-product-categories
 script/meon-web-generate-sitemap
@@ -115,6 +116,7 @@ t/00_compile.t
 t/05_meon-Web-config.t
 t/06_meon-Web-env.t
 t/07_meon-Web-Controller-Root-access.t
+t/08_meon-Web-session.t
 t/10_meon-Web-Member.t
 t/10_meon-Web-TimelineEntry.t
 t/50_meon-Web-Util.t

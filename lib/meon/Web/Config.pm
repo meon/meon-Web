@@ -11,6 +11,7 @@ use Path::Class 'file', 'dir';
 use Run::Env;
 use File::is;
 use File::Temp qw(tempfile);
+use Time::Duration::Parse::More qw(parse_duration);
 
 Log::Log4perl::init(
     File::Spec->catfile(
@@ -102,6 +103,16 @@ foreach my $hostname_dir_name (keys %{$config->{domains} || {}}) {
 
 sub get {
     return $config;
+}
+
+sub session_expires {
+    my $duration = $config->{main}{'session-expires'};
+    $duration = '4 hours'
+        unless defined $duration;
+    my $seconds = parse_duration($duration);
+    die "session-expires must be greater than zero\n"
+        unless $seconds > 0;
+    return $seconds;
 }
 
 my %h2f;

@@ -7,6 +7,7 @@ use Test::Dirs qw(temp_copy_ok);
 use FindBin qw($Bin);
 use File::Copy qw(copy);
 use File::Copy::Recursive qw(dircopy);
+use File::Find qw(find);
 use Path::Class qw(dir file);
 use Monkey::Patch::Action qw(patch_package);
 use HTTP::Request::Common qw(GET POST);
@@ -15,6 +16,12 @@ use URI;
 use XML::LibXML;
 use Plack::Test;
 use meon::Web::SPc;
+
+{
+    package Local::PRGForm;
+
+    sub c { return $_[0]->{c} }
+}
 
 # Copy fixtures so sessions, profiles and page variants never modify the source.
 my $temp_fixture_dir = temp_copy_ok(dir($Bin, 'tsp'), 'copy fixtures to temporary storage');
@@ -66,9 +73,22 @@ $login_action->code(sub {
         }
         return $original_login->($self, $c);
     });
-meon::Web->config->{'Plugin::Session'}{storage} =
-    $prefix->subdir('sessions')->stringify;
-my $app = meon::Web->psgi_app;
+my $default_action = meon::Web->controller('Root')->action_for('default');
+my $original_default = $default_action->code;
+$default_action->code(sub {
+        my ($self, $c) = @_;
+        if ($c->req->method eq 'POST' && $c->req->path eq 'prg-source') {
+            my $form = bless { c => $c }, 'Local::PRGForm';
+            meon::Web::Role::Form::detach($form, '/default-public');
+            $c->detach;
+        }
+        return $original_default->($self, $c);
+    });
+my $app = meon::Web->apply_session_middleware(
+    meon::Web->psgi_app,
+    cache_root => $prefix->subdir('sessions')->stringify,
+    secure     => 0,
+);
 
 my @markers = (
     ['unmarked', '', 0],
@@ -105,10 +125,59 @@ for my $site (qw(access_restricted_t access_disabled_t access_missing_t)) {
         . '<status>active</status><username>tester</username>'
         . '<password>{CLEARTEXT}access-test-password</password></user>',
         '<member-profile><full-name>Test Member</full-name></member-profile>');
+    write_page($root, 'prg-source', '<public-access/>', 'PRG_SOURCE_CONTENT');
 }
 
 test_psgi app => $app, client => sub {
     my ($client) = @_;
+    subtest 'anonymous session reads have no persistent side effects' => sub {
+        for my $case (
+            ['https://disabled.test/default-public', 200, 'public page'],
+            ['https://restricted.test/default-unmarked', 200, 'protected page'],
+            ['https://disabled.test/missing-page', 404, 'missing page'],
+            ['https://disabled.test/exception-test', 500, 'exception page'],
+            ['https://restricted.test/login', 200, 'login form'],
+        ) {
+            my ($url, $status, $name) = @$case;
+            my $res = $client->(GET $url);
+            is($res->code, $status, "$name returns its expected status");
+            is($res->header('Set-Cookie'), undef, "$name sets no cookie");
+            ok(!-e $prefix->subdir('sessions'),
+                "$name creates no session directory");
+        }
+
+        my $old_cookie = GET 'https://disabled.test/default-public';
+        $old_cookie->header(Cookie => 'meon_web_session=' . ('a' x 40));
+        my $old_cookie_res = $client->($old_cookie);
+        is($old_cookie_res->header('Set-Cookie'), undef,
+            'unknown legacy-shaped cookie is not replaced on a read');
+        ok(!-e $prefix->subdir('sessions'),
+            'unknown legacy-shaped cookie creates no session directory');
+    };
+
+    subtest 'form POST redirect target survives until the next GET' => sub {
+        my $jar = HTTP::Cookies->new;
+        my $post = request($client, $jar,
+            POST 'http://disabled.test/prg-source', []);
+        is($post->code, 302, 'form POST redirects to its GET URL');
+        like($post->header('Set-Cookie') // '', qr/\Ameon_web_session=/,
+            'form POST persists its functional session');
+        ok(session_file_count($prefix->subdir('sessions')) > 0,
+            'form POST creates a filesystem session entry');
+
+        my $get = request($client, $jar,
+            GET 'http://disabled.test/prg-source');
+        is($get->code, 200, 'redirected GET succeeds');
+        like($get->content, qr/MATRIX_PAGE_CONTENT/,
+            'redirected GET consumes the stored destination');
+        unlike($get->content, qr/PRG_SOURCE_CONTENT/,
+            'redirected GET does not re-render the POST target');
+        like($get->header('Set-Cookie') // '', qr/expires=/i,
+            'one-value PRG session is expired after consumption');
+        is(session_file_count($prefix->subdir('sessions')), 0,
+            'consumed one-value PRG session is removed from disk');
+    };
+
     subtest 'isolated website configuration' => sub {
         for my $case (['restricted.test', '1'], ['disabled.test', '0'],
             ['missing.test', undef]) {
@@ -221,6 +290,8 @@ test_psgi app => $app, client => sub {
             my $res = $client->(GET $url);
             is($res->code, 200, "$path: GET succeeds");
             like($res->content, qr/form_login/, "$path: login form rendered");
+            unlike($res->content, qr/name="remember_login"/,
+                "$path: obsolete remember-login control is not rendered");
             $res = $client->(POST $url,
                 [username => 'tester', password => 'wrong-password']);
             is($res->code, 403, "$path: invalid credentials denied");
@@ -230,6 +301,8 @@ test_psgi app => $app, client => sub {
                 [username => 'tester', password => 'access-test-password']);
             is($res->code, 302, "$path: valid login redirects");
             is($res->header('Location'), $url, "$path: original URL retained");
+            like($res->header('Set-Cookie') // '', qr/; SameSite=Lax(?:;|\z)/,
+                "$path: authenticated session cookie keeps SameSite=Lax");
             $res = request($client, $jar, GET 'http://restricted.test/');
             like($res->content, qr/UNMARKED_PAGE_CONTENT/, "$path: session grants access");
             unlike($res->content, qr/LOGIN_PAGE_CONTENT/, "$path: no login after authentication");
@@ -592,6 +665,7 @@ test_psgi app => $app, client => sub {
 };
 $auto_action->code($original_auto);
 $login_action->code($original_login);
+$default_action->code($original_default);
 done_testing;
 
 sub request {
@@ -601,6 +675,14 @@ sub request {
     $res->request($req);
     $jar->extract_cookies($res);
     return $res;
+}
+
+sub session_file_count {
+    my ($root) = @_;
+    return 0 unless -d $root;
+    my $count = 0;
+    find(sub { ++$count if -f $_ }, $root);
+    return $count;
 }
 
 sub write_page {
@@ -632,6 +714,10 @@ __END__
 
 Sends one request through the in-process PSGI client and updates the supplied
 cookie jar. Redirects are not followed automatically.
+
+=head2 session_file_count($root)
+
+Counts regular files below the temporary session-cache directory.
 
 =head2 write_page($root, $path, $meta, $content, $namespace_style)
 

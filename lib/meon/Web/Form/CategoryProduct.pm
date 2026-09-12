@@ -21,10 +21,12 @@ has_field 'ident'  => ( type => 'Text',   required => 0, );
 has 'configured_field_list' => (is=>'ro',isa=>'ArrayRef',lazy_build=>1);
 
 sub default_action {
-    return meon::Web::env->session->{'form-category-product'}->{'values'}->{'action'} // 'none';
+    my $state = meon::Web::env->session->{'form-category-product'} // {};
+    return $state->{values}{action} // 'none';
 }
 sub default_ident {
-    return meon::Web::env->session->{'form-category-product'}->{'values'}->{'ident'} // '';
+    my $state = meon::Web::env->session->{'form-category-product'} // {};
+    return $state->{values}{ident} // '';
 }
 
 sub _build_configured_field_list {
@@ -125,12 +127,14 @@ sub submitted {
     my $action = $self->field('action')->value // '';
 
     if ($action eq 'none') {
-        delete meon::Web::env->session->{'form-category-product'};
+        delete meon::Web::env->session->{'form-category-product'}
+            if exists meon::Web::env->session->{'form-category-product'};
         $self->redirect($redirect);
     }
     elsif ($action eq 'create') {
-        meon::Web::env->session->{'form-category-product'} = {};
-        meon::Web::env->session->{'form-category-product'}->{'values'}->{'action'} = 'create';
+        meon::Web::env->session->{'form-category-product'} = {
+            values => { action => 'create' },
+        };
         $self->redirect($redirect);
     }
 
@@ -145,15 +149,17 @@ sub submitted {
         $self->redirect($redirect);
     }
     elsif ($action eq 'edit') {
-        meon::Web::env->session->{'form-category-product'} //= {};
-        meon::Web::env->session->{'form-category-product'}->{'values'}->{'action'} = 'save';
-        meon::Web::env->session->{'form-category-product'}->{'values'}->{'ident'}  = $ident;
+        my $state = meon::Web::env->session->{'form-category-product'} // {};
+        $state->{values}{action} = 'save';
+        $state->{values}{ident}  = $ident;
+        meon::Web::env->session->{'form-category-product'} = $state;
         $self->redirect($redirect);
     }
     elsif ($action eq 'save') {
-        meon::Web::env->session->{'form-category-product'} //= {};
-        meon::Web::env->session->{'form-category-product'}->{'values'}->{'action'} = 'edit';
-        meon::Web::env->session->{'form-category-product'}->{'values'}->{'ident'}  = $ident;
+        my $state = meon::Web::env->session->{'form-category-product'} // {};
+        $state->{values}{action} = 'edit';
+        $state->{values}{ident}  = $ident;
+        meon::Web::env->session->{'form-category-product'} = $state;
 
         my @field_names;
         my @field_list = @{$self->configured_field_list};

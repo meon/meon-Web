@@ -238,6 +238,7 @@ sub submitted {
 
     # store/check inputs
     my $all_required_set = 1;
+    my $form_input_errors = $c->session->{form_input_errors} // {};
     my %inputs = map { $_->getAttribute('name') => $_ } $xpc->findnodes('.//x:input|.//x:select|.//x:textarea',$course_form);
     foreach my $key (keys %params) {
         next unless my $input = $inputs{$key};
@@ -246,12 +247,14 @@ sub submitted {
         $value = undef if (length($value) == 0);
         if (!defined($value) && $input->getAttribute('required')) {
             $all_required_set = 0;
-            $c->session->{form_input_errors}->{$key} = 'Required';
+            $form_input_errors->{$key} = 'Required';
         }
         if ($self->input_enabled) {
             $self->set_config_text('user_'.$key => $value);
         }
     }
+    $c->session->{form_input_errors} = $form_input_errors
+        if keys %$form_input_errors;
 
     # set correct step
     if ($back || ($forward && $all_required_set)) {

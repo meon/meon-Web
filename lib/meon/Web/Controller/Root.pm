@@ -64,9 +64,8 @@ sub auto : Private {
         $cookie_domain = $config_cookie_domain;
     }
 
-    $c->_session_plugin_config->{cookie_domain} = $cookie_domain;
-    $c->change_session_expires( 30*24*60*60 )
-        if $c->session->{remember_login};
+    $c->session_options->{domain} = $cookie_domain;
+    $c->session_options->{samesite} = 'lax';
 
     return 1;
 }
@@ -95,8 +94,20 @@ sub resolve_xml : Private {
 
     my $hostname_dir = $c->stash->{hostname_dir};
     my $include_dir  = meon::Web::env->include_dir;
+
+    # Form handlers store this target in the session so POST/Redirect/GET can
+    # carry it into the next request. Consume it once, and expire a session
+    # that held nothing else so the functional cookie and cache file go away.
+    my $post_redirect_path;
+    if (exists $c->session->{post_redirect_path}) {
+        $post_redirect_path = delete $c->session->{post_redirect_path};
+        $c->session_options->{expire} = 1
+            unless keys %{$c->session};
+    }
+
     my $path            =
-        delete($c->session->{post_redirect_path})
+        $post_redirect_path
+        || delete($c->stash->{post_redirect_path})
         || $c->stash->{path}
         || $c->req->uri;
     $path = URI->new($path)
@@ -335,7 +346,8 @@ sub resolve_xml : Private {
                 $form->render
             );
 
-            if (my $form_input_errors = delete $c->session->{form_input_errors}) {
+            if (exists $c->session->{form_input_errors}) {
+                my $form_input_errors = delete $c->session->{form_input_errors};
                 foreach my $input_name (keys %$form_input_errors) {
                     my ($input) = $xpc->findnodes(
                         './/x:input[@name="'.$input_name.'"]'
@@ -653,7 +665,7 @@ sub status_forbidden : Private {
 
     my $xml_file = file(meon::Web::env->content_dir, '403.xml');
     if (-e $xml_file) {
-        $c->session->{post_redirect_path} = '/403';
+        $c->stash->{post_redirect_path} = '/403';
         $self->resolve_xml($c);
         $c->model('ResponseXML')->push_new_element('error-message')->appendText($message)
             if $message;
@@ -672,7 +684,7 @@ sub status_not_found : Private {
 
     my $xml_file = file(meon::Web::env->content_dir, '404.xml');
     if (-e $xml_file) {
-        $c->session->{post_redirect_path} = '/404';
+        $c->stash->{post_redirect_path} = '/404';
         $self->resolve_xml($c);
         $c->model('ResponseXML')->push_new_element('error-message')->appendText($message)
             if $message;
@@ -730,8 +742,6 @@ sub login : Local {
     my $username = $c->req->param('username');
     my $password = $c->req->param('password');
     my $back_to  = $c->req->param('back-to');
-    $c->session->{remember_login} = $c->req->param('remember_login');
-
     if ($c->action eq 'logout') {
         return $c->res->redirect($c->uri_for('/'));
     }
@@ -899,7 +909,7 @@ sub end : ActionClass('RenderView') {
         my $xml_file = file(meon::Web::env->content_dir, '500.xml');
         if (-e $xml_file) {
             eval {
-                $c->session->{post_redirect_path} = '/500';
+                $c->stash->{post_redirect_path} = '/500';
                 $c->forward('resolve_xml', []);
                 $c->model('ResponseXML')->push_new_element('error-message')->appendText($message)
                     if $message;
