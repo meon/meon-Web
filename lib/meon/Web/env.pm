@@ -207,6 +207,7 @@ sub raw_xml {
 sub is_public_endpoint {
     my ($self, $source_file) = @_;
     return 0 unless $source_file;
+    return 0 unless -e $source_file;
     my $relative = file($source_file)->absolute->resolve
         ->relative($self->content_dir->absolute->resolve)->stringify;
     return $relative =~ m{\A(?:login|logout|403|404|500)\.xml\z} ? 1 : 0;
