@@ -31,6 +31,37 @@ subtest 'includes' => sub {
     eq_or_diff(meon::Web::env->xml->toString, includes_xml(), 'includes xml');
 };
 
+subtest 'raw XML paths are lazily indexed from configuration values' => sub {
+    local meon::Web::Config->get->{includes_t} = {
+        raw_xml => {
+            'file.1'  => '/sitemap.xml',
+            rss       => '/rss.xml',
+            atom_feed => '/atom.xml',
+        },
+    };
+    my $config = meon::Web::Config->get->{includes_t};
+
+    meon::Web::env->clear;
+    meon::Web::env->hostname('includes');
+    my $raw_xml_method = meon::Web::env->can('raw_xml');
+    ok($raw_xml_method, 'raw_xml lookup method is available');
+    return unless $raw_xml_method;
+    eq_or_diff(meon::Web::env->raw_xml, {
+        '/sitemap.xml' => 1,
+        '/rss.xml'     => 1,
+        '/atom.xml'    => 1,
+    }, 'arbitrary keys are ignored and values form the lookup');
+
+    $config->{raw_xml}{later} = '/later.xml';
+    ok(!meon::Web::env->raw_xml->{'/later.xml'},
+        'lookup remains cached after its lazy construction');
+
+    meon::Web::env->clear;
+    meon::Web::env->hostname('includes');
+    ok(meon::Web::env->raw_xml->{'/later.xml'},
+        'clearing the request environment rebuilds the lookup');
+};
+
 done_testing();
 
 sub includes_xml {

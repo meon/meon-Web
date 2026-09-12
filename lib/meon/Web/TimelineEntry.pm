@@ -157,7 +157,7 @@ sub _build_members_only {
 
     my $xml = $self->xml;
     my $xc  = $self->xc;
-    my ($members_only) = $xc->findnodes('/w:page/w:meta/w:members-only/text()');
+    my ($members_only) = $xc->findnodes('/w:page/w:meta/w:members-only');
 
     return !!$members_only;
 }
@@ -312,3 +312,15 @@ sub element {
 __PACKAGE__->meta->make_immutable;
 
 1;
+
+__END__
+
+=head1 ACCESS METADATA
+
+=head2 _build_members_only
+
+Lazy builder for C<members_only>. Returns the presence of the page metadata
+marker, including an empty element. Site-wide restriction and public endpoint
+exceptions are applied separately by the controller's shared page policy.
+
+=cut

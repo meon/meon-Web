@@ -44,6 +44,76 @@ FEATURES
 
     *   form2email - send form to email address
 
+RESTRICTED WEBSITES
+    To require login by default for a website's XML pages, add this to its
+    config.ini:
+
+        [main]
+        restricted_web = 1
+
+    The setting applies per website. Development may load config_dev.ini
+    instead. It uses Perl truthiness: a missing or empty value, or 0,
+    disables the restriction. All other strings, including "false" and
+    "off", enable it.
+
+    Direct ".xml" requests are interpreted as pages by default. To serve
+    specific XML paths as static files, list them as values in the website
+    configuration:
+
+        [raw_xml]
+        file.1 = /sitemap.xml
+        rss = /rss.xml
+        atom_feed = /atom.xml
+
+    The keys are arbitrary labels and are ignored. Values are exact request
+    paths. The allowlist applies independently to each website.
+
+    To allow anonymous access, add "public-access" directly to the page
+    metadata:
+
+        <w:page xmlns:w="http://web.meon.eu/">
+          <w:meta><w:public-access/></w:meta>
+          <w:content>Public content</w:content>
+        </w:page>
+
+    The default meon Web namespace is also supported. "members-only" always
+    requires login and takes precedence over "public-access". Both are
+    presence markers, so their content is ignored. Authenticated users
+    retain existing role checks. Access is checked before redirects,
+    includes, and forms run.
+
+    Login, logout, and root 403.xml, 404.xml, and 500.xml pages remain
+    public regardless of their metadata. Custom error pages retain their
+    status.
+
+    Add "public-access" to password-reset, activation, and
+    external-registration pages that must work before login. A protected
+    external-registration page returns HTTP 403.
+
+    Anonymous timelines and directory listings omit protected pages and
+    their names, content, and archive links. A directory's visibility
+    follows its index.xml. On restricted websites, listings also omit
+    unreadable XML, non-XML files, and directories without an index.
+    Authenticated listings are unchanged.
+
+  Restriction boundary
+    The restriction covers XML pages resolved by the page controller and
+    public listings. It does not cover static assets, direct non-XML
+    downloads, explicitly allowlisted raw XML, or separate API and search
+    responses. XML feeds must be listed under "[raw_xml]" to be served
+    without interpretation. Canonical URL redirects occur first. Hiding a
+    file from a listing does not restrict direct access to its URL. Raw XML
+    is static content and bypasses page metadata and role policy, so only
+    intentionally public resources should be allowlisted.
+
+    Public pages may expose included fragments marked "members-only". Search
+    pages may expose titles and teasers returned by their backend. Include
+    and search filtering require separate controls.
+
+  Symlinked public endpoints
+    Symlinked root login or error pages are public only when their resolved
+    target is an exception file or their metadata permits anonymous access.
+
 EXAMPLES
     See srv/www/meon-web/localhost/ inside this distribution for simple
     example.
@@ -52,7 +122,7 @@ SEE ALSO
     Template::Tools::ttree
 
 AUTHOR
-    Jozef Kutej, `<jkutej at cpan.org>'
+    Jozef Kutej, "<jkutej at cpan.org>"
 
 CONTRIBUTORS
     The following people have contributed to the meon::Web by committing
@@ -70,6 +140,6 @@ LICENSE AND COPYRIGHT
     See http://dev.perl.org/licenses/ for more information.
 
 srv/www/meon-web/bootstrap/
-    Are examples from https://github.com/twbs/bootstrap, check there for
+    Are examples from <https://github.com/twbs/bootstrap>, check there for
     license and copyright.
 

@@ -1,3 +1,6 @@
+0.05 2026-09-08
+    - add "restricted_web = 1" option
+
 0.04 Thu 28 May 11:29:07 CEST 2015
     - namespace change for Catalyst-Authentication-Store-UserXML
     - add meon-web-mail2timeline-entry script

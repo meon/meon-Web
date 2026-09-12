@@ -21,7 +21,7 @@ use Catalyst qw(
 extends 'Catalyst';
 use Catalyst::View::XSLT 0.10;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 __PACKAGE__->config(
     name => 'meon_web',
@@ -224,6 +224,73 @@ form2email - send form to email address
 
 =back
 
+=head1 RESTRICTED WEBSITES
+
+To require login by default for a website's XML pages, add this to its
+F<config.ini>:
+
+    [main]
+    restricted_web = 1
+
+The setting applies per website. Development may load F<config_dev.ini>
+instead. It uses Perl truthiness: a missing or empty value, or C<0>, disables
+the restriction. All other strings, including C<false> and C<off>, enable it.
+
+Direct C<.xml> requests are interpreted as pages by default. To serve specific
+XML paths as static files, list them as values in the website configuration:
+
+    [raw_xml]
+    file.1 = /sitemap.xml
+    rss = /rss.xml
+    atom_feed = /atom.xml
+
+The keys are arbitrary labels and are ignored. Values are exact request paths.
+The allowlist applies independently to each website.
+
+To allow anonymous access, add C<public-access> directly to the page metadata:
+
+    <w:page xmlns:w="http://web.meon.eu/">
+      <w:meta><w:public-access/></w:meta>
+      <w:content>Public content</w:content>
+    </w:page>
+
+The default meon Web namespace is also supported. C<members-only> always
+requires login and takes precedence over C<public-access>. Both are presence
+markers, so their content is ignored. Authenticated users retain existing role
+checks. Access is checked before redirects, includes, and forms run.
+
+Login, logout, and root F<403.xml>, F<404.xml>, and F<500.xml> pages remain
+public regardless of their metadata. Custom error pages retain their status.
+
+Add C<public-access> to password-reset, activation, and external-registration
+pages that must work before login. A protected external-registration page
+returns HTTP 403.
+
+Anonymous timelines and directory listings omit protected pages and their
+names, content, and archive links. A directory's visibility follows its
+F<index.xml>. On restricted websites, listings also omit unreadable XML,
+non-XML files, and directories without an index. Authenticated listings are
+unchanged.
+
+=head2 Restriction boundary
+
+The restriction covers XML pages resolved by the page controller and public
+listings. It does not cover static assets, direct non-XML downloads, explicitly
+allowlisted raw XML, or separate API and search responses. XML feeds must be
+listed under C<[raw_xml]> to be served without interpretation. Canonical URL
+redirects occur first. Hiding a file from a listing does not restrict direct
+access to its URL. Raw XML is static content and bypasses page metadata and
+role policy, so only intentionally public resources should be allowlisted.
+
+Public pages may expose included fragments marked C<members-only>. Search pages
+may expose titles and teasers returned by their backend. Include and search
+filtering require separate controls.
+
+=head2 Symlinked public endpoints
+
+Symlinked root login or error pages are public only when their resolved target
+is an exception file or their metadata permits anonymous access.
+
 =head1 EXAMPLES
 
 See F<srv/www/meon-web/localhost/> inside this distribution for simple example.
@@ -244,6 +311,7 @@ advice, nitpicking, chatting on IRC or commenting on my blog (in no particular
 order):
 
     Andrea Pavlovic
+    AI
 
 =head1 LICENSE AND COPYRIGHT
 

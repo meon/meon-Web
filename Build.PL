@@ -17,6 +17,8 @@ my $builder = Module::Build::SysPath->new(
     build_requires => {
         'Module::Build::SysPath' => 0.13,
         'Test::Most'             => 0,
+        'Test::Dirs'             => 0,
+        'File::Copy::Recursive'  => 0,
         'Monkey::Patch::Action'  => 0,
         'Test::MockTime'         => 0,
     },

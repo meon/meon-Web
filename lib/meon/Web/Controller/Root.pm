@@ -126,31 +126,36 @@ sub resolve_xml : Private {
     if ((! -f $xml_file) && (-f substr($xml_file,0,-4))) {
         my $static_file = file(substr($xml_file,0,-4));
 
-        if ($path->path !~ m{^/(robots\.txt|sitemap\.xml|rss\.xml|atom\.xml)$}) {
-            my $mtime = $static_file->stat->mtime;
-            if (!$c->req->param('t')) {
-                $c->res->redirect($c->req->uri_with({t => $mtime})->absolute);
-                $c->detach;
+        if ($static_file =~ m{\.xml\z} && !meon::Web::env->raw_xml->{$path->path}) {
+            $xml_file = $static_file;
+        }
+        else {
+            if ($path->path !~ m{^/(robots\.txt|sitemap\.xml|rss\.xml|atom\.xml)$}) {
+                my $mtime = $static_file->stat->mtime;
+                if (!$c->req->param('t')) {
+                    $c->res->redirect($c->req->uri_with({t => $mtime})->absolute);
+                    $c->detach;
+                }
+
+                my $max_age = 365*24*60*60;
+                $c->res->header('Cache-Control' => 'max-age='.$max_age.', private');
+                $c->res->header(
+                    'Expires' => DateTime::Format::HTTP->format_datetime(
+                        DateTime->now->add(seconds => $max_age)
+                    )
+                );
+                $c->res->header(
+                    'Last-Modified' => DateTime::Format::HTTP->format_datetime(
+                        DateTime->from_epoch(epoch => $mtime)
+                    )
+                );
             }
 
-            my $max_age = 365*24*60*60;
-            $c->res->header('Cache-Control' => 'max-age='.$max_age.', private');
-            $c->res->header(
-                'Expires' => DateTime::Format::HTTP->format_datetime(
-                    DateTime->now->add(seconds => $max_age)
-                )
-            );
-            $c->res->header(
-                'Last-Modified' => DateTime::Format::HTTP->format_datetime(
-                    DateTime->from_epoch(epoch => $mtime)
-                )
-            );
+            my $mime_type = mimetype($static_file->basename);
+            $c->res->content_type($mime_type);
+            $c->res->body($static_file->open('r'));
+            $c->detach;
         }
-
-        my $mime_type = mimetype($static_file->basename);
-        $c->res->content_type($mime_type);
-        $c->res->body($static_file->open('r'));
-        $c->detach;
     }
 
     meon::Web::env->xml_file($xml_file);
@@ -229,7 +234,7 @@ sub resolve_xml : Private {
         $user_el->appendChild($full_name_el);
         my $profile_el = $c->model('ResponseXML')->create_element('profile');
         if (my $member_profile = $member->get_member_meta_element('member-profile')) {
-            $profile_el->appendChild($member_profile);
+            $profile_el->appendChild($member_profile->cloneNode(1));
             $user_el->appendChild($profile_el);
         }
 
@@ -251,14 +256,25 @@ sub resolve_xml : Private {
             );
         }
         $user_el->appendChild($roles_el);
-        my @access_roles = map { $_->textContent } $xpc->findnodes('/w:page/w:meta/w:access/w:role',$dom);
-        foreach my $role (@access_roles) {
-            $c->detach('/status_forbidden', []) if (none {$_ eq $role} @user_roles);
+        if (!meon::Web::env->is_public_endpoint($xml_file)) {
+            my @access_roles = map { $_->textContent } $xpc->findnodes('/w:page/w:meta/w:access/w:role',$dom);
+            foreach my $role (@access_roles) {
+                $c->detach('/status_forbidden', []) if (none {$_ eq $role} @user_roles);
+            }
         }
-
     }
     else {
-        if ($xpc->findnodes('/w:page/w:meta/w:members-only',$dom)) {
+        if (meon::Web::env->page_requires_login($dom, $xml_file)) {
+            $c->detach('/status_forbidden', ['Registration is unavailable.'])
+                if $c->stash->{resolving_registration};
+            if (meon::Web::env->stash->{login_in_progress}) {
+                $c->res->status(403);
+                $c->res->content_type('text/plain');
+                $c->res->body("403 - Forbidden: login loop\n");
+                meon::Web::env->stash->{login_loop_error} = 1;
+                $c->detach;
+            }
+            meon::Web::env->stash->{login_in_progress} = 1;
             $c->detach('/login', []);
         }
     }
@@ -373,6 +389,7 @@ sub resolve_xml : Private {
         @files = reverse @files if $reverse;
 
         foreach my $file (@folders) {
+            next unless $self->_listing_visible($c, $file);
             $file = $file->basename;
             my $file_el = $c->model('ResponseXML')->create_element('folder');
             $file_el->setAttribute('href' => join('/', map { uri_escape($_) } $folder_rel->dir_list, $file));
@@ -380,6 +397,7 @@ sub resolve_xml : Private {
             $folder_el->appendChild($file_el);
         }
         foreach my $file (@files) {
+            next unless $self->_listing_visible($c, $file);
             $file = $file->basename;
             my $file_el = $c->model('ResponseXML')->create_element('file');
             $file_el->setAttribute('href' => join('/', map { uri_escape($_) } $folder_rel->dir_list, $file));
@@ -454,7 +472,7 @@ sub resolve_xml : Private {
 
         my @entries =
             sort { $b->created <=> $a->created }
-            grep { !$_->members_only || $c->user_exists }
+            grep { $c->user_exists || !meon::Web::env->page_requires_login($_->xml, $_->file) }
             grep { eval { $_->element } }
             map  { meon::Web::TimelineEntry->new(file => $_) }
             grep { $_->basename ne $xml_file->basename }
@@ -479,16 +497,8 @@ sub resolve_xml : Private {
             $timeline_el->appendChild($entry_el);
         }
 
-        if (my $older = $self->_older_entries($c)) {
-            my $older_el = $c->model('ResponseXML')->create_element('older');
-            $timeline_el->appendChild($older_el);
-            $older_el->setAttribute('href' => $older);
-        }
-        if (my $newer = $self->_newer_entries($c)) {
-            my $newer_el = $c->model('ResponseXML')->create_element('newer');
-            $timeline_el->appendChild($newer_el);
-            $newer_el->setAttribute('href' => $newer);
-        }
+        $self->_append_timeline_navigation($c, $timeline_el, $_)
+            for qw(older newer);
     }
 
     # generate members list
@@ -537,9 +547,38 @@ sub resolve_xml : Private {
     $c->stash->{template} = meon::Web::env->template;
 }
 
+sub _append_timeline_navigation {
+    my ($self, $c, $timeline_el, $direction) = @_;
+    my $entries_method = '_'.$direction.'_entries';
+    my $archive = $self->$entries_method($c);
+    while ($archive && !$self->_listing_visible(
+        $c, file(meon::Web::env->content_dir, $archive, 'index.xml'))) {
+        $archive = $self->$entries_method(
+            $c, dir(meon::Web::env->content_dir, $archive));
+    }
+    return unless $archive;
+
+    my $link_el = $c->model('ResponseXML')->create_element($direction);
+    $link_el->setAttribute('href' => $archive);
+    $timeline_el->appendChild($link_el);
+}
+
+sub _listing_visible {
+    my ($self, $c, $source) = @_;
+    return 1 if $c->user_exists;
+
+    my $restricted_web = meon::Web::env->hostname_config->{main}{restricted_web};
+    my $source_file = -d $source ? file($source, 'index.xml') : $source;
+    return !$restricted_web unless -f $source_file && $source_file =~ /\.xml\z/;
+    return 0 unless meon::Web::env->hostname_dir->contains($source_file->resolve);
+    my $dom = eval { XML::LibXML->load_xml(location => $source_file) };
+    return 0 unless $dom;
+    return !meon::Web::env->page_requires_login($dom, $source_file);
+}
+
 sub _older_entries {
-    my ( $self, $c ) = @_;
-    my $dir = $c->stash->{xml_file}->dir;
+    my ( $self, $c, $archive_dir ) = @_;
+    my $dir = $archive_dir // $c->stash->{xml_file}->dir;
     my $cur_dir = $dir->basename;
     $dir = $dir->parent;
     while ($cur_dir =~ m/^\d+$/) {
@@ -573,8 +612,8 @@ sub _older_entries {
 }
 
 sub _newer_entries {
-    my ( $self, $c ) = @_;
-    my $dir = $c->stash->{xml_file}->dir;
+    my ( $self, $c, $archive_dir ) = @_;
+    my $dir = $archive_dir // $c->stash->{xml_file}->dir;
     my $cur_dir = $dir->basename;
     $dir = $dir->parent;
     while ($cur_dir =~ m/^\d+$/) {
@@ -683,6 +722,7 @@ sub login : Local {
 
         my $registration_link = meon::Web::env->hostname_config->{'auth'}{'registration'};
         $c->stash->{path} = $c->traverse_uri($registration_link);
+        local $c->stash->{resolving_registration} = 1;
         $c->detach('resolve_xml', []);
     }
 
@@ -865,8 +905,13 @@ sub end : ActionClass('RenderView') {
                     if $message;
             };
             if ($@) {
-                $c->log->error($@);
-                return;
+                if (delete meon::Web::env->stash->{login_loop_error}) {
+                    $c->res->status(403);
+                }
+                else {
+                    $c->log->error($@);
+                    return;
+                }
             }
         }
         else {
@@ -884,3 +929,52 @@ sub end : ActionClass('RenderView') {
 __PACKAGE__->meta->make_immutable;
 
 1;
+
+__END__
+
+=head1 CONTROLLER METHODS
+
+=head2 resolve_xml($c)
+
+Resolves the requested XML page, applies anonymous and role-based access
+policy, processes page metadata, and populates the response document. Login,
+logout, and root custom error pages bypass metadata access restrictions.
+Direct XML paths are interpreted unless the current website explicitly
+allowlists them as raw static files.
+
+=head2 login($c)
+
+Authenticates local or external users and renders the configured login page.
+When external authentication identifies a new user, the registration target
+must be public; a protected target returns HTTP 403 instead of re-entering the
+login flow.
+
+=head2 _listing_visible($c, $source)
+
+Returns whether a file or directory may appear in the current site's listing.
+Authenticated requests retain existing visibility. Anonymous XML candidates
+must remain within the site and parse successfully before applying the shared
+page policy. Directories use index.xml; non-XML files and directories without
+an index are hidden when restricted_web is true.
+
+This check only filters listing output; it does not restrict direct downloads.
+Archive navigation applies it to successive candidates until one is visible.
+
+=head2 _append_timeline_navigation($c, $timeline_el, $direction)
+
+Appends an archive link for C<older> or C<newer>, skipping candidates hidden
+from the current user. Appends nothing when traversal is exhausted.
+
+=head2 _older_entries($c, $archive_dir)
+
+Returns the previous numeric archive path relative to the content root, or
+undef when none exists. The optional directory starts traversal from a
+candidate archive instead of the current page's directory.
+
+=head2 _newer_entries($c, $archive_dir)
+
+Returns the next numeric archive path relative to the content root, or undef
+when none exists. The optional directory has the same meaning as in
+C<_older_entries>.
+
+=cut

@@ -193,6 +193,37 @@ sub hostname_config {
     return meon::Web::Config->get->{$self->hostname_dir_name} // {};
 }
 
+sub raw_xml {
+    my $self = shift;
+    unless (defined($env->{raw_xml})) {
+        $env->{raw_xml} = {
+            map { $_ => 1 }
+            values %{$self->hostname_config->{raw_xml} // {}}
+        };
+    }
+    return $env->{raw_xml};
+}
+
+sub is_public_endpoint {
+    my ($self, $source_file) = @_;
+    return 0 unless $source_file;
+    my $relative = file($source_file)->absolute->resolve
+        ->relative($self->content_dir->absolute->resolve)->stringify;
+    return $relative =~ m{\A(?:login|logout|403|404|500)\.xml\z} ? 1 : 0;
+}
+
+sub page_requires_login {
+    my ($self, $dom, $source_file) = @_;
+    return 0 if $self->is_public_endpoint($source_file);
+    my $xpc = meon::Web::Util->xpc;
+    return 1 if $xpc->findnodes('/w:page/w:meta/w:members-only', $dom)->size;
+    my $restricted_web = $self->hostname_config->{main}{restricted_web};
+    if ($restricted_web) {
+        return !$xpc->findnodes('/w:page/w:meta/w:public-access', $dom)->size;
+    }
+    return 0;
+}
+
 sub static_dir_mtime {
     my $self = shift;
     $env->{static_dir_mtime} = shift
@@ -335,3 +366,31 @@ sub transform_xml {
 }
 
 1;
+
+__END__
+
+=head1 ACCESS POLICY METHODS
+
+=head2 raw_xml()
+
+Lazily returns a lookup hash of raw XML request paths configured for the
+current website. Configuration keys are ignored; each value in C<[raw_xml]>
+becomes a lookup key. Clearing the request environment clears this lookup.
+
+=head2 is_public_endpoint($source_file)
+
+Returns whether the resolved source file is a root login, logout, or custom
+403/404/500 XML page in the current site's content directory. The source file
+identifies forwarded pages independently of the original request URL.
+Root endpoint symlinks whose resolved targets are not exception files are not
+exempt.
+
+=head2 page_requires_login($dom, $source_file)
+
+Returns whether an anonymous request requires authentication, using the current
+site configuration and a parsed XML document. Public endpoints are exempt;
+otherwise members-only presence wins over public-access presence. The
+restricted_web value uses Perl truthiness. This method does not enforce roles,
+parse files, or check containment; callers retain those responsibilities.
+
+=cut
