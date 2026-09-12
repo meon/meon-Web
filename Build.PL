@@ -87,6 +87,7 @@ my $builder = Module::Build::SysPath->new(
         'Future::AsyncAwait'           => 0,
         'Search::Elasticsearch::Async' => 0,
         'Async::Microservice'          => 0,
+        'Log::Log4perl'                => 0,
     },
     script_files => [qw(
             script/meon-web-aggregate-timelines
