@@ -5,6 +5,7 @@ use warnings;
 use utf8;
 
 use Test::Most;
+use XML::LibXML;
 
 use meon::Web::ResponseXML;
 use meon::Web::SearchAPI::SearchResponse;
@@ -72,14 +73,20 @@ subtest 'submitted appends search-results XML from Data::asXML' => sub {
     my $form = meon::Web::Form::Search->new(
         c             => $mock_c,
         search_client => $fake_client,
+        config        => XML::LibXML->load_xml(
+            string => '<form xmlns="http://web.meon.eu/">'
+                . '<page-size>20</page-size></form>',
+        )->documentElement,
     );
 
-    $form->process( params => { q => ' bike ' } );
+    $form->process( params => { q => ' bike ', page => 2 } );
     ok( $form->is_valid, 'form is valid with query' );
     $form->submitted;
 
     is( $fake_client->seen->{query},
         'bike', 'query is trimmed before search call' );
+    is( $fake_client->seen->{page}, 2, 'search uses submitted page' );
+    is( $fake_client->seen->{size}, 20, 'search uses configured page size' );
 
     my $xml = $response_xml->as_xml;
     my ($search_results) = $xml->findnodes(
