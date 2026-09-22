@@ -1,3 +1,6 @@
+0.06 Unreleased
+    - add meon::Web website implementation skill
+
 0.05 2026-09-08
     - add "restricted_web = 1" option
     - replace Catalyst session plugins with lazy, file-backed Plack sessions;
