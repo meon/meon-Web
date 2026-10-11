@@ -1,5 +1,7 @@
 0.06 Unreleased
     - add meon::Web website implementation skill
+    - expand ${env:KEY} placeholders in OpenSearch nodes and basic_auth;
+      backend tests use OPENSEARCH_TEST_HOST and OPENSEARCH_TEST_BASIC_AUTH
 
 0.05 2026-09-08
     - add "restricted_web = 1" option

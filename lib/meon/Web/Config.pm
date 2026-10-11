@@ -105,6 +105,16 @@ sub get {
     return $config;
 }
 
+sub expand_inplace {
+    my ( $class, $value ) = @_;
+    return $value unless defined $value;
+    $value =~ s{\$\{env:([A-Za-z_][A-Za-z0-9_]*)\}}{
+        exists $ENV{$1} ? $ENV{$1}
+            : die "Environment variable $1 is not set\n"
+    }ge;
+    return $value;
+}
+
 sub session_expires {
     my $duration = $config->{main}{'session-expires'};
     $duration = '4 hours'
@@ -132,3 +142,25 @@ sub hostname_to_folder {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+meon::Web::Config - website configuration
+
+=head1 METHODS
+
+=head2 expand_inplace
+
+    my $nodes = meon::Web::Config->expand_inplace($configured_nodes);
+
+Returns a copy of the string with each C<${env:SOME_ENV_KEY}> placeholder
+replaced by its environment value. Undefined input is returned unchanged.
+Replacement values are inserted literally without recursive expansion.
+An unset variable raises an error naming its key; an empty value is valid.
+
+OpenSearch connection settings C<nodes> and C<basic_auth> use this expansion
+when a client is created. Stored configuration remains unchanged.
+
+=cut

@@ -138,7 +138,8 @@ sub _build_index_b {
 sub _build_opensearch {
     my ($self) = @_;
     my $cfg = meon::Web::Config->get->{opensearch};
-    my @ose_nodes = split( ',', $cfg->{nodes} );
+    my @ose_nodes = split( ',', meon::Web::Config->expand_inplace($cfg->{nodes}) );
+    my $basic_auth = meon::Web::Config->expand_inplace($cfg->{basic_auth});
     my %osearch_args = (
         nodes           => \@ose_nodes,
         request_timeout => 300,
@@ -146,8 +147,8 @@ sub _build_opensearch {
             $cfg->{cxn_pool} // 'Async::Static'
         ),
     );
-    $osearch_args{userinfo} = $cfg->{basic_auth}
-        if $cfg->{basic_auth};
+    $osearch_args{userinfo} = $basic_auth
+        if $basic_auth;
     return Search::Elasticsearch::Async->new(%osearch_args);
 }
 

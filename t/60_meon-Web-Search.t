@@ -62,6 +62,58 @@ subtest 'derived teaser truncation' => sub {
     );
 };
 
+subtest 'opensearch connection configuration' => sub {
+    local $ENV{OPENSEARCH_TEST_HOST} = 'search.example:9200,backup.example:9200';
+    local $ENV{OPENSEARCH_TEST_BASIC_AUTH} = 'test-user:pa:ss@word';
+    my $cfg = meon::Web::Config->get->{opensearch};
+    is( $cfg->{nodes}, '${env:OPENSEARCH_TEST_HOST}',
+        'test configuration reads nodes from the environment' );
+    is( $cfg->{basic_auth}, '${env:OPENSEARCH_TEST_BASIC_AUTH}',
+        'test configuration reads Basic Auth separately' );
+    local $cfg->{nodes} = '${env:OPENSEARCH_TEST_HOST}';
+    local $cfg->{basic_auth} = '${env:OPENSEARCH_TEST_BASIC_AUTH}';
+
+    my %client_args;
+    my $patch_client = patch_package(
+        'Search::Elasticsearch::Async', 'new', 'replace',
+        sub {
+            my ( $class, %args ) = @_;
+            %client_args = %args;
+            return bless {}, $class;
+        }
+    );
+
+    meon::Web::SearchIndex->_build_opensearch;
+    eq_or_diff( $client_args{nodes},
+        [ 'search.example:9200', 'backup.example:9200' ],
+        'nodes expand before comma splitting' );
+    is( $client_args{userinfo}, 'test-user:pa:ss@word',
+        'expanded Basic Auth reaches the client unchanged' );
+    is( $cfg->{nodes}, '${env:OPENSEARCH_TEST_HOST}',
+        'stored nodes keep their placeholder' );
+    is( $cfg->{basic_auth}, '${env:OPENSEARCH_TEST_BASIC_AUTH}',
+        'stored Basic Auth keeps its placeholder' );
+
+    $ENV{OPENSEARCH_TEST_HOST} = 'second.example:9200';
+    $ENV{OPENSEARCH_TEST_BASIC_AUTH} = '';
+    meon::Web::SearchIndex->_build_opensearch;
+    eq_or_diff( $client_args{nodes}, [ 'second.example:9200' ],
+        'later client creation reads the current environment' );
+    ok( !exists $client_args{userinfo}, 'empty Basic Auth is omitted' );
+
+    $cfg->{nodes} = 'localhost:9200';
+    $cfg->{basic_auth} = 'static-user:static-password';
+    meon::Web::SearchIndex->_build_opensearch;
+    eq_or_diff( $client_args{nodes}, [ 'localhost:9200' ],
+        'literal nodes still work' );
+    is( $client_args{userinfo}, 'static-user:static-password',
+        'literal Basic Auth still works' );
+
+    delete $cfg->{basic_auth};
+    meon::Web::SearchIndex->_build_opensearch;
+    ok( !exists $client_args{userinfo}, 'absent Basic Auth stays optional' );
+};
+
 subtest 'opensearch-records' => sub {
     my $mws = meon::Web::Search->new( hostname => 'search-test.local', );
     $mws->index_ts;    # force index_ts to be built before records
