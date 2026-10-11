@@ -52,6 +52,13 @@ subtest 'explode_to_4ths' => sub {
 };
 
 subtest 'explode_for_autocomplete' => sub {
+    for my $separator (',', '(', ')', '[', ']', '{', '}', '<', '>', ';', ':', '!', '?', '"', "\x00", "\x1f", "\x7f") {
+        eq_or_diff(
+            meon::Web::Util->explode_for_autocomplete("foo${separator}bar"),
+            meon::Web::Util->explode_for_autocomplete('foo bar'),
+            'punctuation and controls preserve word boundaries'
+        );
+    }
     eq_or_diff(
         meon::Web::Util->explode_for_autocomplete('Quick brown Fox, where are you fox?'),
         [   qw(qu qui quic uick br bro brow rown fo fox wh whe wher here ar are yo you),
@@ -59,6 +66,25 @@ subtest 'explode_for_autocomplete' => sub {
         ],
         'sentence'
     );
+};
+
+subtest 'norm_tokens' => sub {
+    is(meon::Web::Util->norm_tokens('<HLS> foo<bar>baz <>'), 'hls foo bar baz',
+        'angle brackets separate words and produce no empty tokens');
+    is(
+        meon::Web::Util->norm_tokens('Heel Lock Stabilizer System (HLS), rolled top comfort '),
+        'heel lock stabilizer system hls rolled top comfort',
+        'parenthesized acronym is indexed as a standalone word'
+    );
+    is(meon::Web::Util->norm_tokens(' (HLS), HLS hls '), 'hls',
+        'punctuated and plain queries normalize identically and deduplicate');
+    is(meon::Web::Util->norm_tokens("foo,bar[baz]{qux};zip:zap!yes?no\"end\x00next\x1fstop\x7ffinal"),
+        'foo bar baz qux zip zap yes no end next stop final',
+        'delimiters separate adjacent words');
+    is(meon::Web::Util->norm_tokens(' (), [] {} ; : ! ? " ... '), '',
+        'punctuation produces no empty tokens');
+    is(meon::Web::Util->norm_tokens(" AB-12 v1.2 O'Reilly foo... "),
+        "ab-12 v1.2 o'reilly foo", 'internal identifiers survive and trailing periods are removed');
 };
 
 done_testing();

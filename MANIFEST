@@ -1,5 +1,16 @@
+AGENTS.md
 Build.PL
 Changes
+docs/skills/meon-web-website/authentication.md
+docs/skills/meon-web-website/category-product.md
+docs/skills/meon-web-website/forms.md
+docs/skills/meon-web-website/frontend.md
+docs/skills/meon-web-website/image-gallery.md
+docs/skills/meon-web-website/search.md
+docs/skills/meon-web-website/SKILL.md
+docs/skills/meon-web-website/timeline.md
+docs/todo/2026/20260908-restricted-web-implementation.md
+docs/todo/2026/20260922-webpage-skill.md
 etc/cron.d/meon-web
 etc/meon/web-config.ini
 etc/meon/web-log4perl.conf
@@ -127,6 +138,7 @@ t/63_meon-Web-SearchAPI-Client.t
 t/64_meon-Web-Form-Search.t
 t/65_meon-Web-Search-Page.t
 t/66_meon-Web-SearchAPI-SearchResponse.t
+t/67_meon-Web-SearchAPI-Queries.t
 t/tdata/meon-Web-Search/osearch_records.json
 t/testlib/Test/meon/Web/SearchAPI.pm
 t/tsp/etc/meon/web-config.ini

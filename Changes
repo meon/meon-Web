@@ -1,5 +1,8 @@
 0.06 Unreleased
     - add meon::Web website implementation skill
+    - share ranked query predicates across search and autocomplete; search
+      includes title-only autocomplete matches and both endpoints apply
+      endpoint-specific scoring priorities
     - expand ${env:KEY} placeholders in OpenSearch nodes and basic_auth;
       backend tests use OPENSEARCH_TEST_HOST and OPENSEARCH_TEST_BASIC_AUTH
 

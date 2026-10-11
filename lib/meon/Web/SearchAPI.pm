@@ -14,9 +14,17 @@ use meon::Web::Util;
 use namespace::autoclean;
 
 use Future::AsyncAwait;
+use JSON::PP ();
 use Carp qw(croak);
 
 has '+api_prefix' => ( default => '/mws_1' );
+
+my %RANKING_PROFILE = (
+    search       => [qw(title_all content_search title_partial content_autocomplete)],
+    autocomplete => [qw(title_all title_partial content_autocomplete content_search)],
+);
+my $SCORE_SCRIPT =
+    q{params.base + (params.use_weight ? doc['weight'].value : 0.0) + (_score / (1.0 + _score))};
 
 has 'ose' => (
     is      => 'ro',
@@ -103,6 +111,79 @@ sub _map_search_items {
     ];
 }
 
+sub _build_ranked_query {
+    my ( $self, %args ) = @_;
+
+    my $normalized_query = $args{normalized_query};
+    my $title_query      = $args{title_query};
+    my $profile          = $RANKING_PROFILE{ $args{profile} }
+        or croak "unknown query profile '$args{profile}'";
+
+    my $content_predicate = {
+        match => {
+            search_content => {
+                query    => $normalized_query,
+                operator => 'and',
+            },
+        },
+    };
+    my %predicate = (
+        title_all => {
+            match => {
+                title_ngram => {
+                    query    => $title_query,
+                    operator => 'and',
+                },
+            },
+        },
+        title_partial => {
+            match => {
+                title_ngram => {
+                    query                 => $title_query,
+                    operator              => 'or',
+                    minimum_should_match => '85%',
+                },
+            },
+        },
+        content_search       => $content_predicate,
+        content_autocomplete => $content_predicate,
+    );
+
+    my @ranked_queries;
+    for my $position ( 0 .. $#$profile ) {
+        my $role = $profile->[$position];
+        push(
+            @ranked_queries,
+            {   script_score => {
+                    query => $predicate{$role},
+                    script => {
+                        source => $SCORE_SCRIPT,
+                        params => {
+                            base       => 40 - 10 * $position,
+                            use_weight => $role eq 'content_search'
+                                ? JSON::PP::false
+                                : JSON::PP::true,
+                        },
+                    },
+                },
+            },
+        );
+    }
+
+    return {
+        bool => {
+            must => [
+                {   dis_max => {
+                        tie_breaker => 0,
+                        queries     => \@ranked_queries,
+                    },
+                },
+            ],
+            ( @{ $args{filter} } ? ( filter => $args{filter} ) : () ),
+        },
+    };
+}
+
 async sub POST_autocomplete {
     my ( $self, $this_req, $match ) = @_;
 
@@ -138,80 +219,18 @@ async sub POST_autocomplete {
 
     my $ac_terms = meon::Web::Util->explode_for_autocomplete($query);
     my $ac_query_txt = join( ' ', @$ac_terms );
+    my $ac_query = $self->_build_ranked_query(
+        profile          => 'autocomplete',
+        normalized_query => $norm_query,
+        title_query      => $ac_query_txt,
+        filter           => \@filter,
+    );
 
     my $ac_ose_result = eval {
         await $self->ose->search(
             index => $search_index->index_alias,
             body  => {
-                query => {
-                    bool => {
-                        must => [
-                            {   dis_max => {
-                                    tie_breaker => 0,
-                                    queries     => [
-                                        {   script_score => {
-                                                query => {
-                                                    match =>
-                                                        { title_ngram => {
-                                                            query =>
-                                                                $ac_query_txt,
-                                                            operator => 'and',
-                                                        },
-                                                        },
-                                                },
-                                                script => {
-
-                                                    # Range: [30.0, 32.0)
-                                                    source =>
-                                                        q{30.0 + doc['weight'].value + (_score / (1.0 + _score))},
-                                                },
-                                            },
-                                        },
-                                        {   script_score => {
-                                                query => {
-                                                    match =>
-                                                        { title_ngram => {
-                                                            query =>
-                                                                $ac_query_txt,
-                                                            operator => 'or',
-                                                            minimum_should_match =>
-                                                                '85%',
-                                                        },
-                                                        },
-                                                },
-                                                script => {
-
-                                                    # Range: [20.0, 22.0)
-                                                    source =>
-                                                        q{20.0 + doc['weight'].value + (_score / (1.0 + _score))},
-                                                },
-                                            },
-                                        },
-                                        {   script_score => {
-                                                query => {
-                                                    match =>
-                                                        { search_content => {
-                                                            query =>
-                                                                $norm_query,
-                                                            operator => 'and',
-                                                        },
-                                                        },
-                                                },
-                                                script => {
-
-                                                    # Range: [10.0, 12.0)
-                                                    source =>
-                                                        q{10.0 + doc['weight'].value + (_score / (1.0 + _score))},
-                                                },
-                                            },
-                                        },
-                                    ],
-                                },
-                            },
-                        ],
-                        ( @filter ? ( filter => \@filter ) : () ),
-                    },
-                },
+                query => $ac_query,
 
                 size => $limit,
 
@@ -270,21 +289,13 @@ async sub POST_search {
         push( @filter, { terms => { search_type => $search_types } } );
     }
 
-    my $search_query = {
-        bool => {
-            must => [
-                {
-                    match => {
-                        search_content => {
-                            query    => $norm_query,
-                            operator => 'and',
-                        },
-                    },
-                },
-            ],
-            ( @filter ? ( filter => \@filter ) : () ),
-        },
-    };
+    my $title_terms = meon::Web::Util->explode_for_autocomplete($query);
+    my $search_query = $self->_build_ranked_query(
+        profile          => 'search',
+        normalized_query => $norm_query,
+        title_query      => join( ' ', @$title_terms ),
+        filter           => \@filter,
+    );
 
     my $ose_result = eval {
         await $self->ose->search(
@@ -339,5 +350,26 @@ meon::Web::SearchAPI - meon::Web Search API
 =head1 DESCRIPTION
 
 meon::Web Search API
+
+=head1 SEARCH PRIORITY
+
+C<POST_search> ranks branches in this order: all analyzed title n-grams,
+normalized content, partial title matches at the 85% threshold, then the
+weighted content role. C<POST_autocomplete> keeps its all-title, partial-title,
+and weighted-content priorities, followed by the unweighted content role.
+Both endpoints use the same match predicates and scoring script.
+
+Each branch receives a base score of 40, 30, 20, or 10 according to its
+position in the endpoint profile. The script adds bounded relevance and the
+indexed weight for the C<title_all>, C<title_partial>, and
+C<content_autocomplete> roles. Generated weights are between zero and 0.001.
+The absolute scores therefore differ from earlier API responses. Finite score
+precision can create ties between close relevance scores within a priority
+tier.
+
+A document matching multiple branches appears once, scored by its best branch.
+Search includes title-only matches, so autocomplete matches are eligible for
+search with the same query, host, filters, and index state. Pagination limits
+and the different priorities can change their page and order.
 
 =cut

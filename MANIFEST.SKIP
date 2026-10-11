@@ -32,6 +32,7 @@
 ^tmp/
 .*\.tar\.gz
 ^MYMETA.yml$
+^TODO.*\.md
 ^meon-Web-
 
 ^.tracker.json$

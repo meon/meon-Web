@@ -198,7 +198,7 @@ sub fix_cell_value {
 sub explode_for_autocomplete {
     my ($class, $text) = @_;
 
-    $text = lc(unidecode($text));
+    $text = lc(unidecode($class->_separate_search_tokens($text)));
     $text =~ s/-/ /g;
     $text =~ s/\s+/ /g;
     $text =~ s/[^a-z0-9 ]//g;
@@ -231,19 +231,25 @@ sub explode_to_4ths {
     return \@parts;
 }
 
+sub _separate_search_tokens {
+    my ( $class, $text ) = @_;
+    $text =~ s/[()\[\]{}<>,;:!?"\p{Cc}]+/ /g;
+    return $text;
+}
+
 sub norm_tokens {
     my ( $class, $text ) = @_;
-    my @tokens = split( /\s+/, $text );
+    my @tokens = split( /\s+/, $class->_separate_search_tokens($text) );
     my %seen;
     return join( ' ',
-        grep { !$seen{$_}++ }
+        grep { length($_) && !$seen{$_}++ }
         map { $class->clean_up_token($_) } @tokens );
 }
 
 sub clean_up_token {
     my ( $class, $token ) = @_;
     $token = lc($token);
-    $token =~ s/[\.,:\?\!]$//g;
+    $token =~ s/[\.,:\?\!]+$//;
     return $token;
 }
 
