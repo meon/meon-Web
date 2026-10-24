@@ -19,6 +19,7 @@ etc/meon/web-opensearch-settings.json
 lib/meon/Web.pm
 lib/meon/Web/Config.pm
 lib/meon/Web/Controller/API.pm
+lib/meon/Web/Controller/SearchAPI.pm
 lib/meon/Web/Controller/Members.pm
 lib/meon/Web/Controller/rAPI.pm
 lib/meon/Web/Controller/Root.pm
@@ -139,6 +140,7 @@ t/64_meon-Web-Form-Search.t
 t/65_meon-Web-Search-Page.t
 t/66_meon-Web-SearchAPI-SearchResponse.t
 t/67_meon-Web-SearchAPI-Queries.t
+t/68_meon-Web-Controller-SearchAPI.t
 t/tdata/meon-Web-Search/osearch_records.json
 t/testlib/Test/meon/Web/SearchAPI.pm
 t/tsp/etc/meon/web-config.ini

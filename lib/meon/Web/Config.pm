@@ -160,7 +160,8 @@ replaced by its environment value. Undefined input is returned unchanged.
 Replacement values are inserted literally without recursive expansion.
 An unset variable raises an error naming its key; an empty value is valid.
 
-OpenSearch connection settings C<nodes> and C<basic_auth> use this expansion
-when a client is created. Stored configuration remains unchanged.
+The global C<[search]> settings C<opensearch_nodes> and
+C<opensearch_basic_auth> use this expansion when a client is created.
+Stored configuration remains unchanged.
 
 =cut

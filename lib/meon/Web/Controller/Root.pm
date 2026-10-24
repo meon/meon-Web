@@ -38,6 +38,7 @@ sub auto : Private {
     my ( $self, $c ) = @_;
 
     meon::Web::env->clear;
+    meon::Web::env->request_base($c->req->base->as_string);
     meon::Web::env->stash($c->stash);
     meon::Web::env->session($c->session);
 

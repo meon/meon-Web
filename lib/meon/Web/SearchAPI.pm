@@ -17,7 +17,7 @@ use Future::AsyncAwait;
 use JSON::PP ();
 use Carp qw(croak);
 
-has '+api_prefix' => ( default => '/mws_1' );
+has '+api_prefix' => ( default => '/_mws_1' );
 
 my %RANKING_PROFILE = (
     search       => [qw(title_all content_search title_partial content_autocomplete)],
@@ -345,11 +345,50 @@ meon::Web::SearchAPI - meon::Web Search API
 
     bin/run_meon-web-search-api
 
-    curl "http://localhost:5001/v1/hcheck" -H "accept: application/json"
+    curl "http://localhost:5001/_mws_1/hcheck" -H "accept: application/json"
 
 =head1 DESCRIPTION
 
-meon::Web Search API
+The standalone API uses C</_mws_1> as its default root. Search and autocomplete
+accept POST JSON at C</_mws_1/search> and C</_mws_1/autocomplete>.
+
+=head2 Search form backend
+
+The Search form creates a default L<meon::Web::SearchAPI::Client>. The client
+lazily parses the website's C<[search] searchapi_url> into the service origin
+and API prefix, then appends C</search>.
+
+Configured requests supply the website hostname for index selection. Run the
+standalone service with C<USING_FRONTEND_PROXY=1> so it uses that hostname.
+
+When the setting is missing or empty, the form uses the current request's
+base URL with the client's default C</_mws_1/search> endpoint.
+
+=head2 Authenticated autocomplete
+
+To proxy autocomplete through meon::Web, configure the standalone search
+service base URL in the website's F<config.ini>:
+
+    [search]
+    searchapi_url = http://127.0.0.1:5001/_mws_1
+
+The controller appends C</autocomplete> to this base URL. A trailing slash
+is optional; the configured path must match the standalone service's API root.
+
+Run that service with C<USING_FRONTEND_PROXY=1>. The autocomplete proxy supplies
+the website hostname for index selection; without proxy mode the service can
+select its listener hostname instead. The configured URL must reach the
+standalone service directly.
+
+On restricted sites, route C</_mws_1/autocomplete> to meon::Web. Public sites
+can route the same path directly to the standalone service. The frontend URL
+is C</_mws_1/autocomplete> in either case. POST a JSON body with C<query> and
+optional C<limit> and C<search_type>. The proxy forwards C<Accept>, including
+its absence. Proxied responses use the backend status, content type,
+encoding, and body bytes, including validation errors.
+
+The controller requires authentication when C<[main] restricted_web> is true.
+When the setting is false or absent, it permits anonymous requests.
 
 =head1 SEARCH PRIORITY
 

@@ -6,10 +6,11 @@ covers the local path; an external form needs its own endpoint contract.
 
 ## Connect processing and rendering
 
-1. Inspect [form classes](../../../lib/meon/Web/Form) for the required behavior.
+1. Inspect form classes (`lib/meon/Web/Form`) for the required behavior.
    Read the selected class's fields, `http_method`, `submitted`, and every
-   `get_config_text` call. Supply those metadata elements: missing configuration
-   raises an exception, even when a caller appears to provide a default.
+   `get_config_text` call. Supply those metadata elements: missing
+   configuration raises an exception, even when a caller appears to provide a
+   default.
 1. Set the class suffix in page metadata. For the existing Search class:
 
 ```xml
@@ -70,10 +71,11 @@ validates and redirects; add the requested persistence or delivery operation
 inside `submitted` to implement a real enquiry workflow.
 
 The controller takes query parameters for GET forms and body parameters for
-other forms. It calls `submitted` only when validation succeeds and the request
-method matches. The [form role](../../../lib/meon/Web/Role/Form.pm) supplies
-configuration and redirect helpers; do not treat a page-level redirect as a
-successful-submission handler because it runs before form processing.
+other forms. It calls `submitted` only when validation succeeds and the
+request method matches. The form role (`perldoc meon::Web::Role::Form`)
+supplies configuration and redirect helpers; do not treat a page-level
+redirect as a successful-submission handler because it runs before form
+processing.
 
 ## Verify
 
@@ -82,7 +84,7 @@ submission, submit an invalid email, and check visible errors and retained
 values in the generated HTML. Submit a valid email and verify the redirect and
 its target. Check that invalid or wrong-method requests do not perform the
 operation. For custom markup, inspect actual response XML using
-[ResponseXML](../../../lib/meon/Web/ResponseXML.pm) and the controller flow;
-a hand-built `rxml` fixture can conceal a wrong XPath. In a direct framework
-check, initialize ResponseXML with the page DOM, call `add_xhtml_form`, then
-transform `as_xml`; the latter flushes queued form elements into the document.
+`perldoc meon::Web::ResponseXML` and the controller flow; a hand-built `rxml`
+fixture can conceal a wrong XPath. In a direct framework check, initialize
+ResponseXML with the page DOM, call `add_xhtml_form`, then transform `as_xml`;
+the latter flushes queued form elements into the document.

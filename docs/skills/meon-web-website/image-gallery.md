@@ -53,8 +53,8 @@ JavaScript and, if enhanced, keyboard and mobile operation. Include a filename
 with spaces when the site's uploads allow it; URL encoding and filesystem
 handling must work together.
 
-The [gallery loop](../../../lib/meon/Web/Controller/Root.pm) in `resolve_xml`
-is the source for path and output behavior. Its containment check does not
-turn direct image URLs into authenticated downloads. Apply separate access
-control when originals must remain private, as described in
+The gallery loop (`perldoc meon::Web::Controller::Root`) in `resolve_xml` is
+the source for path and output behavior. Its containment check does not turn
+direct image URLs into authenticated downloads. Apply separate access control
+when originals must remain private, as described in
 [Authentication](authentication.md).

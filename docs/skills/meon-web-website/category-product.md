@@ -34,13 +34,13 @@ meon-web-generate-product-categories \
   --hostname-dir demo-site --master-category home catalogue.xls
 ```
 
-The [generator](../../../script/meon-web-generate-product-categories) resolves
-that name under the installation's `srv/www/meon-web/`. Substitute the real
-site directory and use a disposable site for experimentation. It updates
-`include/category-product/IDENT.xml` and `include/category-products.xml`.
-The master category must be `home` for the built-in filter. The
-[data model](../../../lib/meon/Web/Data/CategoryProduct.pm) loads the existing
-summary during each store; it does not initialize the summary for you.
+The generator (`script/meon-web-generate-product-categories`) resolves that
+name under the installation's `srv/www/meon-web/`. Substitute the real site
+directory and use a disposable site for experimentation. It updates
+`include/category-product/IDENT.xml` and `include/category-products.xml`. The
+master category must be `home` for the built-in filter. The data model
+(`perldoc meon::Web::Data::CategoryProduct`) loads the existing summary during
+each store; it does not initialize the summary for you.
 
 The spreadsheet importer handles titles, ordering identifiers, and category
 membership. It does not import every possible spreadsheet column. Extend the
@@ -124,7 +124,7 @@ image URLs, an unknown identifier, and a known identifier under a wrong parent
 rendered change. Repeated generation does not imply deleted source rows are
 removed; inspect and reconcile obsolete records explicitly.
 
-Use [Search](search.md) when indexing is requested. Inspect
-[the handler](../../../lib/meon/Web/NotFound/CategoryProduct.pm) and
-[the filter](../../../lib/meon/Web/Filter/CategoryProduct.pm) if URL behavior
-in the installed version differs.
+Use [Search](search.md) when indexing is requested. Inspect the handler
+(`perldoc meon::Web::NotFound::CategoryProduct`) and the filter
+(`perldoc meon::Web::Filter::CategoryProduct`) if URL behavior in the
+installed version differs.

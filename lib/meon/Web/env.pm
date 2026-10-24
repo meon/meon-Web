@@ -45,6 +45,12 @@ sub hostname {
     return $env->{hostname} // confess('hostname unset');
 }
 
+sub request_base {
+    my $self = shift;
+    $env->{request_base} = shift if @_;
+    return $env->{request_base} // confess('request base unset');
+}
+
 sub current_dir {
     my $self = shift;
     return file($self->xml_file)->dir;
@@ -369,6 +375,12 @@ sub transform_xml {
 1;
 
 __END__
+
+=head1 REQUEST ENVIRONMENT METHODS
+
+=head2 request_base($base_url)
+
+Sets or returns the current request's base URL.
 
 =head1 ACCESS POLICY METHODS
 

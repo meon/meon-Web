@@ -137,14 +137,14 @@ sub _build_index_b {
 
 sub _build_opensearch {
     my ($self) = @_;
-    my $cfg = meon::Web::Config->get->{opensearch};
-    my @ose_nodes = split( ',', meon::Web::Config->expand_inplace($cfg->{nodes}) );
-    my $basic_auth = meon::Web::Config->expand_inplace($cfg->{basic_auth});
+    my $cfg = meon::Web::Config->get->{search};
+    my @ose_nodes = split( ',', meon::Web::Config->expand_inplace($cfg->{opensearch_nodes}) );
+    my $basic_auth = meon::Web::Config->expand_inplace($cfg->{opensearch_basic_auth});
     my %osearch_args = (
         nodes           => \@ose_nodes,
         request_timeout => 300,
         cxn_pool        => (
-            $cfg->{cxn_pool} // 'Async::Static'
+            $cfg->{opensearch_cxn_pool} // 'Async::Static'
         ),
     );
     $osearch_args{userinfo} = $basic_auth

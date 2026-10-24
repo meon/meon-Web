@@ -21,9 +21,10 @@ Create `content/news/2026/09/first-entry.xml`:
 </page>
 ```
 
-`w:title` and `w:created` belong to the entry, independently of the page title.
-The [entry model](../../../lib/meon/Web/TimelineEntry.pm) parses the timestamp
-as UTC using `%FT%T`. Its file-creation path uses `YYYY/MM/filename.xml`.
+`w:title` and `w:created` belong to the entry, independently of the page
+title. The entry model (`perldoc meon::Web::TimelineEntry`) parses the
+timestamp as UTC using `%FT%T`. Its file-creation path uses
+`YYYY/MM/filename.xml`.
 
 Create `content/news/2026/09/index.xml` as a page with
 `<w:timeline/>` inside its XHTML content wrapper. Add these templates to a
@@ -62,13 +63,13 @@ explicit list use a non-folder class, for example
 href="/news/2026/09/first-entry"/></w:timeline>`; references omit `.xml`.
 Only the first timeline on a page is processed.
 
-For year/root indexes, adapt the framework
-[redirect index](../../../share/meon-web/template/xml/timeline-index.xml)
-and [month listing](../../../share/meon-web/template/xml/timeline-list-index.xml).
-The redirect uses `{$TIMELINE_NEWEST}/`; verify its resolved destination.
-Older/newer navigation walks numeric archive directories and their indexes.
-Inspect `_older_entries`, `_newer_entries`, and `_append_timeline_navigation` in
-[Root](../../../lib/meon/Web/Controller/Root.pm) when changing archive structure.
+For year/root indexes, adapt the framework redirect index
+(`share/meon-web/template/xml/timeline-index.xml`) and month listing
+(`share/meon-web/template/xml/timeline-list-index.xml`). The redirect uses
+`{$TIMELINE_NEWEST}/`; verify its resolved destination. Older/newer navigation
+walks numeric archive directories and their indexes. Inspect `_older_entries`,
+`_newer_entries`, and `_append_timeline_navigation` in
+`perldoc meon::Web::Controller::Root` when changing archive structure.
 
 ## Verify
 

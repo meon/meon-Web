@@ -49,10 +49,7 @@ sub validate_page {
 }
 
 sub _build_search_client {
-    my ($self) = @_;
-
-    return meon::Web::SearchAPI::Client->new(
-        base_url => $self->c->req->base->as_string, );
+    return meon::Web::SearchAPI::Client->new();
 }
 
 sub submitted {

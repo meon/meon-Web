@@ -128,7 +128,7 @@ subtest 'live search with TEST_WITH_OPENSEARCH' => sub {
 
     my $service  = Test::meon::Web::SearchAPI->start;
     my $base_url = $service->url;
-    $base_url =~ s{/mws_1/?$}{};
+    $base_url =~ s{/_mws_1/?$}{};
 
     my $ua = LWP::UserAgent->new( timeout => 30 );
     $ua->default_header( 'HTTP_X_FORWARDED_HOST' => 'search-test.local' );

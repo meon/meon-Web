@@ -65,13 +65,14 @@ subtest 'derived teaser truncation' => sub {
 subtest 'opensearch connection configuration' => sub {
     local $ENV{OPENSEARCH_TEST_HOST} = 'search.example:9200,backup.example:9200';
     local $ENV{OPENSEARCH_TEST_BASIC_AUTH} = 'test-user:pa:ss@word';
-    my $cfg = meon::Web::Config->get->{opensearch};
-    is( $cfg->{nodes}, '${env:OPENSEARCH_TEST_HOST}',
+    my $cfg = meon::Web::Config->get->{search};
+    is( $cfg->{opensearch_nodes}, '${env:OPENSEARCH_TEST_HOST}',
         'test configuration reads nodes from the environment' );
-    is( $cfg->{basic_auth}, '${env:OPENSEARCH_TEST_BASIC_AUTH}',
+    is( $cfg->{opensearch_basic_auth}, '${env:OPENSEARCH_TEST_BASIC_AUTH}',
         'test configuration reads Basic Auth separately' );
-    local $cfg->{nodes} = '${env:OPENSEARCH_TEST_HOST}';
-    local $cfg->{basic_auth} = '${env:OPENSEARCH_TEST_BASIC_AUTH}';
+    local $cfg->{opensearch_nodes} = '${env:OPENSEARCH_TEST_HOST}';
+    local $cfg->{opensearch_basic_auth} = '${env:OPENSEARCH_TEST_BASIC_AUTH}';
+    local $cfg->{opensearch_cxn_pool};
 
     my %client_args;
     my $patch_client = patch_package(
@@ -89,9 +90,9 @@ subtest 'opensearch connection configuration' => sub {
         'nodes expand before comma splitting' );
     is( $client_args{userinfo}, 'test-user:pa:ss@word',
         'expanded Basic Auth reaches the client unchanged' );
-    is( $cfg->{nodes}, '${env:OPENSEARCH_TEST_HOST}',
+    is( $cfg->{opensearch_nodes}, '${env:OPENSEARCH_TEST_HOST}',
         'stored nodes keep their placeholder' );
-    is( $cfg->{basic_auth}, '${env:OPENSEARCH_TEST_BASIC_AUTH}',
+    is( $cfg->{opensearch_basic_auth}, '${env:OPENSEARCH_TEST_BASIC_AUTH}',
         'stored Basic Auth keeps its placeholder' );
 
     $ENV{OPENSEARCH_TEST_HOST} = 'second.example:9200';
@@ -101,17 +102,22 @@ subtest 'opensearch connection configuration' => sub {
         'later client creation reads the current environment' );
     ok( !exists $client_args{userinfo}, 'empty Basic Auth is omitted' );
 
-    $cfg->{nodes} = 'localhost:9200';
-    $cfg->{basic_auth} = 'static-user:static-password';
+    $cfg->{opensearch_nodes} = 'localhost:9200';
+    $cfg->{opensearch_basic_auth} = 'static-user:static-password';
+    $cfg->{opensearch_cxn_pool} = 'Async::Sniff';
     meon::Web::SearchIndex->_build_opensearch;
     eq_or_diff( $client_args{nodes}, [ 'localhost:9200' ],
         'literal nodes still work' );
     is( $client_args{userinfo}, 'static-user:static-password',
         'literal Basic Auth still works' );
+    is( $client_args{cxn_pool}, 'Async::Sniff',
+        'connection pool is read from the search section' );
 
-    delete $cfg->{basic_auth};
+    delete $cfg->{opensearch_basic_auth};
+    delete $cfg->{opensearch_cxn_pool};
     meon::Web::SearchIndex->_build_opensearch;
     ok( !exists $client_args{userinfo}, 'absent Basic Auth stays optional' );
+    is( $client_args{cxn_pool}, 'Async::Static', 'default connection pool preserved' );
 };
 
 subtest 'opensearch-records' => sub {

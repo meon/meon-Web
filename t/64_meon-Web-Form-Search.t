@@ -6,6 +6,8 @@ use utf8;
 
 use Test::Most;
 use XML::LibXML;
+use HTTP::Response;
+use Monkey::Patch::Action qw(patch_package);
 
 use meon::Web::ResponseXML;
 use meon::Web::SearchAPI::SearchResponse;
@@ -52,6 +54,40 @@ use meon::Web::SearchAPI::SearchResponse;
 }
 
 use_ok('meon::Web::Form::Search') or exit;
+
+subtest 'client uses configured API base or request base fallback' => sub {
+    my $context = Test::meon::Web::Form::Search::MockC->new;
+    meon::Web::env->clear;
+    meon::Web::env->hostname('website.test');
+    meon::Web::env->request_base('http://website.test/app/');
+    my @urls;
+    my @hosts;
+    my $transport = patch_package('LWP::UserAgent', 'post', 'replace', sub {
+        my ($ua, $url) = @_;
+        push @urls, $url;
+        push @hosts, [scalar $ua->default_header('Host'),
+            scalar $ua->default_header('HTTP_X_FORWARDED_HOST')];
+        return HTTP::Response->new(200, 'OK',
+            ['Content-Type' => 'application/json'], '{"query":"bike","total":0,"items":[]}');
+    });
+    for my $case (
+        [{}, 'http://website.test/app/_mws_1/search', 'missing search section'],
+        [{ search => { searchapi_url => 'http://127.0.0.1:5001/_mws_1' } },
+            'http://127.0.0.1:5001/_mws_1/search', 'configured API base'],
+    ) {
+        my ($config, $expected, $name) = @$case;
+        my $config_patch = patch_package('meon::Web::env', 'hostname_config',
+            'replace', sub { $config });
+        my $form = meon::Web::Form::Search->new(c => $context);
+        my $response = $form->search_client->search({ query => 'bike' });
+        is($urls[-1], $expected, "$name selects correct outgoing URL");
+        my $configured = $config->{search} ? $config->{search}{searchapi_url} : undef;
+        is_deeply($hosts[-1], $configured ? [undef, 'website.test'] : [undef, undef],
+            "$name preserves website index selection and fallback headers");
+        isa_ok($response, 'meon::Web::SearchAPI::SearchResponse');
+    }
+    meon::Web::env->clear;
+};
 
 subtest 'submitted appends search-results XML from Data::asXML' => sub {
     my $response_obj = meon::Web::SearchAPI::SearchResponse->new_from_data(

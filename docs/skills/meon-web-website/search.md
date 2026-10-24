@@ -6,12 +6,12 @@ establish a working search service.
 
 ## Supply index input
 
-1. Inspect [Search](../../../lib/meon/Web/Search.pm), especially
-   `_records_from_content`, `_records_from_category_product`, and `_search_xml`.
-   Ordinary pages supply `meta/title` and `content`; `meta/robots` containing
-   `noindex` excludes a page. The current indexer does not apply the XML-page
-   authentication policy. Exclude private material and check API access before
-   indexing it.
+1. Inspect `perldoc meon::Web::Search`, especially
+   `_records_from_content`, `_records_from_category_product`, and
+   `_search_xml`. Ordinary pages supply `meta/title` and `content`;
+   `meta/robots` containing `noindex` excludes a page. The current indexer
+   does not apply the XML-page authentication policy. Exclude private material
+   and check API access before indexing it.
 1. Provide `include/category-products.xml` and `template/xsl/search.xsl` even
    for a page-only site: the current indexing path invokes the catalogue
    transform first. A page-only site can use an empty `w:category-products`
@@ -43,13 +43,22 @@ URLs. This stylesheet produces index input, not browser HTML.
 
 ## Connect the service
 
-Verify the global `[opensearch]` configuration (`nodes`, optional `basic_auth`
-and `cxn_pool`) against [SearchIndex](../../../lib/meon/Web/SearchIndex.pm).
-Use the existing service deployment, or inspect
-[the runner](../../../script/run_meon-web-search-api) and
-[PSGI app](../../../script/meon-web-search-api.psgi) to start a test instance.
-Route `/mws_1/search` and `/mws_1/autocomplete` to it with the intended Host:
-index selection uses the request hostname.
+Configure OpenSearch in the global `etc/meon/web-config.ini` `[search]` section
+with `opensearch_nodes`, optional `opensearch_basic_auth`, and optional
+`opensearch_cxn_pool` (default `Async::Static`). The nodes and Basic Auth
+settings expand `${env:KEY}` placeholders when a client is created. For
+example:
+
+```ini
+[search]
+opensearch_nodes = ${env:OPENSEARCH_TEST_HOST}
+opensearch_basic_auth = ${env:OPENSEARCH_TEST_BASIC_AUTH}
+```
+
+Use the existing service deployment, or inspect the runner (`script/run_meon-web-search-api`)
+and PSGI app (`script/meon-web-search-api.psgi`) to start a test instance. On
+public sites, route `/_mws_1/search` and `/_mws_1/autocomplete` to it with the
+intended Host: index selection uses the request hostname.
 
 For the configured test hostname, populate the index with:
 
@@ -62,11 +71,17 @@ index for tests. `--dry-run` still initializes and populates a working index;
 it only suppresses the alias switch. For a read-only preview inspect
 `osearch_records` without calling `do_indexing`.
 
-The default [client](../../../lib/meon/Web/SearchAPI/Client.pm) posts JSON
-`{"query":"spade","page":1,"size":10}` to the site's base URL plus
-`/mws_1/search`. The API returns `query`, `total`, `page`, `size`, and `items`.
-The Search form does not expose a generic endpoint configuration key: adapt the
-routing or explicitly provide a different client if the deployment needs one.
+The Search form (`perldoc -T -m meon::Web::Form::Search`) creates a default client
+(`perldoc -T -t meon::Web::SearchAPI::Client`). The client lazily parses the site's
+`config.ini` `[search] searchapi_url` into its origin and API prefix using URI, then
+appends `/search`. For example, `http://127.0.0.1:5001/_mws_1` selects
+`http://127.0.0.1:5001/_mws_1/search`. A missing or empty setting uses the
+request's base URL plus the default `/_mws_1/search` endpoint. Configured
+requests supply the website's hostname in `HTTP_X_FORWARDED_HOST` for index
+selection, leaving Host to LWP; enable `USING_FRONTEND_PROXY=1` on the service.
+It posts
+JSON such as `{"query":"spade","page":1,"size":10}`; the API returns `query`,
+`total`, `page`, `size`, and `items`.
 
 ## Render the search page
 
@@ -77,8 +92,8 @@ page; `template/xsl/search.xsl` is reserved for index input.
 
 Import `template/xsl/lib/search-results.xsl` into the default stylesheet. Bind
 `d` to `http://search.cpan.org/perldoc?Data::asXML`. The form serializes
-[SearchResponse](../../../lib/meon/Web/SearchAPI/SearchResponse.pm) with
-Data::asXML, not a flat list of result nodes. A minimal renderer is:
+`perldoc meon::Web::SearchAPI::SearchResponse` with Data::asXML, not a flat
+list of result nodes. A minimal renderer is:
 
 ```xml
 <xsl:template match="w:search-results">
@@ -113,12 +128,23 @@ Data::asXML, not a flat list of result nodes. A minimal renderer is:
 </xsl:template>
 ```
 
-For optional autocomplete, retain ordinary GET submission to `/search?q=...`.
-Post JSON such as `{"query":"spa","limit":10}` to `/mws_1/autocomplete`;
-inspect [the API](../../../lib/meon/Web/SearchAPI.pm) for its `items` fields.
+For optional autocomplete, use ordinary GET submission to `/search?q=...`.
+Post JSON such as `{"query":"spa","limit":10}` to `/_mws_1/autocomplete`;
+inspect the API (`perldoc meon::Web::SearchAPI`) for its `items` fields.
 Render labels as text, follow the selected item's URL, and cancel or discard
 stale responses. Service errors should clear suggestions without disabling
 ordinary submission.
+
+For restricted sites, route that autocomplete path to the authenticated
+controller (`perldoc meon::Web::Controller::SearchAPI`) to check the user's
+session. Configure the site's `[search] searchapi_url` to the service base
+URL, such as `http://127.0.0.1:5001/_mws_1`; the controller appends
+`/autocomplete`. Enable the service's `USING_FRONTEND_PROXY=1` mode and close
+direct public access to it. See the authenticated-autocomplete POD in
+`perldoc meon::Web::SearchAPI` for configuration and deployment boundaries.
+Authentication grants the site's index; it does not filter results by page
+roles. Other search routes require their own access controls. The underscore
+prefix alone does not enforce privacy.
 
 ## Verify
 

@@ -53,8 +53,13 @@ unclear. The other guides extend that rendering setup.
 ## Lookup boundaries
 
 Paths in the guides are relative to the site unless explicitly described as
-framework paths. Framework links locate maintained implementation entry points
-in this checkout; in an installation, locate the equivalent modules/scripts.
+framework paths. Look up framework module POD with `perldoc -T -t Module::Name`;
+use `perldoc -T -m Module::Name` to inspect their source, including modules
+without POD. The `-T` flag avoids interactive pager hangs in agent shells.
+Verify behavior in the installed module source or POD. Framework script,
+template, and directory paths are relative to the meon::Web repository root;
+in an installation, locate the equivalent files. Links between these guides
+are relative to the skill directory.
 
 Development can replace `config.ini` with `config_dev.ini`; do not assume a
 merged overlay. Authentication of XML pages does not automatically protect

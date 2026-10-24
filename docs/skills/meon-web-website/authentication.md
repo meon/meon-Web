@@ -8,11 +8,10 @@ alone does not establish a session.
 ## Set up a local entry point
 
 1. Inspect the site's active configuration and
-   [Root login/logout actions](../../../lib/meon/Web/Controller/Root.pm).
-   For local users, ensure the existing provisioning flow creates an active
-   user under `content/members/profile/`; inspect
-   [Member](../../../lib/meon/Web/Member.pm) and
-   [registration](../../../lib/meon/Web/Form/MemberRegistration.pm) before
+   Root login/logout actions (`perldoc meon::Web::Controller::Root`). For
+   local users, ensure the existing provisioning flow creates an active user
+   under `content/members/profile/`; inspect `perldoc meon::Web::Member` and
+   registration (`perldoc meon::Web::Form::MemberRegistration`) before
    creating accounts. Do not invent a password-storage XML format.
 1. Create `content/login.xml` with ordinary page metadata and this content:
 
@@ -42,7 +41,7 @@ and POST behavior on direct login and on a protected-page request.
 
 Each listed role is required for authenticated users. Roles alone do not force
 anonymous users to log in; combine them with `members-only` or site-wide
-restriction. The [Members controller](../../../lib/meon/Web/Controller/Members.pm)
+restriction. The Members controller (`perldoc meon::Web::Controller::Members`)
 also gates its `/members` routes.
 
 ## Restrict a whole site
@@ -53,10 +52,10 @@ or external-registration pages. `members-only` takes precedence; both markers
 are presence tests. Use `0` to disable the setting, not the strings `false` or
 `off`. Development configuration replaces the normal configuration.
 
-Root login/logout and error pages are exceptions; inspect
-[env page policy](../../../lib/meon/Web/env.pm), `is_public_endpoint` and
-`page_requires_login`, for symlink resolution. Access checks precede includes,
-forms, and page redirects.
+Root login/logout and error pages are exceptions; inspect env page policy
+(`perldoc meon::Web::env`), `is_public_endpoint` and `page_requires_login`,
+for symlink resolution. Access checks precede includes, forms, and page
+redirects.
 
 For external authentication, verify `[auth]` settings against the deployed
 login action, and inspect the external service's callback/session contract.

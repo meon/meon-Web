@@ -11,6 +11,8 @@ use Path::Class qw(dir file);
 use Monkey::Patch::Action qw(patch_package);
 use Scalar::Util qw(refaddr);
 use Storable qw(dclone);
+use Plack::Test;
+use HTTP::Request::Common qw(POST);
 use lib file($Bin, 'testlib')->stringify;
 
 use meon::Web::SPc;
@@ -20,6 +22,24 @@ my $patch_prefix = patch_package(
     sub { dir(Sys::Path->find_distribution_root('meon::Web::SPc'), 't', 'tsp') }
 );
 require meon::Web::SearchAPI;
+
+subtest 'standalone API routes use the infrastructure prefix' => sub {
+    my $api = meon::Web::SearchAPI->new(
+        static_dir => dir($Bin), using_frontend_proxy => 1);
+    test_psgi app => sub { $api->plack_handler(@_) }, client => sub {
+        my ($client) = @_;
+        for my $route (qw(search autocomplete)) {
+            my $res = $client->(POST "http://search-test.local/_mws_1/$route",
+                Content_Type => 'application/json', Content => '{}');
+            is($res->code, 400, "$route reaches validation under the new prefix");
+            is($res->content, 'query is required', 'empty request reaches API validation');
+            $res = $client->(POST "http://search-test.local/mws_1/$route",
+                Content_Type => 'application/json', Content => '{}');
+            is($res->code, 302, 'old prefix does not execute the API');
+            like($res->header('Location'), qr{/_mws_1/$}, 'old prefix redirects to new root');
+        }
+    };
+};
 
 {
     package Local::SearchAPI::Request;

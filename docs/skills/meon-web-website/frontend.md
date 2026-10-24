@@ -1,11 +1,11 @@
 # Pages, layout, and assets
 
-Use a configured site with a working meon::Web runtime. Verify its host mapping
-in the global `[domains]` section: each key is a site directory and its value
-contains hostnames. Locate that directory through the installed
-[Config module](../../../lib/meon/Web/Config.pm), rather than assuming a fixed
-system prefix. Development loads `config_dev.ini` instead of `config.ini`
-when that file exists.
+Use a configured site with a working meon::Web runtime. Verify its host
+mapping in the global `[domains]` section: each key is a site directory and
+its value contains hostnames. Locate that directory through the installed
+Config module (`perldoc meon::Web::Config`), rather than assuming a fixed
+system prefix. Development loads `config_dev.ini` instead of `config.ini` when
+that file exists.
 
 ## Build a first page
 
@@ -109,6 +109,6 @@ includes, forms, or runtime data. In a debug runtime, `?debug_xml=1` exposes
 response XML for checking actual XPath locations; keep it out of public output.
 
 For resolution and processing order inspect
-[Root](../../../lib/meon/Web/Controller/Root.pm), `resolve_xml`; for includes and
-stylesheet selection inspect [env](../../../lib/meon/Web/env.pm),
-`apply_includes` and `template`.
+`perldoc meon::Web::Controller::Root`, `resolve_xml`; for includes and
+stylesheet selection inspect `perldoc meon::Web::env`, `apply_includes` and
+`template`.
