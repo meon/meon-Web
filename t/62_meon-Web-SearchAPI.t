@@ -58,20 +58,17 @@ unless ( $ENV{TEST_WITH_OPENSEARCH} ) {
     exit;
 }
 
-subtest 'refresh index' => sub {
+subtest 'build fresh index' => sub {
     my $mws = meon::Web::Search->new( hostname => 'search-test.local', );
+    $mws->do_indexing;
     my $search_index = $mws->search_index;
-    my $search_result =
-        $search_index->ose->count( index => $search_index->index_alias, )
-        ->sync;
-    if ( $search_result->{count} < 5 ) {
-        diag(
-            'indexed records not present, please run `TEST_WITH_OPENSEARCH=1 prove 61_meon-Web-Index.t` first'
-        );
-        exit;
-    }
-
-    ok( 1, 'search records present' );
+    $search_index->ose->update(
+        index => $search_index->index_alias,
+        id => sha256_base64('/c/cat1/prod-1-2'),
+        body => { script => { source => q{ctx._source.remove('ident')} } },
+        refresh => 'wait_for',
+    )->sync;
+    pass('fresh catalogue indexed with one legacy document lacking ident');
 };
 
 subtest '/autocomplete' => sub {
@@ -128,6 +125,39 @@ subtest '/search' => sub {
     ok( exists $dt_data->{took_ms}, 'search response took_ms present' );
     ok( ref( $dt_data->{items} ) eq 'ARRAY', 'search response items array' );
     is( scalar( @{ $dt_data->{items} } ), 2, 'search response has 2 items' );
+};
+
+subtest 'catalogue identifiers through both HTTP endpoints' => sub {
+    my @cases = (
+        { type => 'product', query => 'Product 1-1',
+          url => '/c/cat1/Prod-1_1.A', ident => 'Prod-1_1.A' },
+        { type => 'product', query => 'Product 2-1-3',
+          url => '/c/cat2/cat2-1/0', ident => '0' },
+        { type => 'product', query => 'Product 1-2',
+          url => '/c/cat1/prod-1-2' },
+        { type => 'category', query => 'Category 1',
+          url => '/c/cat1', ident => 'cat1' },
+        { type => 'page', query => 'search test home', url => '/' },
+    );
+    for my $endpoint (qw(search autocomplete)) {
+        for my $case (@cases) {
+            my $response = ranking_request( $endpoint, {
+                query => $case->{query}, search_type => [ $case->{type} ],
+                ( $endpoint eq 'search' ? ( size => 100 ) : ( limit => 100 ) ),
+            } );
+            my ($item) = grep { $_->{url} eq $case->{url} }
+                @{ $response->{items} };
+            ok( $item, "$endpoint returns the known $case->{type} hit" );
+            next unless $item;
+            if ( exists $case->{ident} ) {
+                is( $item->{ident}, $case->{ident},
+                    "$endpoint preserves the $case->{type} identifier" );
+            }
+            else {
+                ok( !exists $item->{ident}, "$endpoint hit without an identifier omits ident" );
+            }
+        }
+    }
 };
 
 sub ranking_doc {

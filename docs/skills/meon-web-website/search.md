@@ -83,6 +83,11 @@ It posts
 JSON such as `{"query":"spade","page":1,"size":10}`; the API returns `query`,
 `total`, `page`, `size`, and `items`.
 
+Search and autocomplete items include the original catalogue `ident` for
+category/product hits, preserving case and punctuation. Hits without an indexed
+catalogue identifier omit it. The search response wrapper retains `ident` for
+form/XML consumers.
+
 ## Render the search page
 
 Create `content/search.xml` using the Search metadata and form marker from

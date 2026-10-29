@@ -79,6 +79,7 @@ sub _map_autocomplete_items {
                 title       => $src->{title},
                 url         => $src->{url},
                 search_type => $src->{search_type},
+                ( defined $src->{ident} ? ( ident => $src->{ident} ) : () ),
                 breadcrumb  => $src->{breadcrumb},
                 teaser      => $src->{teaser},
                 thumbnail   => $src->{thumbnail},
@@ -99,6 +100,7 @@ sub _map_search_items {
                 title          => $src->{title},
                 url            => $src->{url},
                 search_type    => $src->{search_type},
+                ( defined $src->{ident} ? ( ident => $src->{ident} ) : () ),
                 breadcrumb     => $src->{breadcrumb},
                 teaser         => $src->{teaser},
                 thumbnail      => $src->{thumbnail},
@@ -351,6 +353,12 @@ meon::Web::SearchAPI - meon::Web Search API
 
 The standalone API uses C</_mws_1> as its default root. Search and autocomplete
 accept POST JSON at C</_mws_1/search> and C</_mws_1/autocomplete>.
+
+=head2 Catalogue identifiers
+
+Both endpoints include C<ident> for category/product hits whose indexed
+document has a catalogue identifier. The string preserves its original case
+and punctuation. Hits without an indexed catalogue identifier omit the property.
 
 =head2 Search form backend
 

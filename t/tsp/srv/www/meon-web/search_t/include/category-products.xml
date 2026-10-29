@@ -15,7 +15,7 @@
 <w:category-product ident="cat1">
     <w:title>Category 1</w:title>
     <w:subcategory-products>
-        <w:category-product ident="prod-1-1"/>
+        <w:category-product ident="Prod-1_1.A"/>
         <w:category-product ident="prod-1-2"/>
     </w:subcategory-products>
     <w:thumb-img-src>/static/img/products/cat1-thumb-img.jpg</w:thumb-img-src>
@@ -32,12 +32,12 @@
     <w:subcategory-products>
         <w:category-product ident="prod-2-1-1"/>
         <w:category-product ident="prod-2-1-2"/>
-        <w:category-product ident="prod-2-1-3"/>
+        <w:category-product ident="0"/>
     </w:subcategory-products>
     <w:thumb-img-src>/static/img/products/cat2-1-thumb-img.jpg</w:thumb-img-src>
 </w:category-product>
 
-<w:category-product xmlns:w="http://web.meon.eu/" ident="prod-1-1">
+<w:category-product xmlns:w="http://web.meon.eu/" ident="Prod-1_1.A">
     <w:title>Product 1-1</w:title>
     <w:teaser>Very first test product.</w:teaser>
     <w:description>
@@ -80,7 +80,7 @@
     <w:thumb-img-src>/static/img/products/prod-2-1-2-thumb-img.jpg</w:thumb-img-src>
 </w:category-product>
 
-<w:category-product xmlns:w="http://web.meon.eu/" ident="prod-2-1-3">
+<w:category-product xmlns:w="http://web.meon.eu/" ident="0">
     <w:title>Product 2-1-3</w:title>
     <w:teaser>Third test product from category 2-1.</w:teaser>
     <w:description>

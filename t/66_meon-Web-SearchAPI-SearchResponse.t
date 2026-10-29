@@ -101,6 +101,7 @@ subtest 'as_data keeps only display fields in items' => sub {
             total => 1,
             items => [
                 {   url            => '/c/riedellskates/art/111-Set-Wht-Angel',
+                    ident          => '111-Set-Wht-Angel',
                     title          => '111 - Angel White Set',
                     breadcrumb     => 'Home > Riedell Skates > Art',
                     score          => '0.9871985',
@@ -124,6 +125,7 @@ subtest 'as_data keeps only display fields in items' => sub {
         [
             {
                 url        => '/c/riedellskates/art/111-Set-Wht-Angel',
+                ident      => '111-Set-Wht-Angel',
                 title      => '111 - Angel White Set',
                 breadcrumb => 'Home > Riedell Skates > Art',
                 score      => '0.9871985',

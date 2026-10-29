@@ -14,6 +14,9 @@
    },
    "dynamic" : "strict",
    "properties" : {
+      "ident" : {
+         "type" : "keyword"
+      },
       "url" : {
          "type" : "keyword"
       },

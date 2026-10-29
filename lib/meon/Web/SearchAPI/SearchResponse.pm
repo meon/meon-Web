@@ -56,6 +56,7 @@ sub items {
                     : ()
             } qw(
                 url
+                ident
                 title
                 breadcrumb
                 score
@@ -246,7 +247,8 @@ Total count of matched records.
 
 Current page result list reduced to presentation fields only:
 C<url>, C<title>, C<breadcrumb>, C<score>, C<teaser>, C<search_type>,
-C<thumbnail>, and C<weight>.
+C<thumbnail>, C<weight>, and optional C<ident>. Catalogue identifiers retain
+their original case and punctuation; hits without an identifier omit C<ident>.
 
 =item * C<size>
 

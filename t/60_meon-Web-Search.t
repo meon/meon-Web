@@ -134,7 +134,7 @@ subtest 'opensearch-records' => sub {
         'page teaser is generated from content text'
     );
 
-    my $product = first { $_->url eq '/c/cat1/prod-1-1' } @osearch_records;
+    my $product = first { $_->url eq '/c/cat1/Prod-1_1.A' } @osearch_records;
     is( $product->teaser, 'Very first test product.',
         'existing category-product teaser is preserved' );
     is(

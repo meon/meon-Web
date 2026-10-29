@@ -1,6 +1,7 @@
 [
    {
       "breadcrumb" : null,
+      "ident" : "home",
       "index_ts" : "2026-05-01T13:38:00Z",
       "search_content" : "home",
       "search_type" : "category",
@@ -25,6 +26,7 @@
    },
    {
       "breadcrumb" : "Home",
+      "ident" : "cat1",
       "index_ts" : "2026-05-01T13:38:00Z",
       "search_content" : "home category 1",
       "search_type" : "category",
@@ -37,6 +39,7 @@
    },
    {
       "breadcrumb" : "Home > Category 1",
+      "ident" : "Prod-1_1.A",
       "index_ts" : "2026-05-01T13:38:00Z",
       "search_content" : "home category 1 product 1-1 very first test description of 1st product from category",
       "search_type" : "product",
@@ -44,11 +47,12 @@
       "thumbnail" : "/static/img/products/prod-1-1-thumb-img.jpg",
       "title" : "Product 1-1",
       "title_ngram" : "pr pro prod rodu oduc duct uct1 ct11",
-      "url" : "/c/cat1/prod-1-1",
+      "url" : "/c/cat1/Prod-1_1.A",
       "weight" : "0.000500"
    },
    {
       "breadcrumb" : "Home > Category 1",
+      "ident" : "prod-1-2",
       "index_ts" : "2026-05-01T13:38:00Z",
       "search_content" : "home category 1 product 1-2 second test description of 2nd product from 1st category",
       "search_type" : "product",
@@ -61,6 +65,7 @@
    },
    {
       "breadcrumb" : "Home",
+      "ident" : "cat2",
       "index_ts" : "2026-05-01T13:38:00Z",
       "search_content" : "home category 2",
       "search_type" : "category",
@@ -73,6 +78,7 @@
    },
    {
       "breadcrumb" : "Home > Category 2",
+      "ident" : "cat2-1",
       "index_ts" : "2026-05-01T13:38:00Z",
       "search_content" : "home category 2 category 2-1",
       "search_type" : "category",
@@ -84,7 +90,21 @@
       "weight" : "0.000300"
    },
    {
+      "breadcrumb" : null,
+      "ident" : "0",
+      "index_ts" : "2026-05-01T13:38:00Z",
+      "search_content" : "product 2-1-3 third test from category 2-1 description of 3rd product from 2nd category 1st subcategory",
+      "search_type" : "product",
+      "teaser" : "Third test product from category 2-1.",
+      "thumbnail" : "/static/img/products/prod-2-1-3-thumb-img.jpg",
+      "title" : "Product 2-1-3",
+      "title_ngram" : "pr pro prod rodu oduc duct uct2 ct21 t213",
+      "url" : "/c/cat2/cat2-1/0",
+      "weight" : "0.000000"
+   },
+   {
       "breadcrumb" : "Home > Category 2 > Category 2-1",
+      "ident" : "prod-2-1-1",
       "index_ts" : "2026-05-01T13:38:00Z",
       "search_content" : "home category 2 2-1 product 2-1-1 first test from category 2-1 description of 1st product from 2nd category subcategory",
       "search_type" : "product",
@@ -97,6 +117,7 @@
    },
    {
       "breadcrumb" : "Home > Category 2 > Category 2-1",
+      "ident" : "prod-2-1-2",
       "index_ts" : "2026-05-01T13:38:00Z",
       "search_content" : "home category 2 2-1 product 2-1-2 second test from category 2-1 description of 2nd product from category 1st subcategory",
       "search_type" : "product",
@@ -106,18 +127,6 @@
       "title_ngram" : "pr pro prod rodu oduc duct uct2 ct21 t212",
       "url" : "/c/cat2/cat2-1/prod-2-1-2",
       "weight" : "0.000100"
-   },
-   {
-      "breadcrumb" : "Home > Category 2 > Category 2-1",
-      "index_ts" : "2026-05-01T13:38:00Z",
-      "search_content" : "home category 2 2-1 product 2-1-3 third test from category 2-1 description of 3rd product from 2nd category 1st subcategory",
-      "search_type" : "product",
-      "teaser" : "Third test product from category 2-1.",
-      "thumbnail" : "/static/img/products/prod-2-1-3-thumb-img.jpg",
-      "title" : "Product 2-1-3",
-      "title_ngram" : "pr pro prod rodu oduc duct uct2 ct21 t213",
-      "url" : "/c/cat2/cat2-1/prod-2-1-3",
-      "weight" : "0.000000"
    },
    {
       "breadcrumb" : null,

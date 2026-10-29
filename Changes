@@ -1,4 +1,5 @@
 0.06 Unreleased
+    - return catalogue ident strings in search and autocomplete results
     - add meon::Web website implementation skill
     - web search
     - expand ${env:KEY} placeholders in opensearch_nodes and opensearch_basic_auth;

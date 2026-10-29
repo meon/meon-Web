@@ -55,6 +55,12 @@ subtest 'clean-up first' => sub {
         'float',
         'schema mapping is recreated at test start',
     );
+    is(
+        $mapping->{ $search_index->work_index }->{mappings}->{properties}
+            ->{ident}->{type},
+        'keyword',
+        'catalogue identifiers use the keyword mapping',
+    );
 
     $search_index->_delete_index($search_index->work_index);
     $search_index->_clear__indices_info;

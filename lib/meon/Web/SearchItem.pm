@@ -47,6 +47,7 @@ sub as_opensearch_record {
 
     return {
         search_type    => $self->search_type,
+        ( defined $self->ident ? ( ident => $self->ident ) : () ),
         title          => $self->title,
         breadcrumb     => $self->breadcrumb,
         teaser         => $self->teaser,

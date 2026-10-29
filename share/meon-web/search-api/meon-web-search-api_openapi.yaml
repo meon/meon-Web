@@ -149,6 +149,13 @@ components:
     'Autocomplete-Item':
       type: object
       properties:
+        ident:
+          type: string
+          description: >-
+            Original catalogue identifier for category/product hits, preserving
+            case and punctuation. Omitted when the indexed document has no
+            catalogue identifier.
+          example: 'MacBook-Pro_14'
         title:
           type: string
           description: matched title
