@@ -75,7 +75,10 @@ The `/static/` controller serves `www/static/`. A metadata element such as
 For reusable XML, create `include/navigation.xml` and insert
 `<w:include path="navigation.xml"/>` in the page. Includes replace their marker
 with the included document's root; account for that root in the XSLT.
-`include/auto/`, when present, is included automatically.
+`include/auto/`, when present, is included automatically. For linking to
+catalogue items from page navigation or templates, see
+[Category/product catalogue](category-product.md) for hierarchical paths versus
+stable `/c/<ident>` short links.
 
 ## Extend presentation or processing
 

@@ -117,25 +117,33 @@ a title if the landing renderer should display one.
 
 ## Short links and canonical paths
 
-Use `meon::Web::Util->category_product_short_link($ident)` to produce a stable
-link without parent categories. For example, identifier `Wheels-Ninja` yields
-`/c/Wheels-Ninja`, even when the canonical path is
-`/c/rp/rp-wheels/sonar-wheels/Wheels-Ninja`. Pass the original identifier;
-do not strip or normalize a navigation URL. The helper preserves case,
-punctuation, and identifier `0`. Its POD documents accepted URL-safe characters
-and invalid inputs.
+When linking to category or product pages (such as from site templates, external
+references, marketing URLs, cross-links, or user requests for item links),
+short links are an available option alongside full hierarchical navigation paths:
 
-With the catalogue handler and include filter configured, a nested item's
-short link redirects to its canonical page. A direct child of home can already
-be served at its short link; `/c/home` redirects to `/`. Existing static content
-at the same URL takes precedence over the catalogue handler.
+- **Short links (`/c/<ident>`)**: Use
+  `meon::Web::Util->category_product_short_link($ident)` to produce a stable link
+  without parent categories. For example, identifier `Wheels-Ninja` yields
+  `/c/Wheels-Ninja`, even when the canonical path is
+  `/c/rp/rp-wheels/sonar-wheels/Wheels-Ninja`. Short links provide flat, durable
+  permalinks that remain valid when items move between parent categories or
+  undergo reclassification. Pass the original identifier; do not strip or
+  normalize a navigation URL. The helper preserves case, punctuation, and
+  identifier `0`. Its POD documents accepted URL-safe characters and invalid
+  inputs.
+- **Hierarchical and canonical paths**: The filter's `href` follows the current
+  navigation context, including accessory and alternative links. Its
+  `href-canonical` follows only `subcategory-products` from home. First
+  assignment in traversal order wins when several normal parents reference an
+  item; this is not a global shortest-path calculation. Search export must use
+  `href-canonical`; short links provide stable search document identity
+  independently of those result URLs.
 
-The filter's `href` follows the current navigation context, including accessory
-and alternative links. Its `href-canonical` follows only `subcategory-products`
-from home. First assignment in traversal order wins when several normal
-parents reference an item; this is not a global shortest-path calculation.
-Search export must use `href-canonical`; short links provide stable search
-document identity independently of those result URLs.
+With the catalogue handler and include filter configured, requesting a nested
+item's short link redirects (HTTP 302) to its canonical page. A direct child of
+home can already be served directly at its short link; `/c/home` redirects to
+`/`. Existing static content at the same URL takes precedence over the catalogue
+handler.
 
 ## Verify
 

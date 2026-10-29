@@ -23,7 +23,7 @@ Read only the guides needed for the task:
 - For indexing, search results, or autocomplete: [Search](search.md).
 - For dated entries and archive navigation: [Timeline](timeline.md).
 - For image directories and thumbnails: [Image gallery](image-gallery.md).
-- For generated categories and product pages:
+- For generated categories, product pages, or links and short-links to them:
   [Category/product catalogue](category-product.md).
 
 Read Frontend first when creating a new site or when its rendering path is
