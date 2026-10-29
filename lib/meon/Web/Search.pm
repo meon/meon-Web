@@ -198,7 +198,9 @@ sub _records_from_category_product {
                     search_content => $content_txt,
                     url            => $cat_prod_uri,
                     weight         => 0,
-                    tree_idx       => $tree_idx,
+                    ( defined $tree_idx && length $tree_idx
+                        ? ( tree_idx => $tree_idx )
+                        : () ),
                     thumbnail      => $thumb_uri,
                     (   @sub_cat_prod
                         ? ( sub_cat_prod => \@sub_cat_prod )
