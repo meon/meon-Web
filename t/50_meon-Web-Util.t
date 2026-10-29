@@ -14,6 +14,17 @@ use Path::Class qw(file dir);
 
 use_ok ( 'meon::Web::Util' ) or exit;
 
+subtest 'category_product_short_link' => sub {
+    for my $ident ('Prod-1_1.A~', '0') {
+        is(meon::Web::Util->category_product_short_link($ident), "/c/$ident",
+            'short link preserves the original identifier');
+    }
+    for my $ident (undef, '', [], '.', '..', 'a/b', 'a?b', 'a#b', 'a%b', 'a b', 'ä') {
+        throws_ok { meon::Web::Util->category_product_short_link($ident) }
+            qr/invalid category-product ident/, 'rejects identifiers outside a plain URL segment';
+    }
+};
+
 subtest 'username_cleanup' => sub {
     my $tmp_dir = tempdir( CLEANUP => 1 );
     dir($tmp_dir, 'username')->mkpath;

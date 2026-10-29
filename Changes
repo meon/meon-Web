@@ -1,4 +1,8 @@
 0.06 Unreleased
+    - index canonical catalogue URLs and derive breadcrumbs and weights from
+      canonical placement, excluding accessory and alternative shortcuts
+    - add category_product_short_link and stable namespaced catalogue document
+      IDs based on /c/IDENT; correct zero and home short-link redirects
     - return catalogue ident strings in search and autocomplete results
     - add meon::Web website implementation skill
     - web search

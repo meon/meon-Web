@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<w:category-products xmlns:w="http://web.meon.eu/">
+  <w:apply-filter ident="CategoryProduct"/>
+  <w:category-product ident="home">
+    <w:title>Home</w:title>
+    <w:subcategory-products>
+      <w:category-product ident="catalog"/>
+      <w:category-product ident="peer"/>
+    </w:subcategory-products>
+    <w:accessories>
+      <w:category-product ident="Wheels-Ninja"/>
+      <w:category-product ident="related-only"/>
+    </w:accessories>
+    <w:alternatives><w:category-product ident="Alternative"/></w:alternatives>
+  </w:category-product>
+  <!-- Document order differs from the canonical traversal's parent order. -->
+  <w:category-product ident="peer">
+    <w:title>Peer</w:title>
+    <w:subcategory-products>
+      <w:category-product ident="Wheels-Ninja"/>
+      <w:category-product ident="Shallow"/>
+    </w:subcategory-products>
+  </w:category-product>
+  <w:category-product ident="catalog">
+    <w:title>Catalogue</w:title>
+    <w:subcategory-products><w:category-product ident="deep"/></w:subcategory-products>
+  </w:category-product>
+  <w:category-product ident="deep">
+    <w:title>Deep</w:title>
+    <w:subcategory-products>
+      <w:category-product ident="Wheels-Ninja"/>
+      <w:category-product ident="Alternative"/>
+      <w:category-product ident="private"/>
+      <w:category-product ident="missing"/>
+    </w:subcategory-products>
+  </w:category-product>
+  <w:category-product ident="Wheels-Ninja"><w:title>Wheel</w:title></w:category-product>
+  <w:category-product ident="Alternative"><w:title>Wheel</w:title></w:category-product>
+  <w:category-product ident="Shallow"><w:title>Wheel</w:title></w:category-product>
+  <w:category-product ident="related-only"><w:title>Related only</w:title></w:category-product>
+  <w:category-product ident="private"><w:title>Private</w:title><w:auth-only>1</w:auth-only></w:category-product>
+</w:category-products>

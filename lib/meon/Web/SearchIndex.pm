@@ -4,6 +4,7 @@ use Moose;
 use 5.010;
 use namespace::autoclean;
 use meon::Web::Config;
+use meon::Web::Util;
 use Future::AsyncAwait;
 use Search::Elasticsearch::Async;
 use Path::Class qw(dir file);
@@ -259,15 +260,17 @@ sub switch_active_index {
 sub index_docs {
     my ($self, $docs) = @_;
     croak 'docs should be an arrayref' unless ref($docs) eq 'ARRAY';
+    my @body = map {
+        my $record = $_->as_opensearch_record;
+        my $id = ($record->{search_type} eq 'category' || $record->{search_type} eq 'product')
+            ? 'category-product:' . sha256_base64(
+                meon::Web::Util->category_product_short_link($record->{ident}))
+            : sha256_base64($record->{url});
+        (+{ index => { _id => $id } }, $record);
+    } @$docs;
     my $resp = $self->ose->bulk(
         index => $self->work_index,
-        body  => [
-            map {
-                ( +{ index => { _id => sha256_base64( $_->{url} ) } }, $_, )
-            }
-            map { $_->as_opensearch_record }
-            @$docs
-        ],
+        body  => \@body,
     )->sync;
     my @errors =
         map {

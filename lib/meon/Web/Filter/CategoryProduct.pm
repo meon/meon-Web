@@ -65,24 +65,24 @@ sub apply {
         if (
             !$current_category
             || (
-                $next_category_ident
+                defined($next_category_ident) && length($next_category_ident)
                 && !$self->_has_subcategory($current_category, $next_category_ident)
             )
         ) {
             if ($all_items->{$current_ident}) {
+                $all_items->{'home'}->setAttribute('href-canonical' => $HREF_BASE);
                 $self->_set_href($all_items->{'home'},'canonical');
-                my $href = $all_items->{$current_ident}->getAttribute('href-canonical');
+                my $href = $current_ident eq 'home' ? '/'
+                    : $all_items->{$current_ident}->getAttribute('href-canonical');
                 return {
-                    href   => $HREF_BASE.$href,
+                    href   => $href,
                     status => 302,
-                };
+                } if defined($href) && length($href);
             }
-            else {
-                return {
-                    error  => 'category path "'.$current_ident.'" not found',
-                    status => 404,
-                };
-            }
+            return {
+                error  => 'category path "'.$current_ident.'" not found',
+                status => 404,
+            };
         }
 
         my $breadcrumb_item_el = meon::Web::ResponseXML->new(dom => $dom)->create_element('breadcrumb-item');

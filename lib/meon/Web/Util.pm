@@ -14,6 +14,14 @@ use File::MimeInfo 'mimetype';
 use Encode;
 use List::MoreUtils qw(uniq);
 
+sub category_product_short_link {
+    my ($class, $ident) = @_;
+    croak 'invalid category-product ident: expected a nonempty URL-safe identifier'
+        unless defined($ident) && !ref($ident)
+            && $ident =~ /\A[A-Za-z0-9._~-]+\z/ && $ident ne '.' && $ident ne '..';
+    return '/c/' . $ident;
+}
+
 sub xpc {
     my $xpc = XML::LibXML::XPathContext->new;
     $xpc->registerNs('x', 'http://www.w3.org/1999/xhtml');

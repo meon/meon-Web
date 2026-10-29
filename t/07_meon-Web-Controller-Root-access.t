@@ -130,6 +130,24 @@ for my $site (qw(access_restricted_t access_disabled_t access_missing_t)) {
 
 test_psgi app => $app, client => sub {
     my ($client) = @_;
+    subtest 'catalogue short links resolve to canonical pages' => sub {
+        for my $case (
+            ['0', '/c/cat2/cat2-1/0'],
+            ['home', '/'],
+        ) {
+            my ($ident, $canonical) = @$case;
+            my $response = $client->(GET 'http://search-test.local'
+                . meon::Web::Util->category_product_short_link($ident));
+            is($response->code, 302, "$ident short link redirects");
+            is($response->header('Location'), 'http://search-test.local' . $canonical,
+                "$ident redirects to its canonical path");
+            my $page = $client->(GET 'http://search-test.local' . $canonical);
+            is($page->code, 200, "$ident canonical page renders");
+        }
+        my $unlinked = $client->(GET 'http://search-test.local/c/accessory-only');
+        is($unlinked->code, 404, 'short link without a canonical path does not redirect to an empty target');
+    };
+
     subtest 'anonymous session reads have no persistent side effects' => sub {
         for my $case (
             ['https://disabled.test/default-public', 200, 'public page'],

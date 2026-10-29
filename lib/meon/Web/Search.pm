@@ -172,13 +172,7 @@ sub _records_from_category_product {
             my $tree_idx     = $cat_prod_el->find('w:tree-idx')->text_content;
             my $thumb_uri =
                 $cat_prod_el->find('w:thumb-img-src')->text_content;
-            my @sub_cat_prod;
-            $cat_prod_el->find('w:subcategory-products/w:category-product')
-                ->each(
-                sub {
-                    push( @sub_cat_prod, $_->attr('ident') );
-                }
-                );
+            my $is_category = $cat_prod_el->find('w:subcategory-products/w:category-product')->count;
 
             my $content_txt = join(
                 "\n",
@@ -191,7 +185,7 @@ sub _records_from_category_product {
             push(
                 @osearch_records,
                 meon::Web::SearchItem->new(
-                    search_type => ( @sub_cat_prod ? 'category' : 'product' ),
+                    search_type => ( $is_category ? 'category' : 'product' ),
                     ident       => $ident,
                     title       => $title_txt,
                     teaser      => $teaser_txt,
@@ -202,41 +196,27 @@ sub _records_from_category_product {
                         ? ( tree_idx => $tree_idx )
                         : () ),
                     thumbnail      => $thumb_uri,
-                    (   @sub_cat_prod
-                        ? ( sub_cat_prod => \@sub_cat_prod )
-                        : ()
-                    ),
                     index_ts => $self->index_ts,
                 )
             );
         }
         );
 
-    # build breadcrumb
+    # Use canonical path ancestors; XML item order can select a different parent.
     my %ident_to_rec;
     for my $rec (@osearch_records) {
         my $ident = $rec->{ident};
-        next unless $ident;
+        next unless defined($ident) && length($ident);
         $ident_to_rec{$ident} = $rec;
     }
-    my %ident_parent;
     for my $rec (@osearch_records) {
-        next unless $rec->is_sub_cat_prod;
-        my $parent_ident = $rec->{ident};
-        my $sub_cat_prod = $rec->sub_cat_prod;
-        for my $cat_prod_ident (@$sub_cat_prod) {
-            $ident_parent{$cat_prod_ident} //= $parent_ident;
-        }
-    }
-    for my $rec (@osearch_records) {
-        my $cident = $rec->{ident};
-        next unless $cident;
-        my @breadcrumb_parts;
-        while ( my $parent_ident = $ident_parent{$cident} ) {
-            $cident = $parent_ident;
-            my $ctitle = $ident_to_rec{$cident}->{title};
-            unshift(@breadcrumb_parts, $ctitle);
-        }
+        next if $rec->url eq '/';
+        my @ancestor_idents = grep { length } split m{/}, $rec->url;
+        shift @ancestor_idents; # /c prefix
+        pop @ancestor_idents;   # current item
+        unshift @ancestor_idents, 'home';
+        my @breadcrumb_parts = map { $ident_to_rec{$_}->title }
+            grep { exists $ident_to_rec{$_} } @ancestor_idents;
         if (@breadcrumb_parts) {
             $rec->breadcrumb( join( ' > ', @breadcrumb_parts ) );
             $rec->search_content(

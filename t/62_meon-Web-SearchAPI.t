@@ -64,7 +64,7 @@ subtest 'build fresh index' => sub {
     my $search_index = $mws->search_index;
     $search_index->ose->update(
         index => $search_index->index_alias,
-        id => sha256_base64('/c/cat1/prod-1-2'),
+        id => 'category-product:' . sha256_base64('/c/prod-1-2'),
         body => { script => { source => q{ctx._source.remove('ident')} } },
         refresh => 'wait_for',
     )->sync;

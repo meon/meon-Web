@@ -90,10 +90,10 @@
       "weight" : "0.000300"
    },
    {
-      "breadcrumb" : null,
+      "breadcrumb" : "Home > Category 2 > Category 2-1",
       "ident" : "0",
       "index_ts" : "2026-05-01T13:38:00Z",
-      "search_content" : "product 2-1-3 third test from category 2-1 description of 3rd product from 2nd category 1st subcategory",
+      "search_content" : "home category 2 2-1 product 2-1-3 third test from category 2-1 description of 3rd product from 2nd category 1st subcategory",
       "search_type" : "product",
       "teaser" : "Third test product from category 2-1.",
       "thumbnail" : "/static/img/products/prod-2-1-3-thumb-img.jpg",

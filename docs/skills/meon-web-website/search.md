@@ -38,8 +38,26 @@ establish a working search service.
 ```
 
 Copy `w:subcategory-products` into category records; emit `w:teaser` when
-available. Derive href and tree order from filtered data, not hand-maintained
-URLs. This stylesheet produces index input, not browser HTML.
+available. Select items with `@href-canonical`, emit that attribute as `w:href`,
+and emit `@tree-idx` as `w:tree-idx`. Using ordinary `@href` can export an
+accessory or alternative route. Items without a normal canonical path remain
+excluded. This stylesheet produces index input, not browser HTML.
+
+Catalogue breadcrumbs follow the ancestors in the exported canonical URL.
+Index weights favor shallower URLs, then canonical tree order, with values
+between zero and 0.001. Accessory shortcuts therefore cannot raise a product's
+weight. This is a small boost in weighted query roles; the `content_search`
+role ignores weight and query-tier priorities still apply.
+
+Catalogue document IDs use `category-product:` plus the SHA-256 Base64 hash of
+the [short link](category-product.md#short-links-and-canonical-paths) produced by
+`meon::Web::Util->category_product_short_link($ident)`. Keep the full canonical
+URL in `w:href`: short links supply identity, while canonical paths supply
+result URLs, breadcrumbs, and depth. An identifier must be unique within the
+site's catalogue and present in every category/product export record. Parent
+moves and category/product reclassification preserve the document ID;
+identifier renames change it. Ordinary pages retain full-URL hashes, separated
+from catalogue IDs by the catalogue prefix.
 
 ## Connect the service
 

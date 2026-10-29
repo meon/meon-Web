@@ -115,6 +115,28 @@ page at `/`, reuse the template as `content/index.xml`, setting the include's
 current `ident="home"` and breadcrumb `href="home"`. The generated home needs
 a title if the landing renderer should display one.
 
+## Short links and canonical paths
+
+Use `meon::Web::Util->category_product_short_link($ident)` to produce a stable
+link without parent categories. For example, identifier `Wheels-Ninja` yields
+`/c/Wheels-Ninja`, even when the canonical path is
+`/c/rp/rp-wheels/sonar-wheels/Wheels-Ninja`. Pass the original identifier;
+do not strip or normalize a navigation URL. The helper preserves case,
+punctuation, and identifier `0`. Its POD documents accepted URL-safe characters
+and invalid inputs.
+
+With the catalogue handler and include filter configured, a nested item's
+short link redirects to its canonical page. A direct child of home can already
+be served at its short link; `/c/home` redirects to `/`. Existing static content
+at the same URL takes precedence over the catalogue handler.
+
+The filter's `href` follows the current navigation context, including accessory
+and alternative links. Its `href-canonical` follows only `subcategory-products`
+from home. First assignment in traversal order wins when several normal
+parents reference an item; this is not a global shortest-path calculation.
+Search export must use `href-canonical`; short links provide stable search
+document identity independently of those result URLs.
+
 ## Verify
 
 Parse generated XML, exercise category and product requests, and inspect the

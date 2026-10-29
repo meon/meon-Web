@@ -18,6 +18,8 @@
         <w:category-product ident="Prod-1_1.A"/>
         <w:category-product ident="prod-1-2"/>
     </w:subcategory-products>
+    <w:accessories><w:category-product ident="prod-2-1-1"/><w:category-product ident="accessory-only"/></w:accessories>
+    <w:alternatives><w:category-product ident="prod-2-1-2"/></w:alternatives>
     <w:thumb-img-src>/static/img/products/cat1-thumb-img.jpg</w:thumb-img-src>
 </w:category-product>
 <w:category-product ident="cat2">
@@ -90,5 +92,7 @@
     </w:description>
     <w:thumb-img-src>/static/img/products/prod-2-1-3-thumb-img.jpg</w:thumb-img-src>
 </w:category-product>
+
+<w:category-product ident="accessory-only"><w:title>Accessory only</w:title></w:category-product>
 
 </w:category-products>

@@ -24,14 +24,6 @@ has 'title_ngram' => (
 );
 has 'thumbnail' => ( is => 'rw', isa => 'Maybe[Str]', required => 0, );
 
-# Internal helper field for breadcrumb construction in Search.pm.
-has 'sub_cat_prod' => (
-    is        => 'rw',
-    isa       => 'Maybe[ArrayRef[Str]]',
-    required  => 0,
-    predicate => 'is_sub_cat_prod',
-);
-
 sub _build_title_ngram {
     my ($self) = @_;
 

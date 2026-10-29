@@ -16,6 +16,7 @@ use Monkey::Patch::Action qw(patch_package);
 use List::Util            qw(first);
 use JSON::XS;
 use Test::MockTime       qw(set_fixed_time);
+use File::Copy          qw(copy);
 
 use_ok('meon::Web::SPc') or exit;
 my $patch_prefix = patch_package(
@@ -157,6 +158,48 @@ subtest 'opensearch-records' => sub {
         'generated data match',
         [], 'verbose'
     );
+};
+
+subtest 'canonical catalogue export and placement' => sub {
+    my $site = dir(tempdir(CLEANUP => 1));
+    $site->subdir('include')->mkpath;
+    $site->subdir('template', 'xsl')->mkpath;
+    $site->subdir('content')->mkpath;
+    copy(file($Bin, 'tsp/srv/www/meon-web/search_t/template/xsl/search.xsl'),
+        $site->file('template/xsl/search.xsl')) or die $!;
+    my $catalogue = XML::LibXML->load_xml(
+        location => file($Bin, 'tdata/canonical-category-products.xml'));
+    my $patch_site = patch_package('meon::Web::env', 'hostname_dir', 'replace', sub { $site });
+    my $generate = sub {
+        $catalogue->toFile($site->file('include/category-products.xml'));
+        meon::Web::env->clear;
+        my $search = meon::Web::Search->new(
+            hostname => 'search-test.local', dst_hostname_dir => $site->subdir('content'),
+        );
+        return { map { $_->ident => $_ } $search->all_osearch_records };
+    };
+    my $with_links = $generate->();
+    for my $ident ('Wheels-Ninja', 'Alternative') {
+        is($with_links->{$ident}->url, "/c/catalog/deep/$ident", 'exports canonical path');
+    }
+    is($with_links->{'Wheels-Ninja'}->breadcrumb, 'Home > Catalogue > Deep',
+        'breadcrumb follows canonical ancestors rather than the first parent in XML order');
+    like($with_links->{'Wheels-Ninja'}->search_content, qr/^home catalogue deep\n/,
+        'indexed ancestor text follows canonical placement');
+    ok(!exists $with_links->{'related-only'}, 'accessory-only item remains excluded');
+    ok(!exists $with_links->{private}, 'anonymous search excludes auth-only item');
+    cmp_ok($with_links->{Shallow}->weight, '>', $with_links->{'Wheels-Ninja'}->weight,
+        'shallower canonical placement gets greater weight despite accessory shortcut');
+
+    my $xpc = meon::Web::Util->xpc;
+    $_->parentNode->removeChild($_)
+        for $xpc->findnodes('//w:accessories | //w:alternatives', $catalogue);
+    my $without_links = $generate->();
+    for my $ident ('Wheels-Ninja', 'Alternative') {
+        is($with_links->{$ident}->weight, $without_links->{$ident}->weight,
+            'accessory and alternative shortcuts do not affect weight');
+    }
+    meon::Web::env->clear;
 };
 
 subtest 'dry-run indexing' => sub {
