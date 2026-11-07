@@ -90,7 +90,7 @@ my $builder = Module::Build::SysPath->new(
         'DateTime::Format::Mail'       => 0,
         'HTTP::Exception'              => 0,
         'Future::AsyncAwait'           => 0,
-        'Search::Elasticsearch::Async' => 0,
+        'Search::Elasticsearch::Async' => 0.09,
         'Async::Microservice'          => 0,
         'Log::Log4perl'                => 0,
     },
