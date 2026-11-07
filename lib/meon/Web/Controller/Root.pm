@@ -203,6 +203,9 @@ sub resolve_xml : Private {
         URI::WithBase->new("/", $c->req->uri->absolute.'')->abs
     );
     $c->model('ResponseXML')->push_new_element_nl('run-env')->appendText(Run::Env->current);
+    $c->model('ResponseXML')->push_new_element_nl('minified-assets')->appendText(
+        meon::Web::Config->use_minified_assets
+    );
     $c->model('ResponseXML')->push_new_element_nl('static-mtime')->appendText(meon::Web::env->static_dir_mtime);
 
     my $x_fwd_el = $c->model('ResponseXML')->push_new_element_nl('req-x-forwarded');

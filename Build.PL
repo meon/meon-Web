@@ -2,6 +2,8 @@ use strict;
 use warnings;
 use Module::Build::SysPath;
 
+use File::Which qw(which);
+
 use 5.010;
 
 my $builder = Module::Build::SysPath->new(
@@ -13,6 +15,7 @@ my $builder = Module::Build::SysPath->new(
     configure_requires => {
         'Module::Build::SysPath' => 0.13,
         'Module::Build'          => '0.3607',
+        'File::Which'            => 0,
     },
     build_requires => {
         'Module::Build::SysPath' => 0.13,
@@ -115,5 +118,8 @@ my $builder = Module::Build::SysPath->new(
     add_to_cleanup => ['meon-Web-*'],
     create_readme  => 1,
 );
+
+die 'please install `esbuild` (apt install esbuild)'
+    unless which('esbuild');
 
 $builder->create_build_script();

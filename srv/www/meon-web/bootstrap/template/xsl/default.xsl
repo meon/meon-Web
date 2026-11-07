@@ -29,24 +29,24 @@
 
 <xsl:template name="page-footer">
     <xsl:choose>
-        <xsl:when test="/w:page/w:run-env/text() = 'development'">
+        <xsl:when test="/w:page/w:minified-assets/text() = '1' or (not(/w:page/w:minified-assets) and /w:page/w:run-env/text() != 'development')">
             <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
-            <script src="/static/js/bootstrap.js"></script>
+            <script src="/static/meon-Web-merged.js?t={$STATIC_CACHE_BUSTER}"></script>
         </xsl:when>
         <xsl:otherwise>
             <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
-            <script src="/static/meon-Web-merged.js?t={$STATIC_CACHE_BUSTER}"></script>
+            <script src="/static/js/bootstrap.js"></script>
         </xsl:otherwise>
     </xsl:choose>
 </xsl:template>
 
 <xsl:template name="extra-headers">
     <xsl:choose>
-        <xsl:when test="/w:page/w:run-env/text() = 'development'">
-            <link href="/static/css/bootstrap.css" rel="stylesheet"/>
+        <xsl:when test="/w:page/w:minified-assets/text() = '1' or (not(/w:page/w:minified-assets) and /w:page/w:run-env/text() != 'development')">
+            <link href="/static/meon-Web-merged.css?t={$STATIC_CACHE_BUSTER}" rel="stylesheet"/>
         </xsl:when>
         <xsl:otherwise>
-            <link href="/static/meon-Web-merged.css?t={$STATIC_CACHE_BUSTER}" rel="stylesheet"/>
+            <link href="/static/css/bootstrap.css" rel="stylesheet"/>
         </xsl:otherwise>
     </xsl:choose>
 

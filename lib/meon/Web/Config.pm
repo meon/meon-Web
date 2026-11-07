@@ -43,62 +43,89 @@ foreach my $hostname_dir_name (keys %{$config->{domains} || {}}) {
         $config->{$hostname_dir_name} = Config::INI::Reader->read_file(
             $hostname_dir_config
         );
-        unless (Run::Env->dev) {
-            if (my $js_dir = $config->{$hostname_dir_name}->{main}->{'js-dir'}) {
-                $js_dir = dir($hostname_dir, $js_dir);
-                my $merged_js = '';
-                my @merge_js_files;
-                foreach my $js_file (sort $js_dir->children(no_hidden => 1)) {
-                    next unless -f $js_file;
-                    push(@merge_js_files, $js_file.'');
-                    $merged_js .= '/* '.$js_file." */\n\n".$js_file->slurp.";\n\n";
-                }
-                my $js_merged_file = file($hostname_dir, 'www','static','meon-Web-merged.js');
+        __PACKAGE__->process_site_assets(
+            $hostname_dir,
+            $config->{$hostname_dir_name}
+        );
+    }
+}
 
-                if (@merge_js_files && ((! -f $js_merged_file) || !File::is->newest($js_merged_file, @merge_js_files))) {
-                    my ($tmp_fh, $tmp_filename) = tempfile(undef, UNLINK => 1);
-                    print $tmp_fh $merged_js;
-                    close($tmp_fh);
-                    #~ system("closure-compiler --js ".join(' --js ', @merge_js_files)." --js_output_file -o $js_merged_file.tmp && mv $js_merged_file.tmp $js_merged_file")
-                    if (system(
-                            "cat $tmp_filename | yui-compressor --type js --charset UTF-8 -o $js_merged_file.tmp && mv $js_merged_file.tmp $js_merged_file"
-                        ) != 0
-                    ) {
-                        warn 'failed to minify js ' . $!;
-                        system(
-                            "cat $tmp_filename > $js_merged_file.tmp && mv $js_merged_file.tmp $js_merged_file"
-                        )
-                    }
-                }
-            }
-            if (my $css_dir = $config->{$hostname_dir_name}->{main}->{'css-dir'}) {
-                $css_dir = dir($hostname_dir, $css_dir);
-                my $merged_css = '';
-                my @merge_css_files;
-                foreach my $css_file (sort $css_dir->children(no_hidden => 1)) {
-                    next unless -f $css_file;
-                    push(@merge_css_files, $css_file);
-                    $merged_css .= '/* '.$css_file." */\n\n".$css_file->slurp."\n\n";
-                }
-                my $css_merged_file = file($hostname_dir, 'www','static','meon-Web-merged.css');
+sub use_minified_assets {
+    my ($class) = @_;
+    return (!Run::Env->dev || $ENV{USE_MINIFIED_ASSETS}) ? 1 : 0;
+}
 
-                if (@merge_css_files && ((! -f $css_merged_file) || !File::is->newest($css_merged_file, @merge_css_files))) {
-                    my ($tmp_fh, $tmp_filename) = tempfile(undef, UNLINK => 1);
-                    print $tmp_fh $merged_css;
-                    close($tmp_fh);
-                    if (system(
-                            "cat $tmp_filename | yui-compressor --type css --charset UTF-8 -o $css_merged_file.tmp && mv $css_merged_file.tmp $css_merged_file"
-                        ) != 0
-                    ) {
-                        warn 'failed to minify css ' . $!;
-                        system(
-                            "cat $tmp_filename > $css_merged_file.tmp && mv $css_merged_file.tmp $css_merged_file"
-                        );
-                    }
-                }
+sub process_site_assets {
+    my ($class, $hostname_dir, $site_config) = @_;
+
+    if ($class->use_minified_assets) {
+        $class->minify_assets(
+            $hostname_dir,
+            $site_config
+        );
+    }
+    return;
+}
+
+sub minify_assets {
+    my ($class, $hostname_dir, $site_config) = @_;
+
+    if (my $js_dir = $site_config->{main}->{'js-dir'}) {
+        $js_dir = dir($hostname_dir, $js_dir);
+        my $merged_js = '';
+        my @merge_js_files;
+        foreach my $js_file (sort $js_dir->children(no_hidden => 1)) {
+            next unless -f $js_file;
+            push(@merge_js_files, $js_file.'');
+            $merged_js .= '/* '.$js_file." */\n\n".$js_file->slurp.";\n\n";
+        }
+        my $js_merged_file = file($hostname_dir, 'www','static','meon-Web-merged.js');
+
+        if (@merge_js_files && ((! -f $js_merged_file) || !File::is->newest($js_merged_file, @merge_js_files))) {
+            my ($tmp_fh, $tmp_filename) = tempfile(undef, UNLINK => 1);
+            print $tmp_fh $merged_js;
+            close($tmp_fh);
+            if (system(
+                    "esbuild --log-level=error --minify --loader=js --charset=utf8 < $tmp_filename > $js_merged_file.tmp && mv $js_merged_file.tmp $js_merged_file"
+                ) != 0
+            ) {
+                my $status_text = ($? & 127) ? "signal " . ($? & 127) : "exit " . ($? >> 8);
+                warn "failed to minify js ($status_text)";
+                system(
+                    "cp $tmp_filename $js_merged_file.tmp && mv $js_merged_file.tmp $js_merged_file"
+                );
             }
         }
     }
+    if (my $css_dir = $site_config->{main}->{'css-dir'}) {
+        $css_dir = dir($hostname_dir, $css_dir);
+        my $merged_css = '';
+        my @merge_css_files;
+        foreach my $css_file (sort $css_dir->children(no_hidden => 1)) {
+            next unless -f $css_file;
+            push(@merge_css_files, $css_file);
+            $merged_css .= '/* '.$css_file." */\n\n".$css_file->slurp."\n\n";
+        }
+        my $css_merged_file = file($hostname_dir, 'www','static','meon-Web-merged.css');
+
+        if (@merge_css_files && ((! -f $css_merged_file) || !File::is->newest($css_merged_file, @merge_css_files))) {
+            my ($tmp_fh, $tmp_filename) = tempfile(undef, UNLINK => 1);
+            print $tmp_fh $merged_css;
+            close($tmp_fh);
+            if (system(
+                    "esbuild --log-level=error --minify --loader=css --charset=utf8 < $tmp_filename > $css_merged_file.tmp && mv $css_merged_file.tmp $css_merged_file"
+                ) != 0
+            ) {
+                my $status_text = ($? & 127) ? "signal " . ($? & 127) : "exit " . ($? >> 8);
+                warn "failed to minify css ($status_text)";
+                system(
+                    "cp $tmp_filename $css_merged_file.tmp && mv $css_merged_file.tmp $css_merged_file"
+                );
+            }
+        }
+    }
+
+    return;
 }
 
 sub get {
@@ -150,6 +177,36 @@ __END__
 meon::Web::Config - website configuration
 
 =head1 METHODS
+
+=head2 use_minified_assets
+
+    my $use_minified = meon::Web::Config->use_minified_assets;
+
+Returns true (1) if the application should use minified assets, either because
+it is running outside the development environment (C<!Run::Env->dev>) or because
+the C<USE_MINIFIED_ASSETS> environment variable is set to a true value. Returns
+false (0) otherwise.
+
+=head2 process_site_assets
+
+    meon::Web::Config->process_site_assets($hostname_dir, $site_config);
+
+Inspects the website configuration for asset directories (C<js-dir> and
+C<css-dir>) and delegates to C<minify_assets> if C<use_minified_assets> returns
+true.
+
+=head2 minify_assets
+
+    meon::Web::Config->minify_assets($hostname_dir, $site_config);
+
+Concatenates and minifies JavaScript files from C<main.js-dir> into
+F<www/static/meon-Web-merged.js> and CSS files from C<main.css-dir> into
+F<www/static/meon-Web-merged.css> within the given site directory using
+C<esbuild --minify>.
+
+If merged files already exist and are newer than their source files, rebuilding
+is skipped. If minification fails, a warning with the exit status is emitted
+and unminified concatenated content is written as fallback.
 
 =head2 expand_inplace
 

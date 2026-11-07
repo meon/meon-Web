@@ -89,12 +89,13 @@ marker execute Perl code.
 
 Keep asset source files in deterministic dependency order. Sites using
 `[main]` keys `css-dir` and `js-dir` generate `meon-Web-merged.css` and
-`meon-Web-merged.js` outside Development when configuration loads. Point the
-production XSLT at `/static/meon-Web-merged.css` and
-`/static/meon-Web-merged.js`, retaining individual assets in Development.
-Use the site's existing environment branch and verify `w:run-env` in response
-XML. Do not load both modes or edit generated bundles. The standalone example
-above deliberately uses individual files and needs no bundling configuration.
+`meon-Web-merged.js` outside Development (or when `USE_MINIFIED_ASSETS=1` is
+set) when configuration loads. Point production or minified asset branches in
+XSLT at `/static/meon-Web-merged.css` and `/static/meon-Web-merged.js`,
+switching on `/w:page/w:minified-assets/text() = '1'` (with fallback to
+`w:run-env != 'development'`), and retaining individual assets in Development.
+Do not load both modes or edit generated bundles. The standalone example above
+deliberately uses individual files and needs no bundling configuration.
 
 ## Verify
 

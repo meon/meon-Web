@@ -1,4 +1,8 @@
 0.06 Unreleased
+    - replace yui-compressor with esbuild for asset minification; support modern
+      ES6+ JS syntax and UTF-8; report exit status on failure
+    - add USE_MINIFIED_ASSETS environment variable and <w:minified-assets> XML
+      response flag to allow testing minified assets on development
     - index canonical catalogue URLs and derive breadcrumbs and weights from
       canonical placement, excluding accessory and alternative shortcuts
     - add category_product_short_link and stable namespaced catalogue document
